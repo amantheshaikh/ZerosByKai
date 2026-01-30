@@ -218,11 +218,11 @@ const ZerosByKaiLanding = () => {
 
                         {/* Right: Kai Character */}
                         <div className="relative float">
-                            <div className="comic-panel comic-shadow p-8 bg-gradient-to-br from-yellow-200 to-yellow-100">
+                            <div className="comic-panel comic-shadow p-2 bg-gradient-to-br from-yellow-200 to-yellow-100 rotate-2">
                                 <img
-                                    src="https://placehold.co/600x800"
+                                    src="/kai-hero.jpg"
                                     alt="Kai - Opportunity Analyst"
-                                    className="w-full h-auto"
+                                    className="w-full h-auto border-4 border-black"
                                     style={{
                                         filter: 'contrast(1.1) brightness(1.05)',
                                     }}
@@ -230,12 +230,12 @@ const ZerosByKaiLanding = () => {
                             </div>
 
                             {/* Floating badges */}
-                            <div className="absolute -top-4 -left-4 comic-panel bg-white p-4 pop-in" style={{ animationDelay: '0.2s' }}>
+                            <div className="absolute -top-4 -left-4 comic-panel bg-white p-4 pop-in shadow-xl rotate-[-5deg]" style={{ animationDelay: '0.2s' }}>
                                 <div className="text-3xl">🔍</div>
                                 <p className="comic-body text-xs font-bold mt-1">2,347<br />THREADS</p>
                             </div>
 
-                            <div className="absolute top-1/4 -right-8 comic-panel bg-white p-4 pop-in" style={{ animationDelay: '0.4s' }}>
+                            <div className="absolute top-1/4 -right-8 comic-panel bg-white p-4 pop-in shadow-xl rotate-[5deg]" style={{ animationDelay: '0.4s' }}>
                                 <div className="text-3xl">🎯</div>
                                 <p className="comic-body text-xs font-bold mt-1">WINNER<br />PICKER</p>
                             </div>
@@ -249,31 +249,33 @@ const ZerosByKaiLanding = () => {
                 <div className="absolute inset-0 halftone opacity-20"></div>
                 <div className="relative max-w-5xl mx-auto">
                     <div className="flex items-center gap-4 mb-8">
-                        <Award className="w-12 h-12 text-yellow-300" />
-                        <h2 className="comic-title text-4xl text-white">LAST WEEK'S WINNER</h2>
+                        <Award className="w-12 h-12 text-yellow-300 transform rotate-[-10deg]" />
+                        <h2 className="comic-title text-4xl text-white tracking-wide drop-shadow-md">LAST WEEK'S WINNER</h2>
                     </div>
 
-                    <div className="comic-panel p-8 bg-white">
-                        <div className="flex items-start justify-between gap-6">
+                    <div className="comic-panel p-8 bg-white shadow-2xl transform rotate-[1deg]">
+                        <div className="flex items-start justify-between gap-6 flex-col md:flex-row">
                             <div className="flex-1">
                                 <div className="flex gap-2 mb-4">
-                                    <span className="comic-panel px-3 py-1 text-sm font-bold bg-blue-100">🇮🇳 India</span>
-                                    <span className="comic-panel px-3 py-1 text-sm font-bold bg-purple-100">EdTech</span>
+                                    <span className="comic-panel px-3 py-1 text-sm font-bold bg-blue-100 border-2">🇮🇳 India</span>
+                                    <span className="comic-panel px-3 py-1 text-sm font-bold bg-purple-100 border-2">EdTech</span>
                                 </div>
-                                <h3 className="comic-title text-3xl mb-4">AI-Powered Resume Formatter for Government Jobs</h3>
-                                <p className="comic-body text-lg leading-relaxed text-gray-700">
+                                <h3 className="comic-title text-3xl mb-4 leading-tight">AI-Powered Resume Formatter for Government Jobs</h3>
+                                <p className="comic-body text-lg leading-relaxed text-gray-800">
                                     Job seekers spend hours formatting resumes to match specific government application
                                     requirements, often getting rejected due to formatting errors rather than qualifications.
                                 </p>
-                                <div className="mt-6 comic-panel inline-block p-3 bg-yellow-100">
-                                    <p className="comic-body text-sm">
+                                <div className="mt-6 comic-panel inline-block p-3 bg-yellow-100 border-2">
+                                    <p className="comic-body text-sm text-black">
                                         <span className="font-bold">347 members</span> earned a Kai's Pick badge! 🎯
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-center">
-                                <div className="comic-title text-6xl text-rose-700 mb-2">89</div>
-                                <div className="comic-body font-bold text-sm">VOTES</div>
+                            <div className="text-center w-full md:w-auto mt-6 md:mt-0">
+                                <div className="bg-black text-white p-4 comic-panel border-white border-4 transform rotate-[-3deg]">
+                                    <div className="comic-title text-6xl text-yellow-400 mb-1">89</div>
+                                    <div className="comic-body font-bold text-sm tracking-widest">VOTES</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -281,71 +283,75 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* This Week's Ideas Preview */}
-            <section className="py-20 px-6 bg-gray-50">
+            <section className="py-20 px-6 bg-yellow-50">
                 <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-12">
-                        <h2 className="comic-title text-5xl mb-4">THIS WEEK'S ZEROS</h2>
-                        <p className="comic-body text-xl text-gray-700 max-w-2xl mx-auto">
+                    <div className="text-center mb-16">
+                        <div className="inline-block bg-black text-white px-6 py-2 comic-title text-xl mb-4 transform -rotate-1">
+                            FRESH FROM REDDIT
+                        </div>
+                        <h2 className="comic-title text-6xl mb-6 text-gray-900 drop-shadow-sm">THIS WEEK'S ZEROS</h2>
+                        <p className="comic-body text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-6 text-left bg-white p-4 shadow-sm">
                             <span className="font-bold">10 ideas. One vote.</span> Pick the opportunity you'd bet on.
                             If it wins, you earn a Kai's Pick badge.
                         </p>
-                        <p className="comic-body text-lg text-gray-600 max-w-2xl mx-auto mt-3">
-                            Stack enough badges? <span className="font-bold">You might just have a future in venture capital.</span>
-                        </p>
                     </div>
 
-                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 mb-12 max-w-6xl mx-auto">
+                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 mb-16 max-w-6xl mx-auto">
                         {featuredIdeas.map((idea, index) => (
                             <div
                                 key={idea.id}
-                                className="comic-panel p-8 bg-white hover:scale-[1.02] transition-transform cursor-pointer comic-shadow"
+                                className="comic-panel bg-white hover:scale-[1.01] transition-all cursor-pointer comic-shadow flex flex-col h-full relative group"
                                 style={{ animationDelay: `${index * 0.1}s` }}
                             >
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div>
-                                        <div className="flex gap-2 mb-3">
-                                            <span className="comic-panel px-2 py-1 text-xs font-bold bg-gray-100">{idea.tag}</span>
-                                            <span className="comic-panel px-2 py-1 text-xs font-bold bg-purple-100">{idea.category}</span>
+                                {/* Top Badge */}
+                                <div className="absolute -top-4 -right-4 bg-yellow-400 border-4 border-black px-4 py-1 comic-title transform rotate-3 z-10 shadow-md group-hover:rotate-6 transition-transform">
+                                    IDEA #{idea.id}
+                                </div>
+
+                                <div className="p-8 flex-grow">
+                                    {/* Header */}
+                                    <div className="mb-6 border-b-4 border-gray-100 pb-6">
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <span className="px-3 py-1 text-xs font-bold bg-blue-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.tag}</span>
+                                            <span className="px-3 py-1 text-xs font-bold bg-purple-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.category}</span>
                                         </div>
-                                        <h3 className="comic-title text-2xl mb-1">{idea.name}</h3>
-                                        <p className="comic-body text-sm text-gray-600">{idea.title}</p>
+                                        <h3 className="comic-title text-3xl mb-2 leading-none">{idea.name}</h3>
+                                        <h4 className="comic-body font-bold text-gray-600 text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>
+                                    </div>
+
+                                    {/* Content Grid */}
+                                    <div className="space-y-5">
+                                        {/* Problem */}
+                                        <div className="bg-rose-50 p-4 border-2 border-black rounded-none relative">
+                                            <div className="absolute -top-3 left-4 bg-black text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Problem</div>
+                                            <p className="comic-body text-sm leading-relaxed text-gray-900">{idea.problem}</p>
+                                        </div>
+
+                                        {/* Solution */}
+                                        <div className="bg-green-50 p-4 border-2 border-black rounded-none relative">
+                                            <div className="absolute -top-3 left-4 bg-black text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Fix</div>
+                                            <p className="comic-body text-sm leading-relaxed text-gray-900">{idea.solution}</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="comic-body text-[10px] font-bold text-gray-500 uppercase mb-1">Target Audience</div>
+                                                <p className="comic-body text-xs font-bold">{idea.target}</p>
+                                            </div>
+                                            <div>
+                                                <div className="comic-body text-[10px] font-bold text-gray-500 uppercase mb-1">Market Potential</div>
+                                                <p className="comic-body text-xs font-bold text-rose-700">{idea.why}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Problem */}
-                                <div className="mb-4">
-                                    <div className="comic-body text-xs font-bold text-gray-500 uppercase mb-1">Problem</div>
-                                    <p className="comic-body text-sm leading-relaxed">{idea.problem}</p>
-                                </div>
-
-                                {/* Solution */}
-                                <div className="mb-4">
-                                    <div className="comic-body text-xs font-bold text-gray-500 uppercase mb-1">Solution</div>
-                                    <p className="comic-body text-sm leading-relaxed">{idea.solution}</p>
-                                </div>
-
-                                {/* Target */}
-                                <div className="mb-4">
-                                    <div className="comic-body text-xs font-bold text-gray-500 uppercase mb-1">Target</div>
-                                    <p className="comic-body text-sm leading-relaxed">{idea.target}</p>
-                                </div>
-
-                                {/* Why */}
-                                <div className="mb-6">
-                                    <div className="comic-body text-xs font-bold text-gray-500 uppercase mb-1">Why It Matters</div>
-                                    <p className="comic-body text-sm leading-relaxed">{idea.why}</p>
-                                </div>
-
-                                {/* Vote Button - Creative Design */}
-                                <div className="relative">
+                                {/* Vote Button - At Bottom */}
+                                <div className="p-4 bg-gray-50 border-t-4 border-black mt-auto">
                                     <button className="w-full relative group">
-                                        {/* Main button */}
-                                        <div className="comic-panel px-6 py-4 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-500 hover:to-amber-500 transition-all comic-shadow">
-                                            <span className="comic-title text-xl">I'D BUILD THIS</span>
+                                        <div className="w-full py-3 bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black transition-colors border-2 border-transparent">
+                                            <span className="comic-title text-xl tracking-wider">VOTE FOR THIS</span>
                                         </div>
-                                        {/* Hover effect - second panel */}
-                                        <div className="absolute inset-0 -z-10 comic-panel bg-black transform translate-x-1 translate-y-1 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform"></div>
                                     </button>
                                 </div>
                             </div>
