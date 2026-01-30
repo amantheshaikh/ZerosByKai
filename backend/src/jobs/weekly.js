@@ -1,0 +1,296 @@
+import { supabaseAdmin } from '../config/supabase.js';
+import { Resend } from 'resend';
+import { generateWeeklyDigestEmail, generateBadgeEmail } from '../emails/templates.js';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Calculate winner and award badges
+export async function calculateWinner() {
+  try {
+    // Get last week's Monday
+    const today = new Date();
+    const lastMonday = new Date(today);
+    lastMonday.setDate(today.getDate() - today.getDay() - 6); // Last Monday
+    const weekStart = lastMonday.toISOString().split('T')[0];
+
+    // Get last week's published ideas
+    const { data: ideas, error: ideasError } = await supabaseAdmin
+      .from('ideas')
+      .select('id, name, title')
+      .eq('week_published', weekStart)
+      .eq('status', 'published');
+
+    if (ideasError) throw ideasError;
+
+    if (!ideas || ideas.length === 0) {
+      console.log('No ideas from last week to calculate winner');
+      return;
+    }
+
+    // Count votes for each idea
+    const ideaVotes = await Promise.all(
+      ideas.map(async (idea) => {
+        const { count, error } = await supabaseAdmin
+          .from('votes')
+          .select('*', { count: 'exact', head: true })
+          .eq('idea_id', idea.id);
+
+        if (error) throw error;
+
+        return {
+          ...idea,
+          voteCount: count || 0
+        };
+      })
+    );
+
+    // Find winner (highest votes)
+    const winner = ideaVotes.reduce((max, idea) => 
+      idea.voteCount > max.voteCount ? idea : max
+    , ideaVotes[0]);
+
+    console.log(`Winner: ${winner.name} with ${winner.voteCount} votes`);
+
+    // Create/update weekly batch
+    const { data: batch, error: batchError } = await supabaseAdmin
+      .from('weekly_batches')
+      .upsert({
+        week_start_date: weekStart,
+        winner_idea_id: winner.id,
+        total_ideas: ideas.length,
+        total_votes: ideaVotes.reduce((sum, i) => sum + i.voteCount, 0)
+      }, {
+        onConflict: 'week_start_date'
+      })
+      .select()
+      .single();
+
+    if (batchError) throw batchError;
+
+    // Award badges to users who voted for winner
+    const { data: winningVoters, error: votersError } = await supabaseAdmin
+      .from('votes')
+      .select('user_id')
+      .eq('idea_id', winner.id);
+
+    if (votersError) throw votersError;
+
+    if (winningVoters && winningVoters.length > 0) {
+      const badges = winningVoters.map(v => ({
+        user_id: v.user_id,
+        idea_id: winner.id,
+        badge_type: 'kai_pick'
+      }));
+
+      const { error: badgeError } = await supabaseAdmin
+        .from('user_badges')
+        .upsert(badges, {
+          onConflict: 'user_id,idea_id',
+          ignoreDuplicates: true
+        });
+
+      if (badgeError) throw badgeError;
+
+      console.log(`Awarded badges to ${winningVoters.length} users`);
+    }
+
+    return { winner, batch, badgeCount: winningVoters?.length || 0 };
+  } catch (error) {
+    console.error('Error calculating winner:', error);
+    throw error;
+  }
+}
+
+// Send weekly digest to all subscribers
+export async function sendWeeklyDigest() {
+  try {
+    // Get current week's Monday
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - today.getDay() + 1);
+    const weekStart = monday.toISOString().split('T')[0];
+
+    // Get this week's published ideas
+    const { data: ideas, error: ideasError } = await supabaseAdmin
+      .from('ideas')
+      .select('*')
+      .eq('week_published', weekStart)
+      .eq('status', 'published')
+      .order('created_at', { ascending: true });
+
+    if (ideasError) throw ideasError;
+
+    if (!ideas || ideas.length === 0) {
+      console.log('No published ideas for this week');
+      return;
+    }
+
+    // Get last week's winner
+    const lastMonday = new Date(today);
+    lastMonday.setDate(today.getDate() - 7);
+    const lastWeekStart = lastMonday.toISOString().split('T')[0];
+
+    const { data: lastWeekBatch } = await supabaseAdmin
+      .from('weekly_batches')
+      .select(`
+        *,
+        winner:winner_idea_id (*)
+      `)
+      .eq('week_start_date', lastWeekStart)
+      .single();
+
+    // Get all active subscribers (users who signed up)
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .limit(1000); // Batch in production
+
+    if (usersError) throw usersError;
+
+    // Get user emails from auth
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authError) throw authError;
+
+    const emailList = authUsers.users.map(u => ({
+      email: u.email,
+      name: u.user_metadata?.name || u.email.split('@')[0]
+    }));
+
+    console.log(`Sending digest to ${emailList.length} subscribers`);
+
+    // Generate email HTML
+    const emailHtml = generateWeeklyDigestEmail({
+      ideas,
+      winner: lastWeekBatch?.winner,
+      badgeCount: lastWeekBatch?.total_votes || 0,
+      threadCount: 2347, // From metadata ideally
+      weekDate: new Date(weekStart).toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    });
+
+    // Send emails (batch)
+    const sendPromises = emailList.map(subscriber => 
+      resend.emails.send({
+        from: 'Kai <kai@zerosbykai.com>',
+        to: subscriber.email,
+        subject: `Kai's Zeros: Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        html: emailHtml
+      })
+    );
+
+    await Promise.allSettled(sendPromises);
+
+    // Update batch
+    await supabaseAdmin
+      .from('weekly_batches')
+      .update({ email_sent_at: new Date().toISOString() })
+      .eq('week_start_date', weekStart);
+
+    console.log('Weekly digest sent successfully');
+    return { sent: emailList.length, ideas: ideas.length };
+  } catch (error) {
+    console.error('Error sending weekly digest:', error);
+    throw error;
+  }
+}
+
+// Send badge emails to winners
+export async function sendBadgeEmails() {
+  try {
+    // Get last week's winner
+    const today = new Date();
+    const lastMonday = new Date(today);
+    lastMonday.setDate(today.getDate() - today.getDay() - 6);
+    const lastWeekStart = lastMonday.toISOString().split('T')[0];
+
+    const { data: batch } = await supabaseAdmin
+      .from('weekly_batches')
+      .select(`
+        *,
+        winner:winner_idea_id (*)
+      `)
+      .eq('week_start_date', lastWeekStart)
+      .single();
+
+    if (!batch || !batch.winner) {
+      console.log('No winner for last week');
+      return;
+    }
+
+    // Get users who voted for winner
+    const { data: votes, error: votesError } = await supabaseAdmin
+      .from('votes')
+      .select('user_id')
+      .eq('idea_id', batch.winner_idea_id);
+
+    if (votesError) throw votesError;
+
+    if (!votes || votes.length === 0) {
+      console.log('No users voted for winner');
+      return;
+    }
+
+    // Get user details
+    const userIds = votes.map(v => v.user_id);
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authError) throw authError;
+
+    const winners = authUsers.users
+      .filter(u => userIds.includes(u.id))
+      .map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.user_metadata?.name || u.email.split('@')[0]
+      }));
+
+    console.log(`Sending badge emails to ${winners.length} winners`);
+
+    // Get badge counts for each user
+    const emailPromises = winners.map(async (user) => {
+      const { data: badges } = await supabaseAdmin
+        .from('user_badges')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('badge_type', 'kai_pick');
+
+      const badgeCount = badges?.length || 1;
+      let tier = 'bronze';
+      if (badgeCount >= 11) tier = 'diamond';
+      else if (badgeCount >= 6) tier = 'gold';
+      else if (badgeCount >= 3) tier = 'silver';
+
+      const emailHtml = generateBadgeEmail({
+        name: user.name,
+        ideaName: batch.winner.name,
+        badgeCount,
+        tier
+      });
+
+      return resend.emails.send({
+        from: 'Kai <kai@zerosbykai.com>',
+        to: user.email,
+        subject: "🎯 You Picked the Winner!",
+        html: emailHtml
+      });
+    });
+
+    await Promise.allSettled(emailPromises);
+
+    // Update batch
+    await supabaseAdmin
+      .from('weekly_batches')
+      .update({ badge_emails_sent_at: new Date().toISOString() })
+      .eq('week_start_date', lastWeekStart);
+
+    console.log('Badge emails sent successfully');
+    return { sent: winners.length };
+  } catch (error) {
+    console.error('Error sending badge emails:', error);
+    throw error;
+  }
+}

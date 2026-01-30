@@ -1,0 +1,25 @@
+{
+  "name": "zerosbykai-backend",
+  "version": "1.0.0",
+  "description": "ZerosByKai API - Startup ideas from Reddit",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:migrate": "node src/db/migrate.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "resend": "^3.0.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
+    "nodemon": "^3.0.2"
+  }
+}
