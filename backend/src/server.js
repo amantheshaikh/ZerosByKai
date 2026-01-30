@@ -74,13 +74,13 @@ cron.schedule('15 9 * * 1', async () => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Something went wrong!',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ZerosByKai API running on port ${PORT}`);
-  console.log(`📧 Cron jobs scheduled for weekly digest and badges`);
+  console.log(`📧 Cron jobs scheduled for valid digest and badges`);
 });
