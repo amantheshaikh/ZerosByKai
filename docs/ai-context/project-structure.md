@@ -36,8 +36,11 @@ ZerosByKai/
 │   │   ├── server.js                   # Main entry point
 │   │   ├── routes/                     # API Routes
 │   │   │   ├── auth.js                 # Auth routes (signup, subscribe, unsubscribe)
-│   │   │   └── ideas.js                # Ideas CRUD & voting routes
-│   │   ├── jobs/                       # Cron jobs (weekly digest)
+│   │   │   ├── ideas.js                # Ideas CRUD & leaderboard routes
+│   │   │   ├── votes.js                # Voting, badges, last-week result
+│   │   │   └── admin.js                # Admin routes
+│   │   ├── jobs/                       # Cron jobs (weekly winner + digest)
+│   │   ├── emails/                     # Email templates (digest, welcome, magic link)
 │   │   ├── workflows/                  # AI analysis workflows
 │   │   └── config/                     # Configuration (Supabase client)
 │   ├── package.json                    # Dependencies
@@ -53,7 +56,7 @@ ZerosByKai/
 │   │   ├── about.jsx                   # About Kai page
 │   │   ├── story.jsx                   # Origin story page
 │   │   ├── archive.jsx                 # Past weekly idea archives
-│   │   ├── profile.jsx                 # User profile (auth required)
+│   │   ├── profile.jsx                 # User profile: tier, vote, last week result, badges
 │   │   ├── terms.jsx                   # Terms & guidelines
 │   │   ├── privacy.jsx                 # Privacy policy
 │   │   ├── unsubscribe.jsx             # Email unsubscribe handler

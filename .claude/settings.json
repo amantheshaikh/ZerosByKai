@@ -1,5 +1,17 @@
 {
     "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Task",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${WORKSPACE}/.claude/hooks/subagent-context-injector.sh",
+                        "description": "Auto-injects project context into subagent prompts"
+                    }
+                ]
+            }
+        ],
         "Notification": [
             {
                 "matcher": ".*",

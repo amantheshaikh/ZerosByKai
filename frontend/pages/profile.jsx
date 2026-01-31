@@ -25,6 +25,7 @@ export default function ProfilePage() {
     const { user, session, isLoading } = useAuth();
     const [badges, setBadges] = useState(null);
     const [vote, setVote] = useState(null);
+    const [lastWeekResult, setLastWeekResult] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -37,10 +38,12 @@ export default function ProfilePage() {
         Promise.all([
             apiFetch('/api/votes/badges', {}, session),
             apiFetch('/api/votes/user', {}, session),
+            apiFetch('/api/votes/last-week', {}, session),
         ])
-            .then(([badgeData, voteData]) => {
+            .then(([badgeData, voteData, lastWeekData]) => {
                 setBadges(badgeData);
                 setVote(voteData.vote);
+                setLastWeekResult(lastWeekData);
             })
             .catch(() => { })
             .finally(() => setLoading(false));
@@ -139,6 +142,43 @@ export default function ProfilePage() {
                             >
                                 VOTE NOW
                             </Link>
+                        </div>
+                    )}
+                </div>
+
+                {/* Last Week's Result */}
+                <div className="comic-panel bg-white p-8 comic-shadow mb-8">
+                    <h2 className="comic-title text-2xl text-gray-900 mb-4">LAST WEEK&apos;S RESULT</h2>
+                    {lastWeekResult?.winner ? (
+                        <div>
+                            <div className="border-2 border-black p-4 bg-yellow-50 mb-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-lg">🏆</span>
+                                    <span className="comic-title text-lg text-black">{lastWeekResult.winner.name}</span>
+                                </div>
+                                <p className="comic-body text-sm text-gray-700">{lastWeekResult.winner.title}</p>
+                                <p className="comic-body text-xs text-gray-500 mt-1">{lastWeekResult.winner.voteCount} vote{lastWeekResult.winner.voteCount !== 1 ? 's' : ''}</p>
+                            </div>
+                            {lastWeekResult.earnedBadge ? (
+                                <div className="border-2 border-yellow-400 bg-yellow-50 p-4 text-center">
+                                    <p className="comic-title text-xl text-black">YOU PICKED THE WINNER!</p>
+                                    <p className="comic-body text-sm text-gray-600 mt-1">Badge earned for this pick.</p>
+                                </div>
+                            ) : lastWeekResult.lastWeekVote ? (
+                                <div className="border-2 border-dashed border-gray-300 p-4">
+                                    <p className="comic-body text-gray-600">
+                                        You voted for <strong>{lastWeekResult.lastWeekVote.name}</strong>. The winner was <strong>{lastWeekResult.winner.name}</strong>.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="border-2 border-dashed border-gray-300 p-4">
+                                    <p className="comic-body text-gray-500">You didn&apos;t vote last week.</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="border-2 border-dashed border-gray-300 p-6 text-center">
+                            <p className="comic-body text-gray-500">No results from last week yet.</p>
                         </div>
                     )}
                 </div>

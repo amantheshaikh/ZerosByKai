@@ -1,47 +1,30 @@
 # ZerosByKai - AI Context
 
-## 1. Project Overview
-- **Vision:** Create an AI-powered platform tailored for entrepreneurs to discover validated startup ideas scraped from Reddit.
-- **Current Phase:** Active Development / MVP Deployment.
-- **Key Architecture:** Monorepo-style structure with separate Frontend (Next.js) and Backend (Node.js).
-- **Development Strategy:** User-centric design, robust AI analysis, and secure data handling using Supabase.
+## Project
+AI platform for entrepreneurs — validated startup ideas scraped from Reddit, analyzed by Gemini.
+Monorepo: `frontend/` (Next.js 14, Pages Router, Vercel) + `backend/` (Node.js/Express, Fly.io).
+Database: Supabase (PostgreSQL + Auth). Email: Resend. AI: Google Gemini.
 
-## 2. Project Structure
+## Quick Reference
+- **Dev:** `npm run dev` in `frontend/` (port 3000) and `backend/` (port 3001)
+- **Build:** `npm run build` in `frontend/`
+- **Structure:** See `docs/ai-context/project-structure.md` for full file tree
+- **Docs:** See `docs/ai-context/docs-overview.md` for 3-tier doc system
 
-**⚠️ CRITICAL: AI agents MUST read the [Project Structure documentation](/docs/ai-context/project-structure.md) before attempting any task to understand the complete technology stack, actual file tree and project organization.**
+## Code Standards
+- JavaScript (no TypeScript). Async/await. Functional React components.
+- ESLint for frontend linting. No test framework configured yet.
+- Secrets in env vars only. Supabase RLS for data isolation.
+- KISS, YAGNI, DRY. Prefer existing libraries over custom implementations.
+- Keep files focused and under 350 lines. Split by responsibility.
 
-For the complete tech stack and file tree structure, see [docs/ai-context/project-structure.md](/docs/ai-context/project-structure.md).
+## Key Patterns
+- **Auth:** Supabase magic link + Google OAuth. `apiFetch()` in `frontend/lib/auth.js` handles Bearer tokens.
+- **API:** Express routes at `/api/{ideas,votes,auth,admin}`. Two Supabase clients: `supabase` (RLS) and `supabaseAdmin` (service key).
+- **Cron:** Monday 9 AM UTC — `calculateWinner()` then `sendWeeklyDigest()`. Monday 10 AM — `runRedditFlow()`.
+- **Badges:** Users who vote for the winning idea earn `kai_pick` badges. Tiers: bronze(1), silver(3), gold(6), diamond(11).
 
-## 3. Coding Standards & AI Instructions
-
-### General Instructions
-- **Context Management:** Always read `CLAUDE.md` and `docs/ai-context/project-structure.md` first.
-- **Environment:** Run `npm run dev` in `frontend/` for UI, and `npm run dev` in `backend/` for API.
-- **Testing:** Verify changes locally before deployment.
-- **Security:** usage of env vars for tokens, RLS in Supabase.
-
-### Technologies
-- **Frontend:** Next.js, React, Tailwind CSS.
-- **Backend:** Node.js, Express, Fly.io.
-- **Database:** Supabase (PostgreSQL).
-- **AI:** Google Gemini.
-
-### Code Style
-- **TypeScript/JavaScript:**
-    - Use async/await.
-    - Prefer functional components in React.
-    - Strong typing in TypeScript (where applicable).
-    - ESLint/Prettier configuration if present.
-
-### Documentation
-- Update `CONTEXT.md` files in subdirectories when significant architectural changes occur.
-- Keep `project-structure.md` up to date with file system changes.
-
-## 4. Multi-Agent Workflows
-- Use `.claude/commands` for orchestration patterns.
-- Sub-agents will have context injected automatically via hooks (if configured).
-
-## 5. Post-Task Completion Protocol
-1. **Frontend:** Check built (`npm run build`).
-2. **Backend:** Verify API endpoints.
-3. **Lint/Type Check:** Run `tsc` or `eslint` where applicable.
+## Post-Task
+1. Frontend: `npm run build` passes.
+2. Backend: Verify API endpoints work.
+3. Update CONTEXT.md files if architecture changed.

@@ -21,3 +21,11 @@ This script fetches the latest ideas from the database and sends a weekly digest
 cd backend
 node src/workflows/simulate_newsletter.js
 ```
+
+## 3. Simulate Magic Link (Sign Up) Email
+This script sends a login magic link email to `amantheshaikh@gmail.com`.
+
+```bash
+cd backend
+node src/workflows/simulate_magic_link.js
+```

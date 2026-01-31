@@ -1,208 +1,21 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
 import { useAuth, apiFetch, getApiUrl } from '@/lib/auth';
 import { useSubscribe } from '@/hooks/useSubscribe';
 import Header from '@/components/Header';
 import Leaderboard from '@/components/Leaderboard';
+import IdeaCard from '@/components/IdeaCard';
+import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-        {
-            "@type": "Question",
-            "name": "What is ZerosByKai?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "ZerosByKai is a free weekly startup ideas newsletter. Every Monday, Kai curates 10 validated business opportunities by analyzing thousands of Reddit threads to find real pain points people are willing to pay to solve."
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "How does ZerosByKai find startup ideas?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Kai uses AI to analyze 20+ subreddits and thousands of Reddit threads weekly, looking for complaint clusters and validated pain points. These are turned into actionable startup opportunities with problem statements, solution ideas, target audiences, and market potential."
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "Is ZerosByKai free?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes, ZerosByKai is 100% free. You can subscribe to the weekly newsletter or create an account to vote on ideas and earn badges. There is no paid tier."
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "What are Zero Finder badges?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Zero Finder badges are earned when you vote for the winning startup idea of the week. Badges stack across tiers: Bronze (1-2 picks), Silver (3-5), Gold (6-10), and Diamond (11+). They prove your ability to spot winning business opportunities."
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "Who is ZerosByKai for?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "ZerosByKai is for entrepreneurs, indie hackers, solopreneurs, builders, and investors looking for validated startup ideas and business opportunities backed by real market demand from Reddit communities."
-            }
-        }
-    ]
-};
+import { faqSchema, sampleIdeas, sampleWinners } from '@/data/sampleData';
 
 const VoteConfirmation = dynamic(() => import('@/components/VoteConfirmation'), {
     loading: () => null,
 });
-
-// Sample ideas for preview / fallback when no DB data
-const sampleIdeas = [
-    {
-        id: 1,
-        name: "SubScribe",
-        title: "Automated SaaS Waste Detector for Small Teams",
-        tag: "🌍 Global",
-        category: "FinOps",
-        problem: "Small teams bleed money on forgotten subscriptions and duplicate tools, often tracking spend in messy spreadsheets that nobody updates.",
-        solution: "A 'set and forget' tool that connects to bank feeds/email to flag unused seats and duplicate SaaS tools instantly.",
-        target: "Bootstrapped teams & agencies with 5-50 employees.",
-        why: "Subscription fatigue is at an all-time high. Companies waste ~30% of software spend."
-    },
-    {
-        id: 2,
-        name: "FocusFoundry",
-        title: "AI Boss for Remote Solopreneurs",
-        tag: "🌍 Global",
-        category: "Productivity",
-        problem: "Solo founders struggle with 'drifting'—losing weeks to minor tasks because they lack the accountability of a manager or team.",
-        solution: "An AI manager that plans your sprint, blocks distractions during deep work, and demands a daily EOD standup.",
-        target: "Remote solopreneurs and indie hackers.",
-        why: "Loneliness and lack of structure are the #1 killers of early-stage startups."
-    },
-    {
-        id: 3,
-        name: "SpyGlass",
-        title: "Real-Time Competitor Change Tracker",
-        tag: "🌍 Global",
-        category: "E-commerce",
-        problem: "Small e-commerce brands find out too late when competitors drop prices or launch copycat products, losing sales in the process.",
-        solution: "A silent monitor that alerts you *only* when a competitor changes pricing, copy, or stock levels on their storefront.",
-        target: "Shopify store owners doing $10k-$1M/year.",
-        why: "Competitive intelligence is currently an expensive Enterprise-only luxury."
-    },
-    {
-        id: 4,
-        name: "NoCodeX",
-        title: "Automated Technical Auditor for Bubble Apps",
-        tag: "🇺🇸 USA",
-        category: "DevTools",
-        problem: "Non-technical founders build complex No-Code apps that inevitably slow down or break as they scale, with no way to debug.",
-        solution: "A 'Lighthouse for No-Code' that scans Bubble/Webflow setups for security risks, redundancy, and performance bottlenecks.",
-        target: "No-code agencies and non-technical founders.",
-        why: "No-code adoption is exploding, but 'technical debt' in no-code is a silent killer."
-    },
-    {
-        id: 5,
-        name: "MultiPost",
-        title: "Context-Aware 'Build in Public' Publisher",
-        tag: "🌍 Global",
-        category: "Marketing",
-        problem: "Founders know they should 'build in public', but formatting the same update for LinkedIn, Twitter, and Reddit takes hours.",
-        solution: "Write one raw update; AI reformats it perfectly for each platform's distinct culture (e.g., professional for LI, casual for X).",
-        target: "Indie hackers and personal brands.",
-        why: "Content is the primary growth engine for bootstrapped startups today."
-    },
-    {
-        id: 6,
-        name: "NichePick",
-        title: "Instant Feedback from Verified Professionals",
-        tag: "🇪🇺 Europe",
-        category: "Research",
-        problem: "You need feedback from a 'German Dentist', but consumer panels only give you random people who don't understand your B2B product.",
-        solution: "A micro-consulting marketplace where you pay $10 for 15 mins of feedback from verified industry-specific professionals.",
-        target: "B2B founders validating niche verticals.",
-        why: "Validation is cheap; *accurate* validation is rare and expensive."
-    },
-    {
-        id: 7,
-        name: "GapFinder",
-        title: "Social Sentiment Opportunity Scanner",
-        tag: "🌍 Global",
-        category: "AI Analytics",
-        problem: "Finding business ideas requires reading thousands of comments to find the one person saying 'I wish this existed.'",
-        solution: "An NLP engine that scrapes Reddit/X for 'complaint clusters' and groups them into validated problem statements.",
-        target: "Serial entrepreneurs and product managers.",
-        why: "Automating the 'Idea Maze' is the holy grail for builders."
-    },
-    {
-        id: 8,
-        name: "SoloOS",
-        title: "Modular Admin Middleware for Freelancers",
-        tag: "🌍 Global",
-        category: "SaaS",
-        problem: "Freelancers are forced to choose between complex ERPs (Salesforce) or disjointed tools (Trello + InvoiceNinja + CRM).",
-        solution: "A modular 'operating system' where you toggle features on/off. Start with just invoicing, add CRM later. No bloat.",
-        target: "Designers, developers, and consultants.",
-        why: "The gig economy needs 'just enough' software, not enterprise bloat."
-    },
-    {
-        id: 9,
-        name: "WarmStart",
-        title: "No-Sales Outreach Automation",
-        tag: "🇺🇸 USA",
-        category: "Sales",
-        problem: "Technical founders are terrified of cold outreach and often build in silence rather than selling to their first 10 customers.",
-        solution: "A tool that identifies warm intro paths via existing networks and automates the 'ask' without feeling salesy.",
-        target: "Introverted technical founders.",
-        why: "Distribution is the biggest failure point for developer-led startups."
-    },
-    {
-        id: 10,
-        name: "LocalizeIt",
-        title: "Market Adaptation Intelligence",
-        tag: "APAC",
-        category: "Strategic",
-        problem: "US-based ideas often fail abroad because they ignore local payment preferences, cultural nuances, or privacy laws.",
-        solution: "An intelligence layer that analyzes a business model and flags 'blockers' for specific regions (e.g., 'India requires UPI').",
-        target: "Startups expanding to emerging markets.",
-        why: "Copy-pasting US success stories is a popular but risky global strategy."
-    }
-];
-
-// Context: Mock data for Leaderboard since we don't have an endpoint for this yet
-const sampleWinners = [
-    {
-        name: "GovJob Resume AI",
-        title: "AI-Powered Resume Formatter for Government Jobs",
-        votes: 89,
-        category: "EdTech",
-        problem: "Job seekers spend hours formatting resumes to match specific government application requirements, often getting rejected due to formatting errors rather than qualifications.",
-        solution: "An AI tool that auto-formats any resume to match strict government templates instantly, increasing acceptance rates."
-    },
-    {
-        name: "LocalMedic",
-        title: "Telehealth aggregator for rural communities",
-        votes: 64,
-        category: "HealthTech",
-        problem: "Rural patients travel 50+ miles for basic consults because they can't easily find which specialists take their insurance remotely.",
-        solution: "A localized directory connecting rural patients with telehealth-ready specialists who accept their specific state insurance."
-    },
-    {
-        name: "AgriDrone",
-        title: "Crop monitoring for small-scale farmers",
-        votes: 51,
-        category: "AgTech",
-        problem: "Satellite data is too expensive for small farms, leaving them guessing about crop health until it's too late.",
-        solution: "A service using low-cost community drones to provide weekly crop health precision maps to small cooperative farmers."
-    }
-];
 
 // Normalize DB fields to display fields
 function normalizeIdea(idea) {
@@ -593,85 +406,17 @@ const ZerosByKaiLanding = () => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 mb-12 sm:mb-16 max-w-6xl mx-auto">
-                        {displayIdeas.map((idea, index) => {
-                            const btnProps = getVoteButtonProps(idea.id);
-                            const isUserPick = user && isRealData && userVote === idea.id;
-
-                            return (
-                                <div
-                                    key={idea.id}
-                                    className={`comic-panel bg-white hover:scale-[1.01] transition-all cursor-pointer comic-shadow flex flex-col h-full relative group ${isUserPick ? 'ring-4 ring-yellow-400' : ''
-                                        }`}
-                                    style={{ animationDelay: `${index * 0.1}s` }}
-                                >
-                                    {/* YOUR PICK badge */}
-                                    {isUserPick && (
-                                        <div className="absolute -top-4 -left-4 bg-yellow-400 border-4 border-black px-4 py-1 comic-title transform -rotate-3 z-20 shadow-md text-sm text-black">
-                                            ✓ YOUR PICK
-                                        </div>
-                                    )}
-
-                                    {/* Top Badge */}
-                                    <div className="absolute -top-3 sm:-top-4 -right-3 sm:-right-4 bg-yellow-400 border-2 sm:border-4 border-black px-3 sm:px-4 py-1 comic-title text-sm sm:text-base transform rotate-3 z-10 shadow-md group-hover:rotate-6 transition-transform">
-                                        IDEA #{index + 1}
-                                    </div>
-
-                                    <div className="p-5 sm:p-6 lg:p-8 flex-grow">
-                                        {/* Header */}
-                                        <div className="mb-4 sm:mb-6 border-b-4 border-gray-100 pb-4 sm:pb-6">
-                                            <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-blue-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.tag}</span>
-                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-purple-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.category}</span>
-                                            </div>
-                                            <h3 className="comic-title text-2xl sm:text-3xl mb-2 leading-none">{idea.name}</h3>
-                                            <h4 className="comic-body font-bold text-gray-600 text-xs sm:text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>
-                                        </div>
-
-                                        {/* Content Grid */}
-                                        <div className="space-y-4 sm:space-y-5">
-                                            {/* Problem */}
-                                            <div className="bg-rose-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Problem</div>
-                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.problem}</p>
-                                            </div>
-
-                                            {/* Solution */}
-                                            <div className="bg-green-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Fix</div>
-                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.solution}</p>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                                <div>
-                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Target Audience</div>
-                                                    <p className="comic-body text-xs font-bold text-gray-900">{idea.target}</p>
-                                                </div>
-                                                <div>
-                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Market Potential</div>
-                                                    <p className="comic-body text-xs font-bold text-rose-700">{idea.why_it_matters || idea.why}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Vote Button - At Bottom */}
-                                    <div className="p-4 bg-gray-50 border-t-4 border-black mt-auto">
-                                        <button
-                                            onClick={() => handleVote(idea.id)}
-                                            disabled={votingIdeaId === idea.id}
-                                            className="w-full relative group"
-                                        >
-                                            <div className={`w-full py-3 transition-colors border-2 border-transparent ${btnProps.style} ${votingIdeaId === idea.id ? 'opacity-50' : ''
-                                                }`}>
-                                                <span className="comic-title text-xl tracking-wider">
-                                                    {votingIdeaId === idea.id ? 'VOTING...' : btnProps.label}
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {displayIdeas.map((idea, index) => (
+                            <IdeaCard
+                                key={idea.id}
+                                idea={idea}
+                                index={index}
+                                isUserPick={user && isRealData && userVote === idea.id}
+                                btnProps={getVoteButtonProps(idea.id)}
+                                votingIdeaId={votingIdeaId}
+                                onVote={handleVote}
+                            />
+                        ))}
                     </div>
 
                     {!user && (
@@ -1069,43 +814,7 @@ const ZerosByKaiLanding = () => {
                 </section>
             )}
 
-            {/* Footer */}
-            <footer className="bg-gray-900 text-white py-8 sm:py-10 lg:py-12 px-4 sm:px-6">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
-                        <div>
-                            <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-yellow-400">ZEROSBYKAI</h3>
-                            <p className="comic-body text-sm sm:text-base text-gray-400">
-                                Startup opportunities from Reddit, curated by Kai every Monday.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">LINKS</h4>
-                            <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                                <li><a href="#ideas-section" className="hover:text-yellow-400">This Week&apos;s Ideas</a></li>
-                                <li><Link href="/archive" className="hover:text-yellow-400">Archive</Link></li>
-                                <li><Link href="/story" className="hover:text-yellow-400">About Kai</Link></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">CONNECT</h4>
-                            <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                                <li><a href="#" className="hover:text-yellow-400">Twitter</a></li>
-                                <li><a href="#" className="hover:text-yellow-400">LinkedIn</a></li>
-                                <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400">kai@zerosbykai.com</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 comic-body text-gray-500 text-xs sm:text-sm">
-                        <p>&copy; 2026 ZerosByKai. Find the right zero.</p>
-                        <div className="flex gap-4 sm:gap-6">
-                            <Link href="/terms" className="hover:text-yellow-400 underline">Terms & Guidelines</Link>
-                            <Link href="/privacy" className="hover:text-yellow-400 underline">Privacy Policy</Link>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            <Footer />
 
             {/* Vote Confirmation Modal */}
             {voteConfirmation && (

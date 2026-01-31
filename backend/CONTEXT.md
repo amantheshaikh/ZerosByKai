@@ -17,10 +17,18 @@ Basic server structure is up. API endpoints for analysis and profile management 
 ## Key Component Structure
 
 ### Core Modules (`src/`)
-- **server.js** - Entry point.
-- **routes/** - API route definitions.
-- **config/** - Configuration.
+- **server.js** — Entry point, cron scheduling, middleware.
+- **routes/** — API route definitions (auth, ideas, votes, admin).
+- **jobs/** — Weekly cron jobs (`calculateWinner`, `sendWeeklyDigest`).
+- **emails/** — HTML email templates (digest, welcome, magic link).
+- **workflows/** — AI analysis pipelines (Reddit + Gemini).
+- **config/** — Supabase client configuration.
+
+## Cron Schedule (server.js)
+- **Monday 9 AM UTC** — `calculateWinner()` then `sendWeeklyDigest()` (sequential).
+- **Monday 10 AM UTC** — `runRedditFlow()` (Reddit scraping + AI analysis).
 
 ## Critical Implementation Details
-- **Gemini Integration**: Uses `google.genai` SDK (migrated from `google.generativeai`).
-- **Supabase Auth**: Relies on Supabase for session management; backend validates tokens if necessary.
+- **Gemini Integration**: Uses `google.genai` SDK.
+- **Supabase Auth**: Backend validates JWT tokens; uses Admin client for server operations.
+- **Email**: Resend API for transactional email delivery.

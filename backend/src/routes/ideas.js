@@ -108,7 +108,7 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-// GET /api/ideas/weekly-batches - Get all past weekly batches with winners
+// GET /api/ideas/weekly-batches - Get all past weekly batches with winners and all ideas
 router.get('/weekly-batches', async (req, res) => {
   try {
     const { data: batches, error } = await supabase
@@ -121,7 +121,24 @@ router.get('/weekly-batches', async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ batches: batches || [] });
+    // For each batch, get all published ideas for that week
+    const batchesWithIdeas = await Promise.all(
+      (batches || []).map(async (batch) => {
+        const { data: ideas } = await supabase
+          .from('ideas')
+          .select('*')
+          .eq('week_published', batch.week_start_date)
+          .eq('status', 'published')
+          .order('created_at', { ascending: true });
+
+        return {
+          ...batch,
+          ideas: ideas || []
+        };
+      })
+    );
+
+    res.json({ batches: batchesWithIdeas });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

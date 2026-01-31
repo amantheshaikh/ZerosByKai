@@ -1,6 +1,6 @@
 // Email templates for ZerosByKai
 
-export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCount, weekDate }) {
+export function generateWeeklyDigestEmail({ ideas, winner, threadCount, weekDate }) {
   const ideasHtml = ideas.map((idea, index) => `
     <div style="margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #e5e5e5;">
       <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
@@ -32,7 +32,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
 
       <div style="margin-top: 20px;">
         <a href="${process.env.FRONTEND_URL}/ideas/${idea.id}?utm_source=email" 
-           style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #000; text-decoration: none; font-weight: 700; border-radius: 4px; font-size: 14px; font-family: 'Courier Prime', monospace;">
+           style="display: inline-block; padding: 12px 24px; background: #FCD933; color: #000; text-decoration: none; font-weight: 700; border: 2px solid #000; border-radius: 4px; font-size: 14px; font-family: 'Courier Prime', monospace;">
           PICK THIS IDEA →
         </a>
       </div>
@@ -46,8 +46,17 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
       </div>
       <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">${winner.name}</h3>
       <p style="font-size: 13px; color: #666; margin-bottom: 12px;">${winner.title}</p>
-      <p style="font-size: 13px; color: #666; font-style: italic;">
-        <strong>${badgeCount} members</strong> earned a Zero Finder badge! 🎯
+      <p style="font-size: 13px; color: #333; margin-bottom: 16px;">
+        Did you pick the winner? Check your profile to find out.
+      </p>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <a href="${process.env.FRONTEND_URL}/profile?utm_source=email"
+           style="display: inline-block; padding: 12px 24px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 4px; font-size: 14px; font-family: 'Courier Prime', monospace;">
+          CHECK YOUR PROFILE →
+        </a>
+      </div>
+      <p style="font-size: 11px; color: #999; text-align: center; margin: 0;">
+        Vote for the winning idea each week to earn badges and climb the ranks.
       </p>
     </div>
   ` : '';
@@ -71,7 +80,8 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
 
     <!-- Header -->
-    <div style="background: #fbbf24; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
+    <!-- Header -->
+    <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
       <div style="margin-bottom: 8px;">
         <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
           <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
@@ -80,7 +90,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
       <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
         Week of ${weekDate}
       </div>
-      <p style="margin: 8px 0 0 0; font-size: 13px;">Startup Opportunity Analysis</p>
+      <p style="margin: 8px 0 0 0; font-size: 13px;">Your weekly dose of real Startup Ideas</p>
     </div>
 
     <!-- Summary -->
@@ -110,8 +120,8 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
 
     <!-- CTA -->
     <div style="text-align: center; padding: 24px 0;">
-      <a href="${process.env.FRONTEND_URL}?utm_source=email" 
-         style="display: inline-block; padding: 16px 32px; background: #000; color: #fbbf24; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 16px;">
+        <a href="${process.env.FRONTEND_URL}?utm_source=email" 
+         style="display: inline-block; padding: 16px 32px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 16px;">
         SEE ALL IDEAS & VOTE
       </a>
     </div>
@@ -127,99 +137,6 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
       </p>
       <p style="font-size: 11px; color: #999;">
         <a href="${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent('{{email}}')}&token={{token}}" style="color: #666;">Unsubscribe</a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>
-  `;
-}
-
-export function generateBadgeEmail({ name, email, ideaName, badgeCount, tier, weeklyWinnerCount }) {
-  const tierEmoji = {
-    bronze: '🥉',
-    silver: '🥈',
-    gold: '🥇',
-    diamond: '💎'
-  };
-
-  const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You Picked the Winner!</title>
-  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Courier Prime', monospace; background: #fafafa;">
-  <!--[if !mso]><!-- -->
-  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    Nice call! You spotted the top idea this week.
-  </div>
-  <!--<![endif]-->
-  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 32px;">
-      <div style="font-size: 72px; margin-bottom: 16px;">🎯</div>
-      <h1 style="font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">YOU PICKED THE WINNER!</h1>
-    </div>
-
-    <!-- Main Content -->
-    <div style="background: #ffffff; border: 3px solid #000; box-shadow: 8px 8px 0 #000; padding: 32px; margin-bottom: 32px;">
-      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Hey ${name},
-      </p>
-      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Congratulations! You voted for this week's top idea:
-      </p>
-      <div style="background: #fffbeb; border-left: 4px solid #fbbf24; padding: 16px; margin: 24px 0;">
-        <p style="font-size: 18px; font-weight: 700; margin: 0;">
-          "${ideaName}"
-        </p>
-      </div>
-      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        <strong>You've earned a Zero Finder badge.</strong>
-      </p>
-      
-      <!-- Badge Stats -->
-      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 24px 0; text-align: center;">
-        <div style="font-size: 48px; margin-bottom: 12px;">${tierEmoji[tier]}</div>
-        <p style="font-size: 14px; color: #666; margin: 0;">Your score: <strong style="color: #000;">${badgeCount} winning picks</strong></p>
-        <p style="font-size: 18px; font-weight: 700; margin: 8px 0 0 0;">${tierName}</p>
-      </div>
-
-      <p style="font-size: 14px; line-height: 1.6; color: #666; margin-top: 24px;">
-        You're developing an eye for spotting opportunities that founders should build. 
-        ${tier === 'diamond' ? "You've mastered it." : "Keep going!"}
-      </p>
-
-      ${tier === 'diamond' ? `
-        <p style="font-size: 14px; line-height: 1.6; color: #666; margin-top: 16px; font-weight: 700;">
-          You might just have a future in venture capital. 💼
-        </p>
-      ` : ''}
-
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="${process.env.FRONTEND_URL}?utm_source=badge_email" 
-           style="display: inline-block; padding: 14px 28px; background: #000; color: #fbbf24; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
-          SEE THIS WEEK'S IDEAS →
-        </a>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div style="text-align: center; font-size: 12px; color: #999;">
-      <p>Badge earned by ${weeklyWinnerCount > 1 ? `you and ${weeklyWinnerCount - 1} other member${weeklyWinnerCount - 1 > 1 ? 's' : ''}` : 'you'} this week</p>
-      <p style="margin-top: 16px;">
-        <a href="${process.env.FRONTEND_URL}" style="color: #666;">ZerosByKai</a>
-      </p>
-      <p style="margin-top: 8px; font-size: 11px;">
-        <a href="${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${Buffer.from(email).toString('base64')}" style="color: #666;">Unsubscribe</a>
       </p>
     </div>
 
@@ -245,18 +162,23 @@ export function generateWelcomeEmail({ name, email }) {
 <body style="margin: 0; padding: 0; font-family: 'Courier Prime', monospace; background: #ffffff;">
   <!--[if !mso]><!-- -->
   <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    You're in. 10 AI-validated startup ideas every Monday.
+    You're in. 10 startup opportunities analyzed from real complaints every Monday.
   </div>
   <!--<![endif]-->
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
 
     <!-- Header -->
-    <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
-      <h1 style="font-size: 28px; font-weight: 700; letter-spacing: 1px; margin: 0; text-transform: uppercase;">ZEROSBYKAI</h1>
+    <!-- Header -->
+    <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
+      <div style="margin-bottom: 8px;">
+        <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
+          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+        </a>
+      </div>
       <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
         Welcome to the Hunt
       </div>
-      <p style="margin: 8px 0 0 0; font-size: 13px;">Startup Opportunity Analysis</p>
+      <p style="margin: 8px 0 0 0; font-size: 13px;">Your weekly dose of real Startup Ideas</p>
     </div>
 
     <!-- Main Content -->
@@ -266,7 +188,7 @@ export function generateWelcomeEmail({ name, email }) {
         You're now on the list. Every Monday, you'll get:
       </p>
       <div style="background: #fafafa; border-left: 3px solid #fbbf24; padding: 16px; margin-bottom: 24px;">
-        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;"><strong>10 AI-validated startup ideas</strong> scraped from Reddit</p>
+        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;"><strong>10 startup opportunities</strong> analyzed from thousands of people complaining on Reddit</p>
         <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;">Real problems. Real opportunities. No AI fluff.</p>
         <p style="margin: 0; font-size: 14px; line-height: 1.6;">Vote on your favorites and earn badges for spotting winners.</p>
       </div>
@@ -275,7 +197,7 @@ export function generateWelcomeEmail({ name, email }) {
       </p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${process.env.FRONTEND_URL}?utm_source=welcome_email"
-           style="display: inline-block; padding: 14px 28px; background: #000; color: #fbbf24; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
+           style="display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
           BROWSE THIS WEEK'S IDEAS
         </a>
       </div>
@@ -322,9 +244,17 @@ export function generateMagicLinkEmail({ email, actionLink }) {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
 
     <!-- Header -->
-    <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 24px;">
-      <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px; margin: 0;">ZEROSBYKAI</h1>
-      <div style="font-size: 13px; color: #666; margin-top: 4px;">Startup Opportunity Analysis</div>
+    <!-- Header -->
+    <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
+      <div style="margin-bottom: 8px;">
+        <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
+          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+        </a>
+      </div>
+      <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
+        Login Link
+      </div>
+      <p style="margin: 8px 0 0 0; font-size: 13px;">Your weekly dose of real Startup Ideas</p>
     </div>
 
     <!-- Main Content -->
@@ -336,7 +266,7 @@ export function generateMagicLinkEmail({ email, actionLink }) {
 
       <div style="text-align: center; margin: 32px 0;">
         <a href="${actionLink}"
-           style="display: inline-block; padding: 14px 28px; background: #000; color: #fbbf24; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
+           style="display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
           LOG IN TO ZEROSBYKAI
         </a>
       </div>
@@ -351,6 +281,8 @@ export function generateMagicLinkEmail({ email, actionLink }) {
     <!-- Footer -->
     <div style="padding-top: 24px; font-size: 13px; color: #666;">
       <p style="margin-bottom: 16px;">
+        See you inside,<br>
+        <img src="https://zerosbykai.com/favicon-32x32.png" width="20" height="20" alt="" style="vertical-align: sub; margin-right: 6px; border-radius: 4px;">
         <strong style="color: #000;">Kai</strong>
       </p>
     </div>

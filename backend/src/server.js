@@ -10,7 +10,7 @@ import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 
 // Jobs
-import { calculateWinner, sendWeeklyDigest, sendBadgeEmails } from './jobs/weekly.js';
+import { calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
 import { runRedditFlow } from './workflows/daily_startup_ideas.js';
 
 dotenv.config();
@@ -60,8 +60,8 @@ app.post('/api/subscribe', (req, res, next) => {
 });
 
 // Cron Jobs
-// Sunday 11 PM UTC: Calculate winner and prepare badges
-cron.schedule('0 23 * * 0', async () => {
+// Monday 9 AM UTC: Calculate winner + send weekly digest (sequential)
+cron.schedule('0 9 * * 1', async () => {
   console.log('Running weekly winner calculation...');
   try {
     await calculateWinner();
@@ -69,27 +69,13 @@ cron.schedule('0 23 * * 0', async () => {
   } catch (error) {
     console.error('Error calculating winner:', error);
   }
-});
 
-// Monday 9 AM UTC: Send weekly digest
-cron.schedule('0 9 * * 1', async () => {
   console.log('Sending weekly digest...');
   try {
     await sendWeeklyDigest();
     console.log('Weekly digest sent successfully');
   } catch (error) {
     console.error('Error sending weekly digest:', error);
-  }
-});
-
-// Monday 9:15 AM UTC: Send badge emails (after digest)
-cron.schedule('15 9 * * 1', async () => {
-  console.log('Sending badge emails...');
-  try {
-    await sendBadgeEmails();
-    console.log('Badge emails sent successfully');
-  } catch (error) {
-    console.error('Error sending badge emails:', error);
   }
 });
 
@@ -115,5 +101,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ZerosByKai API running on port ${PORT}`);
-  console.log(`📧 Cron jobs scheduled for valid digest and badges`);
+  console.log(`📧 Cron jobs scheduled for weekly digest`);
 });

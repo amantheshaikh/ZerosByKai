@@ -6,14 +6,14 @@ const router = express.Router();
 // Middleware to verify JWT token from Supabase
 const requireAuth = async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -34,11 +34,14 @@ router.post('/', requireAuth, async (req, res) => {
     // Get current week's Monday
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
+    const day = today.getDay(); // Sun=0, Mon=1...
+    // If Sunday (0), we need to go back 6 days. If Monday (1) to Sat (6), go back day-1.
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
     const weekStart = monday.toISOString().split('T')[0];
 
     // Check if idea exists and is from current week
-    const { data: idea, error: ideaError } = await supabase
+    const { data: idea, error: ideaError } = await supabaseAdmin
       .from('ideas')
       .select('*')
       .eq('id', ideaId)
@@ -51,12 +54,12 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // Check if user already voted this week
-    const { data: existingVotes, error: voteCheckError } = await supabase
+    const { data: existingVotes, error: voteCheckError } = await supabaseAdmin
       .from('votes')
       .select('id, idea_id')
       .eq('user_id', userId)
-      .in('idea_id', 
-        await supabase
+      .in('idea_id',
+        await supabaseAdmin
           .from('ideas')
           .select('id')
           .eq('week_published', weekStart)
@@ -67,7 +70,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     // If user already voted, delete previous vote
     if (existingVotes && existingVotes.length > 0) {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from('votes')
         .delete()
         .in('id', existingVotes.map(v => v.id));
@@ -76,18 +79,18 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // Insert new vote
-    const { data: vote, error: voteError } = await supabase
+    const { data: vote, error: voteError } = await supabaseAdmin
       .from('votes')
-      .insert({ 
-        idea_id: ideaId, 
-        user_id: userId 
+      .insert({
+        idea_id: ideaId,
+        user_id: userId
       })
       .select()
       .single();
 
     if (voteError) throw voteError;
 
-    res.json({ 
+    res.json({
       message: 'Vote cast successfully',
       vote,
       changedFrom: existingVotes && existingVotes.length > 0 ? existingVotes[0].idea_id : null
@@ -105,11 +108,13 @@ router.get('/user', requireAuth, async (req, res) => {
     // Get current week's Monday
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
     const weekStart = monday.toISOString().split('T')[0];
 
     // Get current week's ideas
-    const { data: weekIdeas } = await supabase
+    const { data: weekIdeas } = await supabaseAdmin
       .from('ideas')
       .select('id')
       .eq('week_published', weekStart)
@@ -122,7 +127,7 @@ router.get('/user', requireAuth, async (req, res) => {
     const ideaIds = weekIdeas.map(i => i.id);
 
     // Get user's vote from this week
-    const { data: vote, error } = await supabase
+    const { data: vote, error } = await supabaseAdmin
       .from('votes')
       .select('*, idea:ideas(*)')
       .eq('user_id', userId)
@@ -137,12 +142,93 @@ router.get('/user', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/votes/last-week - Get user's last week vote result
+router.get('/last-week', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get last week's Monday
+    const today = new Date();
+    const lastMonday = new Date(today);
+    const day = today.getDay();
+
+    // Correct logic for LAST week's Monday:
+    const currentMondayDiff = today.getDate() - day + (day === 0 ? -6 : 1);
+    lastMonday.setDate(currentMondayDiff - 7);
+
+    const lastWeekStart = lastMonday.toISOString().split('T')[0];
+
+    // Get last week's batch with winner
+    const { data: batch } = await supabaseAdmin
+      .from('weekly_batches')
+      .select(`
+        *,
+        winner:winner_idea_id (id, name, title)
+      `)
+      .eq('week_start_date', lastWeekStart)
+      .single();
+
+    if (!batch || !batch.winner) {
+      return res.json({ lastWeekVote: null, winner: null, earnedBadge: false });
+    }
+
+    // Count votes for winner
+    const { count: winnerVoteCount } = await supabaseAdmin
+      .from('votes')
+      .select('*', { count: 'exact', head: true })
+      .eq('idea_id', batch.winner.id);
+
+    // Get last week's ideas
+    const { data: lastWeekIdeas } = await supabaseAdmin
+      .from('ideas')
+      .select('id')
+      .eq('week_published', lastWeekStart)
+      .eq('status', 'published');
+
+    const lastWeekIdeaIds = lastWeekIdeas?.map(i => i.id) || [];
+
+    // Get user's vote from last week
+    let lastWeekVote = null;
+    if (lastWeekIdeaIds.length > 0) {
+      const { data: vote } = await supabaseAdmin
+        .from('votes')
+        .select('*, idea:ideas(id, name, title)')
+        .eq('user_id', userId)
+        .in('idea_id', lastWeekIdeaIds)
+        .single();
+
+      lastWeekVote = vote || null;
+    }
+
+    // Check if user earned a badge for the winning idea
+    let earnedBadge = false;
+    if (batch.winner) {
+      const { data: badge } = await supabaseAdmin
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('idea_id', batch.winner.id)
+        .single();
+
+      earnedBadge = !!badge;
+    }
+
+    res.json({
+      lastWeekVote: lastWeekVote ? { name: lastWeekVote.idea?.name, title: lastWeekVote.idea?.title } : null,
+      winner: { name: batch.winner.name, title: batch.winner.title, voteCount: winnerVoteCount || 0 },
+      earnedBadge
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/votes/badges - Get user's badges
 router.get('/badges', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { data: badges, error } = await supabase
+    const { data: badges, error } = await supabaseAdmin
       .from('user_badges')
       .select('*, idea:ideas(*)')
       .eq('user_id', userId)
@@ -158,10 +244,10 @@ router.get('/badges', requireAuth, async (req, res) => {
     else if (kaiPickCount >= 3) tier = 'silver';
     else if (kaiPickCount >= 1) tier = 'bronze';
 
-    res.json({ 
-      badges, 
+    res.json({
+      badges,
       count: kaiPickCount,
-      tier 
+      tier
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
