@@ -10,7 +10,7 @@ import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 
 // Jobs
-import { calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
+import { autoPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
 import { runRedditFlow } from './workflows/daily_startup_ideas.js';
 
 dotenv.config();
@@ -60,8 +60,27 @@ app.post('/api/subscribe', (req, res, next) => {
 });
 
 // Cron Jobs
-// Monday 9 AM UTC: Calculate winner + send weekly digest (sequential)
+// Sunday 10 AM UTC: Scrape Reddit, stage ideas as pending for review
+cron.schedule('0 10 * * 0', async () => {
+  console.log('Running Reddit startup ideas workflow...');
+  try {
+    await runRedditFlow();
+    console.log('Reddit workflow completed');
+  } catch (error) {
+    console.error('Error running Reddit workflow:', error);
+  }
+});
+
+// Monday 9 AM UTC: Auto-publish, calculate winner, send weekly digest (sequential)
 cron.schedule('0 9 * * 1', async () => {
+  console.log('Auto-publishing pending ideas...');
+  try {
+    await autoPublishIdeas();
+    console.log('Auto-publish completed');
+  } catch (error) {
+    console.error('Error auto-publishing ideas:', error);
+  }
+
   console.log('Running weekly winner calculation...');
   try {
     await calculateWinner();
@@ -76,17 +95,6 @@ cron.schedule('0 9 * * 1', async () => {
     console.log('Weekly digest sent successfully');
   } catch (error) {
     console.error('Error sending weekly digest:', error);
-  }
-});
-
-// Monday 10:00 AM UTC: Run Reddit Startup Ideas Workflow
-cron.schedule('0 10 * * 1', async () => {
-  console.log('Running Reddit startup ideas workflow...');
-  try {
-    await runRedditFlow();
-    console.log('Reddit workflow completed');
-  } catch (error) {
-    console.error('Error running Reddit workflow:', error);
   }
 });
 

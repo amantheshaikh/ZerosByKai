@@ -84,7 +84,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, threadCount, weekDate
     <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
       <div style="margin-bottom: 8px;">
         <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
-          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+          <img src="https://www.zerosbykai.com/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
         </a>
       </div>
       <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
@@ -172,7 +172,7 @@ export function generateWelcomeEmail({ name, email }) {
     <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
       <div style="margin-bottom: 8px;">
         <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
-          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+          <img src="https://www.zerosbykai.com/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
         </a>
       </div>
       <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
@@ -248,7 +248,7 @@ export function generateMagicLinkEmail({ email, actionLink }) {
     <div style="background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
       <div style="margin-bottom: 8px;">
         <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
-          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+          <img src="https://www.zerosbykai.com/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
         </a>
       </div>
       <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">

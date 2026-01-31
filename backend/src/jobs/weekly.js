@@ -4,6 +4,31 @@ import { generateWeeklyDigestEmail } from '../emails/templates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Auto-publish pending/approved ideas for this week
+export async function autoPublishIdeas() {
+  try {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - today.getDay() + 1);
+    const weekStart = monday.toISOString().split('T')[0];
+
+    const { data, error } = await supabaseAdmin
+      .from('ideas')
+      .update({ status: 'published' })
+      .eq('week_published', weekStart)
+      .eq('status', 'pending')
+      .select();
+
+    if (error) throw error;
+
+    console.log(`Auto-published ${data?.length || 0} ideas for week ${weekStart}`);
+    return data;
+  } catch (error) {
+    console.error('Error auto-publishing ideas:', error);
+    throw error;
+  }
+}
+
 // Calculate winner and award badges
 export async function calculateWinner() {
   try {

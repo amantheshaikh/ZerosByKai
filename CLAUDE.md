@@ -21,7 +21,7 @@ Database: Supabase (PostgreSQL + Auth). Email: Resend. AI: Google Gemini.
 ## Key Patterns
 - **Auth:** Supabase magic link + Google OAuth. `apiFetch()` in `frontend/lib/auth.js` handles Bearer tokens.
 - **API:** Express routes at `/api/{ideas,votes,auth,admin}`. Two Supabase clients: `supabase` (RLS) and `supabaseAdmin` (service key).
-- **Cron:** Monday 9 AM UTC — `calculateWinner()` then `sendWeeklyDigest()`. Monday 10 AM — `runRedditFlow()`.
+- **Cron:** Sunday 10 AM UTC — `runRedditFlow()`. Monday 9 AM UTC — `autoPublishIdeas()` then `calculateWinner()` then `sendWeeklyDigest()`.
 - **Badges:** Users who vote for the winning idea earn `kai_pick` badges. Tiers: bronze(1), silver(3), gold(6), diamond(11).
 
 ## Post-Task

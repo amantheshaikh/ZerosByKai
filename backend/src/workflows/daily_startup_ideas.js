@@ -269,8 +269,8 @@ async function notifyAdmin(ideas) {
             from: 'Kai <kai@zerosbykai.com>',
             reply_to: 'kai@zerosbykai.com',
             to: adminEmail,
-            subject: `Keyless Workflow: ${ideas.length} New Zeros`,
-            html: `<h1>Weekly Zeros Report</h1><p>Scraped ~20 subreddits successfully.</p>${htmlPreview}`
+            subject: `Review Required: ${ideas.length} New Zeros Staged`,
+            html: `<h1>Weekly Zeros Report</h1><p>Scraped ~20 subreddits successfully. ${ideas.length} ideas are staged as <b>pending</b>.</p><p>Review, edit, or reject ideas before <b>Monday 9 AM UTC</b> — unreviewed ideas will auto-publish.</p>${htmlPreview}`
         });
         console.log(`Admin report sent to ${adminEmail}`);
     } catch (e) {
