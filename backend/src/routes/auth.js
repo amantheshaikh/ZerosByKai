@@ -1,7 +1,10 @@
 import express from 'express';
+import { Resend } from 'resend';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { generateWelcomeEmail, generateMagicLinkEmail } from '../emails/templates.js';
 
 const router = express.Router();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // POST /api/auth/subscribe - Newsletter-only subscribe (no account creation)
 router.post('/subscribe', async (req, res) => {
@@ -28,6 +31,24 @@ router.post('/subscribe', async (req, res) => {
 
     if (error) throw error;
 
+    // Send welcome email (fire-and-forget, don't block the response)
+    try {
+      const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
+      await resend.emails.send({
+        from: 'Kai <kai@zerosbykai.com>',
+        reply_to: 'kai@zerosbykai.com',
+        to: email,
+        subject: "Welcome to ZerosByKai",
+        html: welcomeHtml,
+        headers: {
+          'List-Unsubscribe': `<${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${Buffer.from(email).toString('base64')}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
+
     res.json({ message: "You're in!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -43,11 +64,17 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Send magic link
-    const { data, error } = await supabase.auth.signInWithOtp({
+    if (!supabaseAdmin) {
+      console.error('❌ Signup failed: SUPABASE_SERVICE_KEY missing');
+      return res.status(503).json({ error: 'Service temporarily unavailable' });
+    }
+
+    // Generate link using Admin API to get the action_link directly
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email,
       options: {
-        emailRedirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
+        redirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
         data: {
           name: name || ''
         }
@@ -56,11 +83,31 @@ router.post('/signup', async (req, res) => {
 
     if (error) throw error;
 
+    // Send email using Resend
+    try {
+      const magicLinkHtml = generateMagicLinkEmail({
+        email,
+        actionLink: data.properties.action_link
+      });
+
+      await resend.emails.send({
+        from: 'Kai <kai@zerosbykai.com>',
+        reply_to: 'kai@zerosbykai.com',
+        to: email,
+        subject: "Your Login Link",
+        html: magicLinkHtml
+      });
+    } catch (emailError) {
+      console.error('Failed to send magic link email:', emailError);
+      return res.status(500).json({ error: 'Failed to send verification email' });
+    }
+
     res.json({
       message: 'Magic link sent! Check your email.',
       email
     });
   } catch (error) {
+    console.error('Signup error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -144,10 +191,10 @@ router.get('/unsubscribe', async (req, res) => {
     }
 
     // Validate token (simple base64 check for MVP)
-    // const validToken = Buffer.from(email).toString('base64');
-    // if (!token || token !== validToken) {
-    //   return res.status(401).json({ error: 'Invalid unsubscribe token' });
-    // }
+    const validToken = Buffer.from(email).toString('base64');
+    if (!token || token !== validToken) {
+      return res.status(401).json({ error: 'Invalid unsubscribe token' });
+    }
 
     // Mark as unsubscribed in subscribers table (acts as suppression list)
     // 1. Try to update existing subscriber (preserves name/other data)

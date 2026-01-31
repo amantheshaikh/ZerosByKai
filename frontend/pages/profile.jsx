@@ -42,7 +42,7 @@ export default function ProfilePage() {
                 setBadges(badgeData);
                 setVote(voteData.vote);
             })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => setLoading(false));
     }, [user, session, isLoading, router]);
 
@@ -70,7 +70,7 @@ export default function ProfilePage() {
         <div className="min-h-screen bg-yellow-50">
             <Head>
                 <title>Your Profile — Badges & Voting History | ZerosByKai</title>
-                <meta name="description" content="View your ZerosByKai profile, badge tier, voting history, and Kai's Pick badges earned from picking winning startup ideas." />
+                <meta name="description" content="View your ZerosByKai profile, badge tier, voting history, and Zero Finder badges earned from picking winning startup ideas." />
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
             <Header variant="page" />
@@ -88,10 +88,10 @@ export default function ProfilePage() {
                         <div className="text-6xl">{tierInfo.current.emoji}</div>
                         <div>
                             <h2 className="comic-title text-3xl text-gray-900">
-                                {tierInfo.current.label.toUpperCase()} SCOUT
+                                {tierInfo.current.label.toUpperCase()} FINDER
                             </h2>
                             <p className="comic-body text-gray-600">
-                                {count} Kai&apos;s Pick badge{count !== 1 ? 's' : ''}
+                                {count} Zero Finder badge{count !== 1 ? 's' : ''}
                             </p>
                         </div>
                     </div>

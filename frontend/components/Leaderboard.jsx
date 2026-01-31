@@ -43,7 +43,7 @@ const Leaderboard = ({ winners }) => {
                             scaleClass = "";
                             marginTop = "mt-0";
                             icon = <Award className="w-16 h-16 text-yellow-600 mb-2" />;
-                            badge = "🥇 GOLD PICK";
+                            badge = "🥇 GOLD FINDER";
                         } else if (index === 0) { // 2nd Place (Left)
                             color = "bg-gray-300";
                             cardHeight = 400;
@@ -51,7 +51,7 @@ const Leaderboard = ({ winners }) => {
                             scaleClass = "md:scale-95";
                             marginTop = "md:mt-20"; // 80px offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-gray-600 mb-2" />;
-                            badge = "🥈 SILVER PICK";
+                            badge = "🥈 SILVER FINDER";
                         } else { // 3rd Place (Right)
                             color = "bg-orange-300";
                             cardHeight = 400;
@@ -59,7 +59,7 @@ const Leaderboard = ({ winners }) => {
                             scaleClass = "md:scale-95";
                             marginTop = "md:mt-20"; // 80px offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-orange-700 mb-2" />;
-                            badge = "🥉 BRONZE PICK";
+                            badge = "🥉 BRONZE FINDER";
                         }
 
                         const isFlipped = flippedIndex === index;

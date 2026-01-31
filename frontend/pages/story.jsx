@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, Zap, Brain, Rocket, Target, Sparkles, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { ArrowLeft, Zap, Brain, Rocket, Target, Sparkles, AlertTriangle, Lightbulb, TrendingUp, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth, getApiUrl } from '@/lib/auth';
+import { useSubscribe } from '@/hooks/useSubscribe';
+import Header from '@/components/Header';
 
 const fadeIn = {
     initial: { opacity: 0, y: 40 },
@@ -21,36 +26,24 @@ const slideInRight = {
     transition: { duration: 0.6 }
 };
 
-// Placeholder component for user images
-const StoryImagePlaceholder = ({ label, sceneNumber, aspectRatio = "16/9", className = "" }) => (
+// Story scene image component with comic styling
+const StoryImage = ({ src, alt, aspectRatio = "4/3", objectFit = "cover", className = "" }) => (
     <div
-        className={`relative w-full border-4 border-black bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center overflow-hidden ${className}`}
+        className={`relative w-full border-4 border-black overflow-hidden comic-shadow ${className}`}
         style={{ aspectRatio }}
     >
-        {/* Halftone overlay */}
-        <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-            backgroundSize: '8px 8px'
-        }} />
-
-        {/* Scene label */}
-        <div className="relative text-center p-6 z-10">
-            <div className="bg-yellow-400 text-black px-4 py-2 inline-block comic-title text-sm mb-3 transform -rotate-1 border-2 border-black">
-                SCENE {sceneNumber}
-            </div>
-            <p className="comic-title text-xl sm:text-2xl lg:text-3xl text-yellow-400 leading-tight">
-                {label}
-            </p>
-            <p className="comic-body text-xs sm:text-sm text-gray-400 mt-3">
-                [ YOUR IMAGE HERE ]
-            </p>
-        </div>
-
+        <Image
+            src={src}
+            alt={alt}
+            fill
+            className={`object-${objectFit}`}
+            sizes="(max-width: 768px) 100vw, 50vw"
+        />
         {/* Corner deco */}
-        <div className="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-yellow-400" />
-        <div className="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-yellow-400" />
-        <div className="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-yellow-400" />
-        <div className="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-yellow-400" />
+        <div className="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-yellow-400 z-10" />
+        <div className="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-yellow-400 z-10" />
+        <div className="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-yellow-400 z-10" />
+        <div className="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-yellow-400 z-10" />
     </div>
 );
 
@@ -72,11 +65,26 @@ const SpeechBubble = ({ children, type = "speech", className = "" }) => {
 };
 
 export default function KaiStory() {
+    const { user, session } = useAuth();
+    const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
+    const { subscribe, status: subscribeStatus, error: subscribeError } = useSubscribe();
+    const [showJoinForm, setShowJoinForm] = useState(false);
+
+    const handleSubscribe = async (e) => {
+        e.preventDefault();
+        const success = await subscribe({ email, name });
+        if (success) {
+            setEmail('');
+            setName('');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
-                <title>The Story of Kai — How AI Finds Validated Startup Ideas from Reddit | ZerosByKai</title>
-                <meta name="description" content="The origin story of Kai. In a world where AI agents made building trivial, finding the RIGHT startup idea became the real challenge. How Kai analyzes Reddit threads to discover validated business opportunities for entrepreneurs and indie hackers." />
+                <title>The Story of Kai — How We Find Validated Startup Ideas from Reddit | ZerosByKai</title>
+                <meta name="description" content="The origin story of Kai. In a world where building became trivial, finding the RIGHT startup idea became the real challenge. How Kai analyzes Reddit threads to discover validated business opportunities for entrepreneurs and indie hackers." />
                 <meta name="keywords" content="startup idea story, how to find startup ideas, Reddit business ideas, validated startup opportunities, AI idea validation, indie hacker ideas" />
                 <link rel="canonical" href="https://zerosbykai.com/story" />
                 <meta property="og:title" content="The Story of Kai | ZerosByKai" />
@@ -90,12 +98,8 @@ export default function KaiStory() {
 
             {/* Header */}
             <header className="p-4 sm:p-6 border-b-4 border-black bg-white sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 font-bold hover:underline comic-body text-sm sm:text-base">
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Home
-                    </Link>
-                    <div className="comic-title text-lg sm:text-xl tracking-widest">ZEROS BY KAI</div>
+                <div className="max-w-6xl mx-auto">
+                    <Header variant="story" />
                 </div>
             </header>
 
@@ -114,7 +118,7 @@ export default function KaiStory() {
                         transition={{ duration: 0.8 }}
                     >
                         <div className="inline-block bg-rose-700 text-white px-6 py-2 comic-title text-sm sm:text-lg mb-6 transform rotate-1 border-2 border-yellow-400">
-                            ⚡ A ZEROSBYKAI ORIGIN STORY ⚡
+                            ⚡ THE ORIGIN STORY ⚡
                         </div>
 
                         <h1 className="comic-title text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-yellow-400 mb-6 leading-none drop-shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
@@ -158,10 +162,10 @@ export default function KaiStory() {
                                 viewport={{ once: true }}
                                 variants={slideInLeft}
                             >
-                                <StoryImagePlaceholder
-                                    sceneNumber={1}
-                                    label="THE AI REVOLUTION"
-                                    aspectRatio="4/3"
+                                <StoryImage
+                                    src="/story-scene-1.jpg"
+                                    alt="Scene 1: The Golden Age of Vibe Coders - Kai coding with magic bursting from his laptop"
+                                    aspectRatio="9/13"
                                 />
                             </motion.div>
 
@@ -178,9 +182,8 @@ export default function KaiStory() {
 
                                 <div className="comic-panel p-6 bg-white comic-shadow">
                                     <p className="comic-body text-base sm:text-lg text-gray-900 leading-relaxed">
-                                        AI agents had <span className="font-bold bg-yellow-200 px-1">conquered the craft</span>.
-                                        What once took months to build now took minutes. What cost $50,000 in developers
-                                        now cost a coffee and a prompt.
+                                        The <span className="font-bold bg-yellow-200 px-1">Synthetics</span> had commoditized the craft.
+                                        Code became cheap. Shipping became instant. What once took months now took minutes.
                                     </p>
                                 </div>
 
@@ -190,39 +193,33 @@ export default function KaiStory() {
                                         &quot;SHIP IN 5 MINUTES!&quot; they screamed. &quot;ANYONE CAN BUILD!&quot;
                                     </p>
                                 </SpeechBubble>
+
+                                <div className="comic-panel p-6 sm:p-8 bg-white comic-shadow">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <Zap className="w-8 h-8 text-yellow-500" />
+                                        <p className="comic-title text-xl sm:text-2xl text-gray-900">THE NEW REALITY</p>
+                                    </div>
+                                    <ul className="comic-body text-sm sm:text-base space-y-3 text-gray-900">
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-green-600 text-xl">✓</span>
+                                            <span><strong>Landing page?</strong> Done in 3 minutes.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-green-600 text-xl">✓</span>
+                                            <span><strong>Full-stack app?</strong> Before lunch.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-green-600 text-xl">✓</span>
+                                            <span><strong>Complex backend?</strong> Weekend project.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-green-600 text-xl">✓</span>
+                                            <span><strong>Technical barriers?</strong> <span className="bg-black text-white px-2">DEMOLISHED.</span></span>
+                                        </li>
+                                    </ul>
+                                </div>
                             </motion.div>
                         </div>
-
-                        <motion.div
-                            initial="initial"
-                            whileInView="animate"
-                            viewport={{ once: true }}
-                            variants={fadeIn}
-                            className="comic-panel p-6 sm:p-8 bg-white comic-shadow max-w-3xl mx-auto transform rotate-1"
-                        >
-                            <div className="flex items-center gap-4 mb-4">
-                                <Zap className="w-8 h-8 text-yellow-500" />
-                                <p className="comic-title text-xl sm:text-2xl text-gray-900">THE NEW REALITY</p>
-                            </div>
-                            <ul className="comic-body text-sm sm:text-base space-y-3 text-gray-900">
-                                <li className="flex items-start gap-3">
-                                    <span className="text-green-600 text-xl">✓</span>
-                                    <span><strong>Landing page?</strong> Done in 3 minutes.</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <span className="text-green-600 text-xl">✓</span>
-                                    <span><strong>Full-stack app?</strong> Before lunch.</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <span className="text-green-600 text-xl">✓</span>
-                                    <span><strong>Complex backend?</strong> Weekend project.</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <span className="text-green-600 text-xl">✓</span>
-                                    <span><strong>Technical barriers?</strong> <span className="bg-black text-white px-2">DEMOLISHED.</span></span>
-                                </li>
-                            </ul>
-                        </motion.div>
                     </div>
                 </section>
 
@@ -293,10 +290,10 @@ export default function KaiStory() {
                                 variants={slideInRight}
                                 className="order-1 lg:order-2"
                             >
-                                <StoryImagePlaceholder
-                                    sceneNumber={2}
-                                    label="THE GRAVEYARD OF IDEAS"
-                                    aspectRatio="4/3"
+                                <StoryImage
+                                    src="/story-scene-2.jpg"
+                                    alt="Scene 2: The Graveyard of Ideas - Kai overwhelmed by bad startup ideas like Uber for Dogs and Crypto Pets"
+                                    aspectRatio="16/9"
                                 />
                             </motion.div>
                         </div>
@@ -326,7 +323,7 @@ export default function KaiStory() {
 
                             <SpeechBubble type="shout" className="bg-yellow-400 border-rose-500 text-center transform rotate-1">
                                 <p className="text-rose-900 comic-title text-lg sm:text-xl">
-                                    &quot;UBER FOR DOGS&quot; • &quot;TINDER FOR PLANTS&quot; • &quot;AI FOR THINKING&quot;
+                                    &quot;UBER FOR DOGS&quot; • &quot;TINDER FOR PLANTS&quot; • &quot;WRAPPER #9000&quot;
                                     <br />
                                     <span className="text-black font-bold">ALL DEAD. ALL FORGOTTEN.</span>
                                 </p>
@@ -366,9 +363,9 @@ export default function KaiStory() {
                                 viewport={{ once: true }}
                                 variants={slideInLeft}
                             >
-                                <StoryImagePlaceholder
-                                    sceneNumber={3}
-                                    label="THE HIDDEN GOLDMINE"
+                                <StoryImage
+                                    src="/story-scene-3.jpg"
+                                    alt="Scene 3: The Discovery - Kai finding 'Only If This Existed' in Reddit threads with his magnifying glass"
                                     aspectRatio="4/3"
                                 />
                             </motion.div>
@@ -450,20 +447,20 @@ export default function KaiStory() {
                                         <p className="comic-title text-xl text-rose-700">THE MISSION</p>
                                     </div>
                                     <p className="comic-body text-base sm:text-lg text-gray-900 leading-relaxed">
-                                        An AI that doesn&apos;t <em>build</em> for you—<br />
-                                        it finds <span className="font-bold bg-yellow-200 px-1">what&apos;s WORTH building.</span>
+                                        Not another &quot;do-it-all&quot; coding bot.<br />
+                                        Kai is a <span className="font-bold bg-yellow-200 px-1">Demand Hunter.</span> We find the bleeding neck. You sell the bandage.
                                     </p>
                                 </div>
 
                                 <SpeechBubble type="shout">
                                     <p className="text-black font-bold comic-title text-lg sm:text-xl">
-                                        &quot;FORGET BUILDING FASTER.<br />
-                                        BUILD <span className="bg-black text-yellow-400 px-2">SMARTER.</span>&quot;
+                                        &quot;STOP GUESSING.<br />
+                                        START <span className="bg-black text-yellow-400 px-2">SOLVING.</span>&quot;
                                     </p>
                                 </SpeechBubble>
 
                                 <div className="p-6 bg-black text-white comic-shadow border-4 border-yellow-400 rounded-lg">
-                                    <p className="comic-title text-lg text-yellow-400 mb-4">KAI&apos;S SUPERPOWER:</p>
+                                    <p className="comic-title text-lg text-yellow-400 mb-4">THE ENGINE SPECS:</p>
                                     <ul className="comic-body space-y-2 text-sm sm:text-base text-white">
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-400">▸</span>
@@ -492,10 +489,10 @@ export default function KaiStory() {
                                 variants={slideInRight}
                                 className="order-1 lg:order-2"
                             >
-                                <StoryImagePlaceholder
-                                    sceneNumber={4}
-                                    label="KAI RISES"
-                                    aspectRatio="3/4"
+                                <StoryImage
+                                    src="/story-scene-4.jpg"
+                                    alt="Scene 4: Kai Rises - Hero shot of Kai with tablet, skyscrapers in the background"
+                                    aspectRatio="2/3"
                                     className="max-w-md mx-auto"
                                 />
                             </motion.div>
@@ -515,7 +512,7 @@ export default function KaiStory() {
                             whileInView="animate"
                             viewport={{ once: true }}
                             variants={fadeIn}
-                            className="text-center mb-12"
+                            className="text-center mb-8"
                         >
                             <div className="inline-block bg-yellow-400 text-black px-6 py-2 comic-title text-lg sm:text-2xl mb-4 transform -rotate-1">
                                 EPILOGUE
@@ -525,46 +522,58 @@ export default function KaiStory() {
                             </h2>
                         </motion.div>
 
-                        <div className="grid lg:grid-cols-2 gap-8 items-center mb-12">
+                        {/* Side-by-side Layout: Image Left, Content Right */}
+                        <div className="grid lg:grid-cols-2 gap-8 items-start mb-12">
+                            {/* Image on Left */}
                             <motion.div
                                 initial="initial"
                                 whileInView="animate"
                                 viewport={{ once: true }}
                                 variants={slideInLeft}
                             >
-                                <StoryImagePlaceholder
-                                    sceneNumber={5}
-                                    label="THE FUTURE OF BUILDING"
+                                <StoryImage
+                                    src="/story-scene-5.jpg"
+                                    alt="Scene 5: The Future of Building - Kai pointing towards the sunrise with blueprints"
                                     aspectRatio="4/3"
                                 />
                             </motion.div>
 
-                            <motion.div
-                                initial="initial"
-                                whileInView="animate"
-                                viewport={{ once: true }}
-                                variants={slideInRight}
-                                className="space-y-6"
-                            >
-                                <div className="comic-panel p-6 bg-gray-900 border-4 border-yellow-400">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <TrendingUp className="w-6 h-6 text-yellow-400" />
-                                        <p className="comic-title text-lg text-yellow-400">THE TRUTH</p>
+                            {/* Content on Right - Stacked Panels */}
+                            <div className="space-y-6">
+                                <motion.div
+                                    initial="initial"
+                                    whileInView="animate"
+                                    viewport={{ once: true }}
+                                    variants={slideInRight}
+                                >
+                                    <div className="comic-panel p-6 bg-gray-900 border-4 border-yellow-400">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <TrendingUp className="w-6 h-6 text-yellow-400" />
+                                            <p className="comic-title text-lg text-yellow-400">THE TRUTH</p>
+                                        </div>
+                                        <p className="comic-body text-gray-300 leading-relaxed">
+                                            In the age of <span className="text-yellow-400 font-bold">infinite noise</span>, the best compass beats
+                                            the best <span className="text-gray-500 line-through">hammer</span>.
+                                            Knowing <em>what</em> to build is the new superpower.
+                                        </p>
                                     </div>
-                                    <p className="comic-body text-gray-300 leading-relaxed">
-                                        In the age of AI builders, the best <span className="text-yellow-400 font-bold">compass</span> beats
-                                        the best <span className="text-gray-500 line-through">hammer</span>.
-                                        Knowing <em>what</em> to build is the new superpower.
-                                    </p>
-                                </div>
+                                </motion.div>
 
-                                <SpeechBubble type="shout" className="bg-yellow-400 text-center">
-                                    <p className="text-black font-bold comic-title text-xl sm:text-2xl">
-                                        FIND THE RIGHT ZERO.<br />
-                                        <span className="text-rose-700">THEN ADD THE ONE.</span>
-                                    </p>
-                                </SpeechBubble>
-                            </motion.div>
+                                <motion.div
+                                    initial="initial"
+                                    whileInView="animate"
+                                    viewport={{ once: true }}
+                                    variants={slideInRight}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    <SpeechBubble type="shout" className="bg-yellow-400 text-center flex items-center justify-center p-8">
+                                        <p className="text-black font-bold comic-title text-xl sm:text-2xl">
+                                            FIND THE RIGHT ZERO.<br />
+                                            <span className="text-rose-700">THEN ADD THE ONE.</span>
+                                        </p>
+                                    </SpeechBubble>
+                                </motion.div>
+                            </div>
                         </div>
 
                         {/* Final Panel */}
@@ -573,22 +582,147 @@ export default function KaiStory() {
                             whileInView="animate"
                             viewport={{ once: true }}
                             variants={fadeIn}
-                            className="comic-panel p-8 sm:p-12 bg-gradient-to-r from-rose-700 to-rose-600 comic-shadow max-w-4xl mx-auto text-center"
+                            className="max-w-4xl mx-auto"
                         >
-                            <Sparkles className="w-12 h-12 text-yellow-400 mx-auto mb-6" />
-                            <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-white leading-tight mb-6">
-                                THE STORY CONTINUES...<br />
-                                <span className="text-yellow-400">WITH YOU.</span>
-                            </p>
-                            <p className="comic-body text-lg text-rose-100 mb-8 max-w-xl mx-auto">
-                                Every Monday, Kai delivers 10 validated opportunities. Your next startup could be waiting in your inbox.
-                            </p>
-                            <Link
-                                href="/"
-                                className="inline-block px-8 py-4 bg-yellow-400 text-black comic-title text-xl hover:bg-yellow-300 transition-colors comic-shadow border-4 border-black"
-                            >
-                                🔥 JOIN THE HUNT
-                            </Link>
+                            <div className="comic-panel p-8 sm:p-12 bg-gradient-to-r from-rose-700 to-rose-600 comic-shadow text-center">
+                                <Sparkles className="w-12 h-12 text-yellow-400 mx-auto mb-6" />
+                                <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-white leading-tight mb-6">
+                                    THE STORY CONTINUES...<br />
+                                    <span className="text-yellow-400">WITH YOU.</span>
+                                </p>
+                                <p className="comic-body text-lg text-rose-100 mb-8 max-w-xl mx-auto">
+                                    Every Monday, Kai delivers 10 validated opportunities. Your next startup could be waiting in your inbox.
+                                </p>
+
+                                {/* Hide the Join section if user is already signed in */}
+                                {!user ? (
+                                    <AnimatePresence mode="wait">
+                                        {!showJoinForm ? (
+                                            <motion.button
+                                                key="join-button"
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => setShowJoinForm(true)}
+                                                className="group px-8 py-5 bg-yellow-400 text-black comic-title text-xl hover:bg-yellow-300 transition-all duration-300 comic-shadow border-4 border-black"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    🔥 JOIN THE HUNT
+                                                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                </span>
+                                            </motion.button>
+                                        ) : (
+                                            <motion.div
+                                                key="join-form"
+                                                initial={{ opacity: 0, height: 0, y: -20 }}
+                                                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                exit={{ opacity: 0, height: 0, y: -20 }}
+                                                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                                                className="comic-panel p-8 bg-white comic-shadow overflow-hidden max-w-xl mx-auto"
+                                            >
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="comic-title text-2xl text-black">GET THE WEEKLY ZEROS</h3>
+                                                    <button
+                                                        onClick={() => setShowJoinForm(false)}
+                                                        className="text-gray-400 hover:text-black transition-colors text-2xl font-bold"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+
+                                                {subscribeStatus === 'success' ? (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        className="text-center py-2"
+                                                    >
+                                                        <div className="text-4xl mb-3">⚡</div>
+                                                        <h4 className="comic-title text-xl mb-2 text-black">YOU&apos;RE IN!</h4>
+                                                        <p className="comic-body text-gray-700">First email drops Monday.</p>
+                                                    </motion.div>
+                                                ) : (
+                                                    <form onSubmit={handleSubscribe} className="space-y-4">
+                                                        <motion.input
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: 0.1 }}
+                                                            type="text"
+                                                            value={name}
+                                                            onChange={(e) => setName(e.target.value)}
+                                                            placeholder="Your Name"
+                                                            className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
+                                                            required
+                                                        />
+                                                        <motion.input
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: 0.2 }}
+                                                            type="email"
+                                                            value={email}
+                                                            onChange={(e) => setEmail(e.target.value)}
+                                                            placeholder="your@email.com"
+                                                            className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
+                                                            required
+                                                        />
+
+                                                        {subscribeStatus === 'error' && (
+                                                            <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm">
+                                                                {subscribeError}
+                                                            </div>
+                                                        )}
+
+                                                        <motion.button
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.3 }}
+                                                            type="submit"
+                                                            disabled={subscribeStatus === 'loading'}
+                                                            className="w-full px-6 py-4 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50"
+                                                        >
+                                                            {subscribeStatus === 'loading' ? 'SUBSCRIBING...' : 'SUBSCRIBE FREE'}
+                                                        </motion.button>
+                                                    </form>
+                                                )}
+
+                                                <p className="text-xs comic-body mt-3 text-gray-600">
+                                                    ✓ Free forever &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
+                                                </p>
+                                                <p className="text-xs comic-body mt-2 text-gray-500">
+                                                    Want to vote &amp; earn badges?{' '}
+                                                    <Link
+                                                        href="/"
+                                                        className="text-rose-700 font-bold underline hover:text-rose-900"
+                                                    >
+                                                        Create an account &rarr;
+                                                    </Link>
+                                                </p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="comic-panel p-8 bg-white comic-shadow max-w-xl mx-auto"
+                                    >
+                                        <div className="text-4xl mb-3">✓</div>
+                                        <h3 className="comic-title text-2xl mb-3 text-black">
+                                            YOU&apos;RE ALREADY IN{user.user_metadata?.name ? `, ${user.user_metadata.name.toUpperCase()}` : ''}!
+                                        </h3>
+                                        <p className="comic-body text-gray-700 mb-4">
+                                            You&apos;re all set to receive the weekly zeros. Check your inbox every Monday for fresh opportunities.
+                                        </p>
+                                        <Link
+                                            href="/"
+                                            className="inline-block px-6 py-3 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-all comic-shadow"
+                                        >
+                                            VIEW THIS WEEK&apos;S IDEAS
+                                        </Link>
+                                    </motion.div>
+                                )}
+                            </div>
                         </motion.div>
                     </div>
                 </section>

@@ -74,8 +74,8 @@ async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit =
     }
 }
 
-export async function runRedditFlow() {
-    console.log('Starting Reddit Startup Ideas Workflow...');
+export async function runRedditFlow(targetDate = new Date()) {
+    console.log(`Starting Reddit Startup Ideas Workflow for date: ${targetDate.toISOString().split('T')[0]}...`);
     let allPosts = [];
 
     // 1. Scrape Reddit (Chunked to respect rate limits)
@@ -153,20 +153,43 @@ export async function runRedditFlow() {
       ]
     `;
 
-        try {
-            console.log(`Generating ideas from batch of ${batch.length} posts...`);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const result = await model.generateContent(promptText);
-            const response = await result.response;
-            const text = response.text();
-            const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                console.log(`Generating ideas from batch of ${batch.length} posts... (Retries left: ${retries})`);
 
-            const ideas = JSON.parse(cleanJson);
-            if (Array.isArray(ideas)) {
-                validatedIdeas = [...validatedIdeas, ...ideas];
+                let result;
+                try {
+                    // Primary Model
+                    const modelPrimary = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+                    result = await modelPrimary.generateContent(promptText);
+                } catch (primaryError) {
+                    console.warn("Primary model (gemini-3-flash-preview) failed:", primaryError.message);
+                    console.log("Switching to backup model (gemini-2.5-flash)...");
+                    // Backup Model
+                    const modelBackup = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    result = await modelBackup.generateContent(promptText);
+                }
+
+                const response = await result.response;
+                const text = response.text();
+                const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                const ideas = JSON.parse(cleanJson);
+                if (Array.isArray(ideas)) {
+                    validatedIdeas = [...validatedIdeas, ...ideas];
+                }
+                break; // Success, exit loop
+            } catch (error) {
+                console.error("AI Generation failed:", error.message);
+                if (error.message.includes('429') || error.status === 429) {
+                    console.log("Rate limited. Waiting 60s...");
+                    await new Promise(r => setTimeout(r, 60000));
+                    retries--;
+                } else {
+                    break; // Non-retriable error
+                }
             }
-        } catch (error) {
-            console.error("AI Generation failed for batch:", error);
         }
     }
 
@@ -176,19 +199,19 @@ export async function runRedditFlow() {
 
     // 3. Save to Database
     if (validatedIdeas.length > 0) {
-        await saveIdeasToDB(validatedIdeas);
+        await saveIdeasToDB(validatedIdeas, targetDate, allPosts.length);
         await notifyAdmin(validatedIdeas);
     } else {
         console.log("No ideas generated.");
     }
 }
 
-async function saveIdeasToDB(ideas) {
+async function saveIdeasToDB(ideas, date, postsScraped) {
     if (!supabaseAdmin) {
         console.warn('Skipping DB save: Supabase Admin client not initialized');
         return;
     }
-    const today = new Date();
+    const today = date || new Date();
     const monday = new Date(today);
     monday.setDate(today.getDate() - today.getDay() + 1);
     const weekStart = monday.toISOString().split('T')[0];
@@ -212,6 +235,22 @@ async function saveIdeasToDB(ideas) {
 
         if (error) console.error('Error saving idea:', error);
     }
+
+    // Save posts_scraped count to weekly_batches
+    if (postsScraped) {
+        const { error: batchError } = await supabaseAdmin
+            .from('weekly_batches')
+            .upsert({
+                week_start_date: weekStart,
+                total_ideas: ideas.length,
+                posts_scraped: postsScraped
+            }, {
+                onConflict: 'week_start_date'
+            });
+
+        if (batchError) console.error('Error saving batch metadata:', batchError);
+    }
+
     console.log('Ideas saved to DB.');
 }
 
@@ -228,6 +267,7 @@ async function notifyAdmin(ideas) {
     try {
         await resend.emails.send({
             from: 'Kai <kai@zerosbykai.com>',
+            reply_to: 'kai@zerosbykai.com',
             to: adminEmail,
             subject: `Keyless Workflow: ${ideas.length} New Zeros`,
             html: `<h1>Weekly Zeros Report</h1><p>Scraped ~20 subreddits successfully.</p>${htmlPreview}`

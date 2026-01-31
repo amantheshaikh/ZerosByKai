@@ -186,12 +186,21 @@ export async function sendWeeklyDigest() {
 
     console.log(`Sending digest to ${emailList.length} unique subscribers (deduplicated & filtered)`);
 
+    // Get posts_scraped count from current week's batch
+    const { data: currentBatch } = await supabaseAdmin
+      .from('weekly_batches')
+      .select('posts_scraped')
+      .eq('week_start_date', weekStart)
+      .single();
+
+    const threadCount = currentBatch?.posts_scraped || ideas.length;
+
     // Generate email HTML base (personalization happens in loop)
     const baseHtml = generateWeeklyDigestEmail({
       ideas,
       winner: lastWeekBatch?.winner,
       badgeCount: lastWeekBatch?.total_votes || 0,
-      threadCount: 2347, // From metadata ideally
+      threadCount,
       weekDate: new Date(weekStart).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
@@ -207,11 +216,18 @@ export async function sendWeeklyDigest() {
         .replace('{{email}}', subscriber.email)
         .replace('{{token}}', token);
 
+      const unsubscribeUrl = `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
+
       return resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
+        reply_to: 'kai@zerosbykai.com',
         to: subscriber.email,
         subject: `Kai's Zeros: Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        html: personalHtml
+        html: personalHtml,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
       });
     });
 
@@ -299,16 +315,26 @@ export async function sendBadgeEmails() {
 
       const emailHtml = generateBadgeEmail({
         name: user.name,
+        email: user.email,
         ideaName: batch.winner.name,
         badgeCount,
-        tier
+        tier,
+        weeklyWinnerCount: winners.length
       });
+
+      const token = Buffer.from(user.email).toString('base64');
+      const unsubscribeUrl = `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(user.email)}&token=${token}`;
 
       return resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
+        reply_to: 'kai@zerosbykai.com',
         to: user.email,
         subject: "🎯 You Picked the Winner!",
-        html: emailHtml
+        html: emailHtml,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
       });
     });
 

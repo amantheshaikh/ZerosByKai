@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS weekly_batches (
   winner_idea_id UUID REFERENCES ideas(id),
   total_ideas INTEGER DEFAULT 0,
   total_votes INTEGER DEFAULT 0,
+  posts_scraped INTEGER,
   email_sent_at TIMESTAMPTZ,
   badge_emails_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()

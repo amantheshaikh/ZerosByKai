@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
 import { useAuth, apiFetch, getApiUrl } from '@/lib/auth';
+import { useSubscribe } from '@/hooks/useSubscribe';
 import Header from '@/components/Header';
 import Leaderboard from '@/components/Leaderboard';
 import dynamic from 'next/dynamic';
@@ -40,10 +41,10 @@ const faqSchema = {
         },
         {
             "@type": "Question",
-            "name": "What are Kai's Pick badges?",
+            "name": "What are Zero Finder badges?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Kai's Pick badges are earned when you vote for the winning startup idea of the week. Badges stack across tiers: Bronze (1-2 picks), Silver (3-5), Gold (6-10), and Diamond (11+). They prove your ability to spot winning business opportunities."
+                "text": "Zero Finder badges are earned when you vote for the winning startup idea of the week. Badges stack across tiers: Bronze (1-2 picks), Silver (3-5), Gold (6-10), and Diamond (11+). They prove your ability to spot winning business opportunities."
             }
         },
         {
@@ -218,11 +219,11 @@ const ZerosByKaiLanding = () => {
     const { user, session, isLoading: authLoading, openAuthModal } = useAuth();
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
-    const [subscribeStatus, setSubscribeStatus] = useState('idle'); // idle | loading | success | error
-    const [subscribeError, setSubscribeError] = useState('');
+    const { subscribe, status: subscribeStatus, error: subscribeError } = useSubscribe();
 
     // Real ideas state
     const [ideas, setIdeas] = useState(null);
+    const [leaderboard, setLeaderboard] = useState(null);
     const [userVote, setUserVote] = useState(null);
     const [votingIdeaId, setVotingIdeaId] = useState(null);
     const [voteConfirmation, setVoteConfirmation] = useState(null);
@@ -241,6 +242,17 @@ const ZerosByKaiLanding = () => {
                 }
             })
             .catch(() => { });
+
+        // Fetch Leaderboard (Last Week's Winners)
+        const leaderboardUrl = `${getApiUrl()}/api/ideas/leaderboard`;
+        fetch(leaderboardUrl)
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setLeaderboard(data.map(normalizeIdea));
+                }
+            })
+            .catch(err => console.error("Leaderboard fetch error:", err));
     }, []);
 
     // Fetch user's current vote (if authenticated)
@@ -261,26 +273,10 @@ const ZerosByKaiLanding = () => {
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        setSubscribeStatus('loading');
-        setSubscribeError('');
-        try {
-            const apiUrl = getApiUrl();
-            const res = await fetch(`${apiUrl}/api/subscribe`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, name })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.error || 'Something went wrong');
-
-            setSubscribeStatus('success');
+        const success = await subscribe({ email, name });
+        if (success) {
             setEmail('');
             setName('');
-        } catch (error) {
-            setSubscribeError(error.message);
-            setSubscribeStatus('error');
         }
     };
 
@@ -582,6 +578,203 @@ const ZerosByKaiLanding = () => {
                 </div>
             </section>
 
+
+            <section id="ideas-section" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-yellow-50">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-10 sm:mb-16">
+                        <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
+                            FRESH FROM REDDIT
+                        </div>
+                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
+                        <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
+                            <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
+                            If it wins, you earn a Zero Finder badge.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 mb-12 sm:mb-16 max-w-6xl mx-auto">
+                        {displayIdeas.map((idea, index) => {
+                            const btnProps = getVoteButtonProps(idea.id);
+                            const isUserPick = user && isRealData && userVote === idea.id;
+
+                            return (
+                                <div
+                                    key={idea.id}
+                                    className={`comic-panel bg-white hover:scale-[1.01] transition-all cursor-pointer comic-shadow flex flex-col h-full relative group ${isUserPick ? 'ring-4 ring-yellow-400' : ''
+                                        }`}
+                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                >
+                                    {/* YOUR PICK badge */}
+                                    {isUserPick && (
+                                        <div className="absolute -top-4 -left-4 bg-yellow-400 border-4 border-black px-4 py-1 comic-title transform -rotate-3 z-20 shadow-md text-sm text-black">
+                                            ✓ YOUR PICK
+                                        </div>
+                                    )}
+
+                                    {/* Top Badge */}
+                                    <div className="absolute -top-3 sm:-top-4 -right-3 sm:-right-4 bg-yellow-400 border-2 sm:border-4 border-black px-3 sm:px-4 py-1 comic-title text-sm sm:text-base transform rotate-3 z-10 shadow-md group-hover:rotate-6 transition-transform">
+                                        IDEA #{index + 1}
+                                    </div>
+
+                                    <div className="p-5 sm:p-6 lg:p-8 flex-grow">
+                                        {/* Header */}
+                                        <div className="mb-4 sm:mb-6 border-b-4 border-gray-100 pb-4 sm:pb-6">
+                                            <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
+                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-blue-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.tag}</span>
+                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-purple-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.category}</span>
+                                            </div>
+                                            <h3 className="comic-title text-2xl sm:text-3xl mb-2 leading-none">{idea.name}</h3>
+                                            <h4 className="comic-body font-bold text-gray-600 text-xs sm:text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>
+                                        </div>
+
+                                        {/* Content Grid */}
+                                        <div className="space-y-4 sm:space-y-5">
+                                            {/* Problem */}
+                                            <div className="bg-rose-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
+                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Problem</div>
+                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.problem}</p>
+                                            </div>
+
+                                            {/* Solution */}
+                                            <div className="bg-green-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
+                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Fix</div>
+                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.solution}</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                                <div>
+                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Target Audience</div>
+                                                    <p className="comic-body text-xs font-bold text-gray-900">{idea.target}</p>
+                                                </div>
+                                                <div>
+                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Market Potential</div>
+                                                    <p className="comic-body text-xs font-bold text-rose-700">{idea.why_it_matters || idea.why}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Vote Button - At Bottom */}
+                                    <div className="p-4 bg-gray-50 border-t-4 border-black mt-auto">
+                                        <button
+                                            onClick={() => handleVote(idea.id)}
+                                            disabled={votingIdeaId === idea.id}
+                                            className="w-full relative group"
+                                        >
+                                            <div className={`w-full py-3 transition-colors border-2 border-transparent ${btnProps.style} ${votingIdeaId === idea.id ? 'opacity-50' : ''
+                                                }`}>
+                                                <span className="comic-title text-xl tracking-wider">
+                                                    {votingIdeaId === idea.id ? 'VOTING...' : btnProps.label}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {!user && (
+                        <div className="text-center">
+                            <div className="comic-panel inline-block p-6 bg-yellow-400 comic-shadow">
+                                <p className="comic-body font-bold text-lg mb-4 text-black">
+                                    Sign up to pick your winner and earn Zero Finder badges
+                                </p>
+                                <button
+                                    onClick={() => openAuthModal('join')}
+                                    className="px-8 py-3 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-colors"
+                                >
+                                    GET STARTED
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* Leaderboard - Last Week's Winners */}
+            <Leaderboard winners={leaderboard || sampleWinners} />
+
+
+
+            {/* How It Works Section */}
+            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white">
+                <div className="max-w-6xl mx-auto">
+                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-10 sm:mb-16 text-black">HOW IT WORKS</h2>
+
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+                        {/* Step 1 */}
+                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300">
+                            <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
+                                <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from Reddit threads" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            </div>
+                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">1. GET THE STASH</h3>
+                            <p className="comic-body text-sm sm:text-base text-gray-700">
+                                Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from thousands of Reddit threads.
+                                No fluff. No AI hallucinations. Just real problems people are screaming about.
+                            </p>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-100">
+                            <div className="comic-panel p-3 sm:p-4 bg-blue-100 mb-4 sm:mb-6 inline-block transform rotate-2 group-hover:rotate-0 transition-transform">
+                                <Image src="/icon-target.png" alt="Vote on validated startup ideas and pick the best business opportunity" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            </div>
+                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">2. PICK YOUR WINNER</h3>
+                            <p className="comic-body text-sm sm:text-base text-gray-700">
+                                <span className="font-bold text-black">One vote. One idea.</span> Which problem would you solve?
+                                Which opportunity would you bet on? Make your call.
+                            </p>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-200 sm:col-span-2 md:col-span-1">
+                            <div className="comic-panel p-3 sm:p-4 bg-rose-100 mb-4 sm:mb-6 inline-block badge-shine transform -rotate-1 group-hover:rotate-0 transition-transform">
+                                <Image src="/icon-trophy.png" alt="Earn badges for picking winning startup ideas" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            </div>
+                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">3. EARN YOUR BADGE</h3>
+                            <p className="comic-body text-sm sm:text-base text-gray-700">
+                                Pick the winning idea? <span className="font-bold text-black">Zero Finder badge unlocked.</span> Prove you&apos;ve
+                                got the nose for opportunities. Stack badges. Become a Diamond Finder.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Badge Tiers Section */}
+            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gray-900 text-white">
+                <div className="max-w-5xl mx-auto">
+                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-3 sm:mb-4 text-yellow-400">ZERO FINDER BADGES</h2>
+                    <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-8 sm:mb-12">
+                        Find the golden Zeros. Stack your wins. Become the next Kai.
+                    </p>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥉</div>
+                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-400">BRONZE FINDER</h3>
+                            <p className="comic-body text-xs sm:text-sm text-gray-400">1-2 winning picks</p>
+                        </div>
+                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥈</div>
+                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-gray-300">SILVER FINDER</h3>
+                            <p className="comic-body text-xs sm:text-sm text-gray-400">3-5 winning picks</p>
+                        </div>
+                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥇</div>
+                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-300">GOLD FINDER</h3>
+                            <p className="comic-body text-xs sm:text-sm text-gray-400">6-10 winning picks</p>
+                        </div>
+                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💎</div>
+                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-blue-300">DIAMOND FINDER</h3>
+                            <p className="comic-body text-xs sm:text-sm text-gray-400">11+ winning picks</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Why Kai Section - Newspaper Clippings Style */}
             <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 relative overflow-hidden">
                 {/* Halftone pattern overlay */}
@@ -687,121 +880,6 @@ const ZerosByKaiLanding = () => {
                     </div>
                 </div>
             </section>
-            <section id="ideas-section" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-yellow-50">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-10 sm:mb-16">
-                        <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
-                            FRESH FROM REDDIT
-                        </div>
-                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
-                        <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
-                            <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
-                            If it wins, you earn a Kai&apos;s Pick badge.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 mb-12 sm:mb-16 max-w-6xl mx-auto">
-                        {displayIdeas.map((idea, index) => {
-                            const btnProps = getVoteButtonProps(idea.id);
-                            const isUserPick = user && isRealData && userVote === idea.id;
-
-                            return (
-                                <div
-                                    key={idea.id}
-                                    className={`comic-panel bg-white hover:scale-[1.01] transition-all cursor-pointer comic-shadow flex flex-col h-full relative group ${isUserPick ? 'ring-4 ring-yellow-400' : ''
-                                        }`}
-                                    style={{ animationDelay: `${index * 0.1}s` }}
-                                >
-                                    {/* YOUR PICK badge */}
-                                    {isUserPick && (
-                                        <div className="absolute -top-4 -left-4 bg-yellow-400 border-4 border-black px-4 py-1 comic-title transform -rotate-3 z-20 shadow-md text-sm text-black">
-                                            ✓ YOUR PICK
-                                        </div>
-                                    )}
-
-                                    {/* Top Badge */}
-                                    <div className="absolute -top-3 sm:-top-4 -right-3 sm:-right-4 bg-yellow-400 border-2 sm:border-4 border-black px-3 sm:px-4 py-1 comic-title text-sm sm:text-base transform rotate-3 z-10 shadow-md group-hover:rotate-6 transition-transform">
-                                        IDEA #{index + 1}
-                                    </div>
-
-                                    <div className="p-5 sm:p-6 lg:p-8 flex-grow">
-                                        {/* Header */}
-                                        <div className="mb-4 sm:mb-6 border-b-4 border-gray-100 pb-4 sm:pb-6">
-                                            <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-blue-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.tag}</span>
-                                                <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-purple-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.category}</span>
-                                            </div>
-                                            <h3 className="comic-title text-2xl sm:text-3xl mb-2 leading-none">{idea.name}</h3>
-                                            <h4 className="comic-body font-bold text-gray-600 text-xs sm:text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>
-                                        </div>
-
-                                        {/* Content Grid */}
-                                        <div className="space-y-4 sm:space-y-5">
-                                            {/* Problem */}
-                                            <div className="bg-rose-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Problem</div>
-                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.problem}</p>
-                                            </div>
-
-                                            {/* Solution */}
-                                            <div className="bg-green-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                                                <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Fix</div>
-                                                <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.solution}</p>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                                <div>
-                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Target Audience</div>
-                                                    <p className="comic-body text-xs font-bold text-gray-900">{idea.target}</p>
-                                                </div>
-                                                <div>
-                                                    <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Market Potential</div>
-                                                    <p className="comic-body text-xs font-bold text-rose-700">{idea.why}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Vote Button - At Bottom */}
-                                    <div className="p-4 bg-gray-50 border-t-4 border-black mt-auto">
-                                        <button
-                                            onClick={() => handleVote(idea.id)}
-                                            disabled={votingIdeaId === idea.id}
-                                            className="w-full relative group"
-                                        >
-                                            <div className={`w-full py-3 transition-colors border-2 border-transparent ${btnProps.style} ${votingIdeaId === idea.id ? 'opacity-50' : ''
-                                                }`}>
-                                                <span className="comic-title text-xl tracking-wider">
-                                                    {votingIdeaId === idea.id ? 'VOTING...' : btnProps.label}
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {!user && (
-                        <div className="text-center">
-                            <div className="comic-panel inline-block p-6 bg-yellow-400 comic-shadow">
-                                <p className="comic-body font-bold text-lg mb-4 text-black">
-                                    Sign up to pick your winner and earn Kai&apos;s Pick badges
-                                </p>
-                                <button
-                                    onClick={() => openAuthModal('join')}
-                                    className="px-8 py-3 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-colors"
-                                >
-                                    GET STARTED
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* Leaderboard - Last Week's Winners */}
-            <Leaderboard winners={sampleWinners} />
 
             {/* Startup Ideas / SEO Section */}
             <section className="bg-black py-12 sm:py-16 lg:py-20 px-4 sm:px-6 relative overflow-hidden border-t-4 border-b-4 border-black">
@@ -856,84 +934,6 @@ const ZerosByKaiLanding = () => {
                         <p className="comic-title text-lg sm:text-xl lg:text-2xl text-white mb-4 sm:mb-6">
                             THAT IS YOUR NEXT STARTUP. THAT IS YOUR OPPORTUNITY.
                         </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* How It Works Section */}
-            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white">
-                <div className="max-w-6xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-10 sm:mb-16 text-black">HOW IT WORKS</h2>
-
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-                        {/* Step 1 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300">
-                            <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
-                                <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from Reddit threads" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
-                            </div>
-                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">1. GET THE STASH</h3>
-                            <p className="comic-body text-sm sm:text-base text-gray-700">
-                                Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from thousands of Reddit threads.
-                                No fluff. No AI hallucinations. Just real problems people are screaming about.
-                            </p>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-100">
-                            <div className="comic-panel p-3 sm:p-4 bg-blue-100 mb-4 sm:mb-6 inline-block transform rotate-2 group-hover:rotate-0 transition-transform">
-                                <Image src="/icon-target.png" alt="Vote on validated startup ideas and pick the best business opportunity" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
-                            </div>
-                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">2. PICK YOUR WINNER</h3>
-                            <p className="comic-body text-sm sm:text-base text-gray-700">
-                                <span className="font-bold text-black">One vote. One idea.</span> Which problem would you solve?
-                                Which opportunity would you bet on? Make your call.
-                            </p>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-200 sm:col-span-2 md:col-span-1">
-                            <div className="comic-panel p-3 sm:p-4 bg-rose-100 mb-4 sm:mb-6 inline-block badge-shine transform -rotate-1 group-hover:rotate-0 transition-transform">
-                                <Image src="/icon-trophy.png" alt="Earn badges for picking winning startup ideas" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
-                            </div>
-                            <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">3. EARN YOUR BADGE</h3>
-                            <p className="comic-body text-sm sm:text-base text-gray-700">
-                                Pick the winning idea? <span className="font-bold text-black">Kai&apos;s Pick badge unlocked.</span> Prove you&apos;ve
-                                got the nose for opportunities. Stack badges. Become a Diamond scout.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Badge Tiers Section */}
-            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gray-900 text-white">
-                <div className="max-w-5xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-3 sm:mb-4 text-yellow-400">KAI&apos;S PICK BADGES</h2>
-                    <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-8 sm:mb-12">
-                        Sharpen your instinct. Stack badges. Prove you know what&apos;s worth building.
-                    </p>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥉</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-400">BRONZE</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">1-2 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥈</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-gray-300">SILVER</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">3-5 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥇</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-300">GOLD</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">6-10 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💎</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-blue-300">DIAMOND</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">11+ winning picks</p>
-                        </div>
                     </div>
                 </div>
             </section>

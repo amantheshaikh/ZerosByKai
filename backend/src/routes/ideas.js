@@ -1,7 +1,67 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 const router = express.Router();
+
+// GET /api/ideas/leaderboard - Get top 3 winners from last week
+router.get('/leaderboard', async (req, res) => {
+  try {
+    // 1. Calculate Last Week's Monday
+    const today = new Date();
+    // Move back 7 days to get into "last week" timeframe, then find that week's Monday
+    const lastWeekDate = new Date(today);
+    lastWeekDate.setDate(today.getDate() - 7);
+
+    // Find Monday of that date
+    // JS getDay(): Sun=0, Mon=1...
+    // To get Monday:
+    const day = lastWeekDate.getDay();
+    const diff = lastWeekDate.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(lastWeekDate.setDate(diff));
+    const weekStart = monday.toISOString().split('T')[0];
+
+    console.log(`Fetching leaderboard for week: ${weekStart}`);
+
+    // 2. Fetch ideas for that week with vote counts
+    const { data: ideas, error } = await supabaseAdmin
+      .from('ideas')
+      .select('*, votes(count)') // Select votes count
+      .eq('week_published', weekStart)
+      .eq('status', 'published');
+
+    if (error) throw error;
+
+    // 3. Sort by vote count (desc) and take top 3
+    // Note: Supabase .select('*, votes(count)') returns votes as [{count: N}, ...] or array of objects unless using count function differently.
+    // Easier way: Get ideas, then iterate or use a view.
+    // Or: Fetch votes separately and aggregate.
+    // Given the small dataset (10 ideas), fetching votes for all of them is fine.
+
+    const ideasWithVotes = await Promise.all(ideas.map(async (idea) => {
+      const { count } = await supabaseAdmin
+        .from('votes')
+        .select('*', { count: 'exact', head: true })
+        .eq('idea_id', idea.id);
+      return { ...idea, votes: count || 0 };
+    }));
+
+    const sorted = ideasWithVotes.sort((a, b) => b.votes - a.votes).slice(0, 3);
+
+    // Add category/rank
+    // Just map to needed format
+    const ranked = sorted.map((idea, index) => ({
+      ...idea,
+      category: idea.tags?.category || 'Startup',
+      // Ensure minimal fields for frontend
+    }));
+
+    res.json(ranked);
+
+  } catch (error) {
+    console.error('Leaderboard error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET /api/ideas - List all published ideas
 router.get('/', async (req, res) => {
@@ -85,9 +145,9 @@ router.get('/:id', async (req, res) => {
 
     if (voteError) throw voteError;
 
-    res.json({ 
-      ...idea, 
-      voteCount: count || 0 
+    res.json({
+      ...idea,
+      voteCount: count || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
