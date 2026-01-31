@@ -13,10 +13,10 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
       
       <div style="margin-bottom: 12px;">
         <span style="display: inline-block; padding: 4px 10px; background: #f5f5f5; border: 1px solid #d4d4d4; border-radius: 3px; font-size: 11px; margin-right: 6px;">
-          ${idea.tags?.geography?.[0] || '🌍 Global'}
+          ${idea.tags?.region || '🌍 Global'}
         </span>
         <span style="display: inline-block; padding: 4px 10px; background: #f3e8ff; border: 1px solid #d4d4d4; border-radius: 3px; font-size: 11px;">
-          ${idea.tags?.category?.[0] || 'Startup'}
+          ${idea.tags?.category || 'Startup'}
         </span>
       </div>
 
@@ -28,16 +28,6 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
       <div style="margin: 16px 0;">
         <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 6px;">Solution</div>
         <p style="font-size: 14px; line-height: 1.6; color: #333;">${idea.solution}</p>
-      </div>
-
-      <div style="margin: 16px 0;">
-        <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 6px;">Target</div>
-        <p style="font-size: 14px; line-height: 1.6; color: #333;">${idea.target_audience}</p>
-      </div>
-
-      <div style="margin: 16px 0;">
-        <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 6px;">Why It Matters</div>
-        <p style="font-size: 14px; line-height: 1.6; color: #333;">${idea.why_it_matters}</p>
       </div>
 
       <div style="margin-top: 20px;">
@@ -70,6 +60,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ZerosByKai - ${weekDate}</title>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Courier Prime', monospace; background: #ffffff;">
   <!--[if !mso]><!-- -->
@@ -80,10 +71,16 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
 
     <!-- Header -->
-    <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 24px;">
-      <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px; margin: 0;">ZEROSBYKAI</h1>
-      <div style="font-size: 13px; color: #666; margin-top: 4px;">Startup Opportunity Analysis</div>
-      <div style="font-size: 13px; color: #666; margin-top: 4px;">Week of ${weekDate}</div>
+    <div style="background: #fbbf24; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
+      <div style="margin-bottom: 8px;">
+        <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
+          <img src="${process.env.FRONTEND_URL}/email-header.png" alt="ZEROSBYKAI" width="280" style="display: block; border: none; max-width: 100%; height: auto;">
+        </a>
+      </div>
+      <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
+        Week of ${weekDate}
+      </div>
+      <p style="margin: 8px 0 0 0; font-size: 13px;">Startup Opportunity Analysis</p>
     </div>
 
     <!-- Summary -->
@@ -125,6 +122,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
     <div style="padding-top: 24px; font-size: 13px; color: #666;">
       <p style="margin-bottom: 16px;">
         See you next Monday,<br>
+        <img src="https://zerosbykai.com/favicon-32x32.png" width="20" height="20" alt="" style="vertical-align: sub; margin-right: 6px; border-radius: 4px;">
         <strong style="color: #000;">Kai</strong>
       </p>
       <p style="font-size: 11px; color: #999;">
@@ -253,9 +251,12 @@ export function generateWelcomeEmail({ name, email }) {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
 
     <!-- Header -->
-    <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 24px;">
-      <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px; margin: 0;">ZEROSBYKAI</h1>
-      <div style="font-size: 13px; color: #666; margin-top: 4px;">Startup Opportunity Analysis</div>
+    <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;">
+      <h1 style="font-size: 28px; font-weight: 700; letter-spacing: 1px; margin: 0; text-transform: uppercase;">ZEROSBYKAI</h1>
+      <div style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
+        Welcome to the Hunt
+      </div>
+      <p style="margin: 8px 0 0 0; font-size: 13px;">Startup Opportunity Analysis</p>
     </div>
 
     <!-- Main Content -->
@@ -286,6 +287,7 @@ export function generateWelcomeEmail({ name, email }) {
     <div style="padding-top: 24px; font-size: 13px; color: #666;">
       <p style="margin-bottom: 16px;">
         See you Monday,<br>
+        <img src="https://zerosbykai.com/favicon-32x32.png" width="20" height="20" alt="" style="vertical-align: sub; margin-right: 6px; border-radius: 4px;">
         <strong style="color: #000;">Kai</strong>
       </p>
       <p style="font-size: 11px; color: #999;">
