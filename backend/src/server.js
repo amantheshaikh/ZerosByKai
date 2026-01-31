@@ -22,6 +22,8 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   'http://localhost:3000',
   'https://zerosbykai.vercel.app',
+  'https://zerosbykai.com',
+  'https://www.zerosbykai.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 

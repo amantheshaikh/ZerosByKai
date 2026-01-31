@@ -84,9 +84,13 @@ router.get('/', async (req, res) => {
 router.get('/weekly', async (req, res) => {
   try {
     // Get current week's Monday
+    // Get current week's Monday
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
+    const day = today.getDay();
+    // precise diff: if sunday (0), go back 6 days. else go back day-1
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
     const weekStart = monday.toISOString().split('T')[0];
 
     const { data: ideas, error } = await supabase
