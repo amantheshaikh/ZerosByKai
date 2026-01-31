@@ -58,6 +58,20 @@ export function AuthProvider({ children }) {
         setSession(s);
         setUser(s?.user ?? null);
         setIsLoading(false);
+
+        // Fire post-login hook on sign-in (covers magic link + Google OAuth)
+        if (_event === 'SIGNED_IN' && s?.access_token) {
+          if (!sessionStorage.getItem('zbk_post_login_done')) {
+            apiFetch('/api/auth/post-login', { method: 'POST' }, s)
+              .then(() => sessionStorage.setItem('zbk_post_login_done', '1'))
+              .catch((err) => console.error('Post-login hook failed:', err));
+          }
+        }
+
+        // Clear flag on sign-out
+        if (_event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('zbk_post_login_done');
+        }
       }
     );
 

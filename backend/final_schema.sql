@@ -76,9 +76,14 @@ CREATE TABLE IF NOT EXISTS user_badges (
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT,
+  welcomed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration for existing databases:
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcomed BOOLEAN DEFAULT FALSE;
+-- UPDATE profiles SET welcomed = TRUE WHERE welcomed IS NULL OR welcomed = FALSE;
 
 -- Newsletter Subscribers Table (for non-authenticated users)
 CREATE TABLE IF NOT EXISTS subscribers (

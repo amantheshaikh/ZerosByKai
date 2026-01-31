@@ -83,6 +83,18 @@ router.post('/signup', async (req, res) => {
 
     if (error) throw error;
 
+    // Check if this is an existing user (for frontend messaging)
+    let isExisting = false;
+    if (data?.properties?.action_link && data.user?.id) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('welcomed')
+        .eq('id', data.user.id)
+        .single();
+
+      isExisting = profile?.welcomed === true;
+    }
+
     // Send email using Resend
     try {
       const magicLinkHtml = generateMagicLinkEmail({
@@ -104,10 +116,85 @@ router.post('/signup', async (req, res) => {
 
     res.json({
       message: 'Magic link sent! Check your email.',
-      email
+      email,
+      isExisting
     });
   } catch (error) {
     console.error('Signup error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/auth/post-login - Handle post-login tasks (welcome email, subscriber sync)
+router.post('/post-login', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if user has already been welcomed
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('welcomed, name')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    if (profile?.welcomed) {
+      return res.json({ isNewUser: false });
+    }
+
+    // New user: send welcome email (fire-and-forget)
+    const userName = profile?.name || user.user_metadata?.name || null;
+    const userEmail = user.email;
+
+    try {
+      const welcomeHtml = generateWelcomeEmail({ name: userName, email: userEmail });
+      await resend.emails.send({
+        from: 'Kai <kai@zerosbykai.com>',
+        reply_to: 'kai@zerosbykai.com',
+        to: userEmail,
+        subject: "Welcome to ZerosByKai",
+        html: welcomeHtml,
+        headers: {
+          'List-Unsubscribe': `<${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(userEmail)}&token=${Buffer.from(userEmail).toString('base64')}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
+
+    // Add to subscribers table only if no existing record (preserves unsubscribe preferences)
+    const { data: existingSub } = await supabaseAdmin
+      .from('subscribers')
+      .select('id')
+      .eq('email', userEmail)
+      .single();
+
+    if (!existingSub) {
+      await supabaseAdmin
+        .from('subscribers')
+        .insert({ email: userEmail, name: userName });
+    }
+
+    // Mark user as welcomed
+    await supabaseAdmin
+      .from('profiles')
+      .update({ welcomed: true })
+      .eq('id', user.id);
+
+    res.json({ isNewUser: true });
+  } catch (error) {
+    console.error('Post-login error:', error);
     res.status(500).json({ error: error.message });
   }
 });

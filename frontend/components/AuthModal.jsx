@@ -8,6 +8,7 @@ export default function AuthModal() {
   const [name, setName] = useState('');
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState('');
+  const [isExistingUser, setIsExistingUser] = useState(false);
 
   // Sync mode when modal opens
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function AuthModal() {
       setErrorMsg('');
       setEmail('');
       setName('');
+      setIsExistingUser(false);
     }
   }, [showAuthModal, authModalMode]);
 
@@ -48,6 +50,7 @@ export default function AuthModal() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
 
+      setIsExistingUser(data.isExisting === true);
       setStatus('success');
     } catch (err) {
       setErrorMsg(err.message);
@@ -86,11 +89,17 @@ export default function AuthModal() {
         {status === 'success' ? (
           <div className="text-center py-4">
             <div className="text-5xl mb-4">&#9993;</div>
-            <h2 className="comic-title text-2xl mb-3 text-black">CHECK YOUR EMAIL!</h2>
+            <h2 className="comic-title text-2xl mb-3 text-black">
+              {isExistingUser ? 'WELCOME BACK!' : 'CHECK YOUR EMAIL!'}
+            </h2>
             <p className="comic-body text-gray-700">
               We sent a magic link to <span className="font-bold">{email}</span>.
             </p>
-            <p className="comic-body text-gray-500 text-sm mt-2">Click the link to sign in. No password needed.</p>
+            <p className="comic-body text-gray-500 text-sm mt-2">
+              {isExistingUser
+                ? 'Click the link in your email to sign in.'
+                : "You're almost in! Click the magic link to activate your account."}
+            </p>
             <button
               onClick={closeAuthModal}
               className="mt-6 px-6 py-2 bg-black text-yellow-400 comic-title text-sm hover:bg-gray-900 transition-colors comic-shadow"

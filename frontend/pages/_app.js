@@ -4,6 +4,7 @@ import Script from 'next/script'
 import '@/styles/globals.css'
 import { AuthProvider } from '@/lib/auth'
 import dynamic from 'next/dynamic'
+import { Analytics } from '@vercel/analytics/react'
 
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
     loading: () => null,
@@ -76,6 +77,7 @@ export default function App({ Component, pageProps }) {
             <main className={`${bangers.variable} ${courierPrime.variable} font-sans`}>
                 <Component {...pageProps} />
                 <AuthModal />
+                <Analytics />
                 <div id="mobile-menu-portal" />
             </main>
         </AuthProvider>
