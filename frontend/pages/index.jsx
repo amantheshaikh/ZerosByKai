@@ -546,12 +546,13 @@ const ZerosByKaiLanding = () => {
                                     <Image
                                         src="/kai-hero.jpg"
                                         alt="Kai - AI-powered startup idea curator finding validated business opportunities from Reddit"
-                                        width={400}
-                                        height={400}
+                                        width={682}
+                                        height={1024}
                                         className="w-full h-auto border-2 sm:border-4 border-black"
                                         style={{
                                             filter: 'contrast(1.1) brightness(1.05)',
                                         }}
+                                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 450px"
                                         priority
                                     />
                                 </div>

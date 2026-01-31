@@ -12,6 +12,11 @@ router.post('/subscribe', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
+    if (!supabaseAdmin) {
+      console.error('❌ Subscribe failed: SUPABASE_SERVICE_KEY missing in environment variables');
+      return res.status(503).json({ error: 'Subscription service temporarily unavailable. Please contact support.' });
+    }
+
     // Upsert into subscribers table (re-subscribe if previously unsubscribed)
     // Use supabaseAdmin to bypass RLS since this is a public endpoint doing an update
     const { error } = await supabaseAdmin

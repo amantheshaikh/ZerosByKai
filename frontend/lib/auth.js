@@ -10,6 +10,14 @@ export function getApiUrl() {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 }
 
+export function getRedirectUrl() {
+  if (typeof window === 'undefined') return undefined; // Should satisfy SSR if needed, though usually client-side
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  return window.location.origin;
+}
+
 export async function apiFetch(path, options = {}, session) {
   const url = `${getApiUrl()}${path}`;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -63,11 +71,14 @@ export function AuthProvider({ children }) {
     window.location.href = '/';
   };
 
+
+
   const signInWithGoogle = useCallback(async () => {
+    const origin = getRedirectUrl();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${origin}/auth/callback`,
       },
     });
     if (error) {

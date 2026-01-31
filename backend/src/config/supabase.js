@@ -9,6 +9,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️  Supabase credentials missing. DB features will be disabled.');
+} else if (!supabaseServiceKey) {
+  console.warn('⚠️  SUPABASE_SERVICE_KEY missing. Admin features (like newsletter subscribe) will be disabled.');
 }
 
 // Client for regular operations (respects RLS)
