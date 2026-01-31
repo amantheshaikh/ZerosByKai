@@ -20,7 +20,7 @@ Required variables:
 - `SUPABASE_ANON_KEY` - Supabase anonymous key
 - `SUPABASE_SERVICE_KEY` - Supabase service role key (for admin operations)
 - `RESEND_API_KEY` - Resend API key for sending emails
-- `BUBBLELAB_WEBHOOK_SECRET` - Secret for securing BubbleLab webhook
+- `GEMINI_API_KEY` - Google Gemini API key for AI processing
 - `ADMIN_PASSWORD` - Password for moderation admin panel
 - `FRONTEND_URL` - Your frontend URL (for CORS)
 
@@ -59,7 +59,7 @@ fly secrets set SUPABASE_URL="your_url"
 fly secrets set SUPABASE_ANON_KEY="your_key"
 fly secrets set SUPABASE_SERVICE_KEY="your_service_key"
 fly secrets set RESEND_API_KEY="your_resend_key"
-fly secrets set BUBBLELAB_WEBHOOK_SECRET="your_secret"
+fly secrets set GEMINI_API_KEY="your_gemini_key"
 fly secrets set ADMIN_PASSWORD="your_password"
 fly secrets set FRONTEND_URL="https://zerosbykai.com"
 fly secrets set NODE_ENV="production"
@@ -92,9 +92,6 @@ fly logs
 - `GET /api/votes/user` - Get user's current vote
 - `GET /api/votes/badges` - Get user's badges
 
-### Webhooks
-- `POST /api/webhook/bubblelab` - Receive ideas from BubbleLab
-
 ### Admin (Password Protected)
 - `GET /api/admin/pending` - List pending ideas
 - `POST /api/admin/approve/:id` - Approve idea
@@ -108,6 +105,7 @@ Automatically runs:
 - **Sunday 11 PM UTC**: Calculate winner, award badges
 - **Monday 9 AM UTC**: Send weekly digest
 - **Monday 9:15 AM UTC**: Send badge emails
+- **Monday 10 AM UTC**: Run Reddit startup ideas workflow
 
 ## Admin Moderation
 

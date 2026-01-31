@@ -1,0 +1,36 @@
+# System & Dependencies
+node_modules/
+.git/
+.DS_Store
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build Artifacts
+.next/
+dist/
+build/
+coverage/
+
+# Logs & Temporary Files
+logs/
+*.log
+tmp/
+.temp/
+
+# Editors & IDEs
+.vscode/
+.idea/
+
+# Large binaries/assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.pdf
+*.zip
+*.tar.gz

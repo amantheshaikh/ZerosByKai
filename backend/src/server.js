@@ -7,11 +7,11 @@ import cron from 'node-cron';
 import ideasRouter from './routes/ideas.js';
 import votesRouter from './routes/votes.js';
 import authRouter from './routes/auth.js';
-import webhookRouter from './routes/webhook.js';
 import adminRouter from './routes/admin.js';
 
 // Jobs
 import { calculateWinner, sendWeeklyDigest, sendBadgeEmails } from './jobs/weekly.js';
+import { runRedditFlow } from './workflows/daily_startup_ideas.js';
 
 dotenv.config();
 
@@ -19,8 +19,23 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://zerosbykai.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -34,8 +49,13 @@ app.get('/health', (req, res) => {
 app.use('/api/ideas', ideasRouter);
 app.use('/api/votes', votesRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/webhook', webhookRouter);
 app.use('/api/admin', adminRouter);
+
+// Newsletter subscribe shortcut (maps to /api/auth/subscribe)
+app.post('/api/subscribe', (req, res, next) => {
+  req.url = '/subscribe';
+  authRouter(req, res, next);
+});
 
 // Cron Jobs
 // Sunday 11 PM UTC: Calculate winner and prepare badges
@@ -68,6 +88,17 @@ cron.schedule('15 9 * * 1', async () => {
     console.log('Badge emails sent successfully');
   } catch (error) {
     console.error('Error sending badge emails:', error);
+  }
+});
+
+// Monday 10:00 AM UTC: Run Reddit Startup Ideas Workflow
+cron.schedule('0 10 * * 1', async () => {
+  console.log('Running Reddit startup ideas workflow...');
+  try {
+    await runRedditFlow();
+    console.log('Reddit workflow completed');
+  } catch (error) {
+    console.error('Error running Reddit workflow:', error);
   }
 });
 

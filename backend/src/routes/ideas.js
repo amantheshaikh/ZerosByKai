@@ -44,6 +44,25 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
+// GET /api/ideas/weekly-batches - Get all past weekly batches with winners
+router.get('/weekly-batches', async (req, res) => {
+  try {
+    const { data: batches, error } = await supabase
+      .from('weekly_batches')
+      .select(`
+        *,
+        winner:winner_idea_id (*)
+      `)
+      .order('week_start_date', { ascending: false });
+
+    if (error) throw error;
+
+    res.json({ batches: batches || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/ideas/:id - Get single idea with vote count
 router.get('/:id', async (req, res) => {
   try {

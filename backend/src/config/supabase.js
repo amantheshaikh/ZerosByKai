@@ -8,11 +8,15 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase credentials');
+  console.warn('⚠️  Supabase credentials missing. DB features will be disabled.');
 }
 
 // Client for regular operations (respects RLS)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = (supabaseUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Admin client (bypasses RLS)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;

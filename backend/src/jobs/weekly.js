@@ -45,9 +45,9 @@ export async function calculateWinner() {
     );
 
     // Find winner (highest votes)
-    const winner = ideaVotes.reduce((max, idea) => 
+    const winner = ideaVotes.reduce((max, idea) =>
       idea.voteCount > max.voteCount ? idea : max
-    , ideaVotes[0]);
+      , ideaVotes[0]);
 
     console.log(`Winner: ${winner.name} with ${winner.voteCount} votes`);
 
@@ -139,48 +139,81 @@ export async function sendWeeklyDigest() {
       .eq('week_start_date', lastWeekStart)
       .single();
 
-    // Get all active subscribers (users who signed up)
-    const { data: users, error: usersError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .limit(1000); // Batch in production
-
-    if (usersError) throw usersError;
-
-    // Get user emails from auth
+    // Get auth user emails
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    
+
     if (authError) throw authError;
 
-    const emailList = authUsers.users.map(u => ({
+    const authEmailList = authUsers.users.map(u => ({
       email: u.email,
       name: u.user_metadata?.name || u.email.split('@')[0]
     }));
 
-    console.log(`Sending digest to ${emailList.length} subscribers`);
+    // Get newsletter-only subscribers
+    const { data: subscribers, error: subsError } = await supabaseAdmin
+      .from('subscribers')
+      .select('email, name')
+      .is('unsubscribed_at', null);
 
-    // Generate email HTML
-    const emailHtml = generateWeeklyDigestEmail({
+    if (subsError) throw subsError;
+
+    // Merge both lists, dedup by email (auth users take priority)
+    // Also suppressed unsubscribed emails (checked against subscribers table)
+    const uniqueEmails = new Map();
+
+    // 1. Add Auth Users first
+    authEmailList.forEach(u => {
+      uniqueEmails.set(u.email, { ...u, type: 'auth' });
+    });
+
+    // 2. Add Newsletter Subscribers (only if not already present)
+    subscribers.forEach(s => {
+      if (!uniqueEmails.has(s.email)) {
+        uniqueEmails.set(s.email, { ...s, type: 'subscriber' });
+      }
+    });
+
+    // 3. Filter out globally unsubscribed (users who are in subscribers table with unsubscribed_at set)
+    // We need to check the 'subscribers' table for suppression list even for auth users
+    const { data: suppressionList } = await supabaseAdmin
+      .from('subscribers')
+      .select('email')
+      .not('unsubscribed_at', 'is', null);
+
+    const suppressedEmails = new Set(suppressionList?.map(s => s.email) || []);
+
+    const emailList = Array.from(uniqueEmails.values()).filter(u => !suppressedEmails.has(u.email));
+
+    console.log(`Sending digest to ${emailList.length} unique subscribers (deduplicated & filtered)`);
+
+    // Generate email HTML base (personalization happens in loop)
+    const baseHtml = generateWeeklyDigestEmail({
       ideas,
       winner: lastWeekBatch?.winner,
       badgeCount: lastWeekBatch?.total_votes || 0,
       threadCount: 2347, // From metadata ideally
-      weekDate: new Date(weekStart).toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
+      weekDate: new Date(weekStart).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
       })
     });
 
     // Send emails (batch)
-    const sendPromises = emailList.map(subscriber => 
-      resend.emails.send({
+    const sendPromises = emailList.map(subscriber => {
+      // Simple token for unsubscribe (base64 of email for MVP, can be JWT later)
+      const token = Buffer.from(subscriber.email).toString('base64');
+      const personalHtml = baseHtml
+        .replace('{{email}}', subscriber.email)
+        .replace('{{token}}', token);
+
+      return resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
         to: subscriber.email,
         subject: `Kai's Zeros: Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        html: emailHtml
-      })
-    );
+        html: personalHtml
+      });
+    });
 
     await Promise.allSettled(sendPromises);
 
@@ -237,7 +270,7 @@ export async function sendBadgeEmails() {
     // Get user details
     const userIds = votes.map(v => v.user_id);
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    
+
     if (authError) throw authError;
 
     const winners = authUsers.users

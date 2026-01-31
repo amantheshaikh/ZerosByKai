@@ -4,3 +4,8 @@
 .env
 Dockerfile
 fly.toml
+*.log
+.DS_Store
+docs/
+*.md
+CONTEXT.md

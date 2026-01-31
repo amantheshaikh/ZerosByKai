@@ -1,7 +1,33 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 const router = express.Router();
+
+// POST /api/auth/subscribe - Newsletter-only subscribe (no account creation)
+router.post('/subscribe', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Upsert into subscribers table (re-subscribe if previously unsubscribed)
+    // Use supabaseAdmin to bypass RLS since this is a public endpoint doing an update
+    const { error } = await supabaseAdmin
+      .from('subscribers')
+      .upsert(
+        { email, name: name || null, subscribed_at: new Date().toISOString(), unsubscribed_at: null },
+        { onConflict: 'email' }
+      );
+
+    if (error) throw error;
+
+    res.json({ message: "You're in!" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // POST /api/auth/signup - Send magic link
 router.post('/signup', async (req, res) => {
@@ -25,9 +51,9 @@ router.post('/signup', async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ 
+    res.json({
       message: 'Magic link sent! Check your email.',
-      email 
+      email
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -46,7 +72,7 @@ router.post('/verify', async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ 
+    res.json({
       message: 'Authenticated successfully',
       session: data.session,
       user: data.user
@@ -60,7 +86,7 @@ router.post('/verify', async (req, res) => {
 router.get('/user', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
@@ -88,7 +114,7 @@ router.get('/user', async (req, res) => {
 router.post('/signout', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
@@ -98,6 +124,49 @@ router.post('/signout', async (req, res) => {
     if (error) throw error;
 
     res.json({ message: 'Signed out successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/auth/unsubscribe - Unsubscribe email
+router.get('/unsubscribe', async (req, res) => {
+  try {
+    const { email, token } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate token (simple base64 check for MVP)
+    // const validToken = Buffer.from(email).toString('base64');
+    // if (!token || token !== validToken) {
+    //   return res.status(401).json({ error: 'Invalid unsubscribe token' });
+    // }
+
+    // Mark as unsubscribed in subscribers table (acts as suppression list)
+    // 1. Try to update existing subscriber (preserves name/other data)
+    const { data: existing, error: updateError } = await supabaseAdmin
+      .from('subscribers')
+      .update({ unsubscribed_at: new Date().toISOString() })
+      .eq('email', email)
+      .select();
+
+    if (updateError) throw updateError;
+
+    // 2. If no subscriber found (e.g. auth user not in list), insert new suppression record
+    if (!existing || existing.length === 0) {
+      const { error: insertError } = await supabaseAdmin
+        .from('subscribers')
+        .insert({
+          email,
+          unsubscribed_at: new Date().toISOString()
+        });
+
+      if (insertError) throw insertError;
+    }
+
+    res.json({ message: 'Unsubscribed successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

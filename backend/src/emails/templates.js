@@ -125,7 +125,7 @@ export function generateWeeklyDigestEmail({ ideas, winner, badgeCount, threadCou
         <strong style="color: #000;">Kai</strong>
       </p>
       <p style="font-size: 11px; color: #999;">
-        <a href="${process.env.FRONTEND_URL}/unsubscribe" style="color: #666; margin: 0 8px;">Unsubscribe</a> |
+        <a href="${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent('{{email}}')}&token={{token}}" style="color: #666; margin: 0 8px;">Unsubscribe</a> |
         <a href="${process.env.FRONTEND_URL}/preferences" style="color: #666; margin: 0 8px;">Preferences</a>
       </p>
     </div>

@@ -2,26 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+.comic-title {
+  font-family: var(--font-bangers), system-ui, sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+.comic-body {
+  font-family: var(--font-courier-prime), monospace;
+}
+
+.halftone {
+  background-image: radial-gradient(circle, #000 1px, transparent 1px);
+  background-size: 8px 8px;
+  opacity: 0.1;
+}
+
+.comic-panel {
+  border: 3px solid #000;
+  position: relative;
+}
+
+.comic-shadow {
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.8);
+}
+
+.badge-shine {
+  animation: shine 2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 1;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pop-in {
+  animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
