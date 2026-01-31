@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import Header from '@/components/Header';
 
 export default function Privacy() {
     return (
@@ -16,17 +17,9 @@ export default function Privacy() {
                 <link rel="canonical" href="https://zerosbykai.com/privacy" />
             </Head>
 
-            <header className="p-6 border-b-4 border-black bg-white">
-                <div className="max-w-4xl mx-auto flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 font-bold hover:underline">
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Home
-                    </Link>
-                    <div className="comic-title text-xl tracking-widest">ZEROS BY KAI</div>
-                </div>
-            </header>
+            <Header variant="story" />
 
-            <main className="max-w-3xl mx-auto px-6 py-12">
+            <main className="max-w-3xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-12 text-center">
                     <h1 className="comic-title text-5xl mb-4 text-black">PRIVACY POLICY</h1>
                     <div className="comic-panel inline-block bg-black text-white px-4 py-2 transform rotate-1">

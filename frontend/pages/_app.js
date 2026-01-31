@@ -76,6 +76,7 @@ export default function App({ Component, pageProps }) {
             <main className={`${bangers.variable} ${courierPrime.variable} font-sans`}>
                 <Component {...pageProps} />
                 <AuthModal />
+                <div id="mobile-menu-portal" />
             </main>
         </AuthProvider>
     )

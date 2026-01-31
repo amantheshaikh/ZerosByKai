@@ -45,7 +45,7 @@ export default function ArchivePage() {
             </Head>
             <Header variant="page" />
 
-            <div className="max-w-4xl mx-auto px-6 py-12">
+            <div className="max-w-4xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-12">
                     <h1 className="comic-title text-5xl text-gray-900 mb-2">ARCHIVE</h1>
                     <p className="comic-body text-gray-600 text-lg">Browse all past startup ideas. See what won and explore every opportunity.</p>
@@ -136,11 +136,10 @@ export default function ArchivePage() {
                                                         return (
                                                             <div
                                                                 key={idea.id}
-                                                                className={`p-4 border-2 ${
-                                                                    isWinner
+                                                                className={`p-4 border-2 ${isWinner
                                                                         ? 'border-yellow-400 bg-yellow-50'
                                                                         : 'border-gray-300 bg-white'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 <div className="flex items-start gap-3">
                                                                     <div className="flex-shrink-0 w-8 h-8 bg-black text-yellow-400 flex items-center justify-center comic-title text-sm">

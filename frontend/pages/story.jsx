@@ -97,15 +97,11 @@ export default function KaiStory() {
             </Head>
 
             {/* Header */}
-            <header className="p-4 sm:p-6 border-b-4 border-black bg-white sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto">
-                    <Header variant="story" />
-                </div>
-            </header>
+            <Header variant="story" />
 
             <main>
                 {/* Cover / Title Panel */}
-                <section className="relative bg-black py-16 sm:py-24 lg:py-32 px-4 sm:px-6 overflow-hidden">
+                <section className="relative bg-black pt-32 pb-16 sm:py-24 lg:py-32 px-4 sm:px-6 overflow-hidden">
                     {/* Background action lines */}
                     <div className="absolute inset-0 opacity-20" style={{
                         background: 'repeating-conic-gradient(from 0deg, #fbbf24 0deg 5deg, transparent 5deg 30deg)'

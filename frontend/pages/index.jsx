@@ -167,7 +167,7 @@ const ZerosByKaiLanding = () => {
                 {/* Halftone pattern overlay */}
                 <div className="absolute inset-0 halftone"></div>
 
-                <div className="relative max-w-7xl mx-auto px-6 py-12">
+                <div className="relative max-w-7xl mx-auto px-6 pt-32 pb-12">
                     {/* Header */}
                     <Header variant="landing" />
 
