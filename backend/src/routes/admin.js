@@ -31,78 +31,22 @@ router.get('/pending', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/admin/approve/:id - Approve idea
-router.post('/approve/:id', requireAdmin, async (req, res) => {
+// DELETE /api/admin/idea/:id - Delete a pending idea
+router.delete('/idea/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
     const { data: idea, error } = await supabaseAdmin
       .from('ideas')
-      .update({ 
-        status: 'approved',
-        moderated_at: new Date().toISOString(),
-        moderated_by: 'admin'
-      })
+      .delete()
       .eq('id', id)
+      .eq('status', 'pending')
       .select()
       .single();
 
     if (error) throw error;
 
-    res.json({ message: 'Idea approved', idea });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/admin/reject/:id - Reject idea
-router.post('/reject/:id', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-
-    const { data: idea, error } = await supabaseAdmin
-      .from('ideas')
-      .update({ 
-        status: 'rejected',
-        moderated_at: new Date().toISOString(),
-        moderated_by: 'admin',
-        moderation_notes: reason || null
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    res.json({ message: 'Idea rejected', idea });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/admin/publish - Publish all approved ideas
-router.post('/publish', requireAdmin, async (req, res) => {
-  try {
-    // Get current week's Monday
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
-    const weekStart = monday.toISOString().split('T')[0];
-
-    const { data: ideas, error } = await supabaseAdmin
-      .from('ideas')
-      .update({ status: 'published' })
-      .eq('status', 'approved')
-      .eq('week_published', weekStart)
-      .select();
-
-    if (error) throw error;
-
-    res.json({ 
-      message: `${ideas.length} ideas published`,
-      ideas 
-    });
+    res.json({ message: 'Idea deleted', idea });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

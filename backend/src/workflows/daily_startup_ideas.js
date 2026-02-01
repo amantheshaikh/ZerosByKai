@@ -122,7 +122,7 @@ export async function runRedditFlow(targetDate = new Date()) {
 
     for (const batch of batches) {
         const promptText = `
-      You are "Bubble Lab" (aka Kai), an expert opportunity analyst.
+      You are Kai, an expert opportunity analyst.
       Analyze these Reddit posts to identify recurring pain points and synthesize "Investable Opportunities" (Zeros).
       
       **Heuristics:**
@@ -215,7 +215,22 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
     const monday = new Date(today);
     monday.setDate(today.getDate() - today.getDay() + 1);
     const weekStart = monday.toISOString().split('T')[0];
-    const batchId = `keyless-${Date.now()}`;
+
+    // Upsert weekly_batches FIRST (FK target must exist before inserting ideas)
+    const { error: batchError } = await supabaseAdmin
+        .from('weekly_batches')
+        .upsert({
+            week_start_date: weekStart,
+            total_ideas: ideas.length,
+            posts_scraped: postsScraped || 0
+        }, {
+            onConflict: 'week_start_date'
+        });
+
+    if (batchError) {
+        console.error('Error saving batch metadata:', batchError);
+        return;
+    }
 
     for (const idea of ideas) {
         const { error } = await supabaseAdmin
@@ -229,26 +244,10 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
                 why_it_matters: idea.why || idea.whyItMatters,
                 tags: { category: idea.category, region: idea.tag },
                 week_published: weekStart,
-                status: 'pending',
-                batch_id: batchId
+                status: 'pending'
             });
 
         if (error) console.error('Error saving idea:', error);
-    }
-
-    // Save posts_scraped count to weekly_batches
-    if (postsScraped) {
-        const { error: batchError } = await supabaseAdmin
-            .from('weekly_batches')
-            .upsert({
-                week_start_date: weekStart,
-                total_ideas: ideas.length,
-                posts_scraped: postsScraped
-            }, {
-                onConflict: 'week_start_date'
-            });
-
-        if (batchError) console.error('Error saving batch metadata:', batchError);
     }
 
     console.log('Ideas saved to DB.');

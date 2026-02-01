@@ -94,10 +94,8 @@ fly logs
 
 ### Admin (Password Protected)
 - `GET /api/admin/pending` - List pending ideas
-- `POST /api/admin/approve/:id` - Approve idea
-- `POST /api/admin/reject/:id` - Reject idea
-- `POST /api/admin/publish` - Publish all approved ideas
 - `PUT /api/admin/idea/:id` - Edit idea
+- `DELETE /api/admin/idea/:id` - Delete a pending idea
 
 ## Cron Jobs
 

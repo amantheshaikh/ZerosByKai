@@ -59,7 +59,6 @@ curl -X POST https://zerosbykai-api-prod.fly.dev/api/webhook/bubblelab \
   -H "x-webhook-secret: YOUR_WEBHOOK_SECRET" \
   -H "Content-Type: application/json" \
   -d '{
-    "batch_id": "test-batch",
     "ideas": [{
       "name": "TestIdea",
       "title": "A Test Idea",

@@ -8,6 +8,18 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. TABLES
 
+-- Weekly Batches Table (defined first: FK target for ideas.week_published)
+CREATE TABLE IF NOT EXISTS weekly_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  week_start_date DATE NOT NULL UNIQUE,
+  winner_idea_id UUID,  -- FK added via ALTER TABLE below (circular dependency with ideas)
+  total_ideas INTEGER DEFAULT 0,
+  total_votes INTEGER DEFAULT 0,
+  posts_scraped INTEGER,
+  email_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Ideas Table
 CREATE TABLE IF NOT EXISTS ideas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -17,26 +29,28 @@ CREATE TABLE IF NOT EXISTS ideas (
   solution TEXT NOT NULL,
   target_audience TEXT NOT NULL,
   why_it_matters TEXT NOT NULL,
-  source_links JSONB DEFAULT '[]'::jsonb,
-  
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
-  week_published DATE,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'published')),
+  week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'published')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Diversity tracking
   problem_keywords TEXT[],
-  theme TEXT,
-  
-  -- Workflow batch reference
-  batch_id TEXT,
-  
-  -- Moderation
-  moderated_by TEXT,
-  moderated_at TIMESTAMPTZ,
-  moderation_notes TEXT
+  theme TEXT
 );
+
+-- Resolve circular dependency: weekly_batches.winner_idea_id → ideas(id)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_weekly_batches_winner_idea'
+  ) THEN
+    ALTER TABLE weekly_batches
+      ADD CONSTRAINT fk_weekly_batches_winner_idea
+      FOREIGN KEY (winner_idea_id) REFERENCES ideas(id);
+  END IF;
+END $$;
 
 -- Votes Table
 CREATE TABLE IF NOT EXISTS votes (
@@ -44,20 +58,8 @@ CREATE TABLE IF NOT EXISTS votes (
   idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   voted_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  UNIQUE(idea_id, user_id)
-);
 
--- Weekly Batches Table
-CREATE TABLE IF NOT EXISTS weekly_batches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  week_start_date DATE NOT NULL UNIQUE,
-  winner_idea_id UUID REFERENCES ideas(id),
-  total_ideas INTEGER DEFAULT 0,
-  total_votes INTEGER DEFAULT 0,
-  posts_scraped INTEGER,
-  email_sent_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  UNIQUE(idea_id, user_id)
 );
 
 -- User Badges Table

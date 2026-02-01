@@ -22,7 +22,7 @@ async function simulateNewsletter() {
     console.log('Starting newsletter simulation...');
 
     // 1. Fetch latest PUBLISHED ideas (limit 10)
-    // We prioritize 'published' status to ensure they are "real" approved ideas.
+    // We prioritize 'published' status to ensure they are live ideas.
     let { data: ideas, error } = await supabaseAdmin
         .from('ideas')
         .select('*')

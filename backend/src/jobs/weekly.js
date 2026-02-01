@@ -4,7 +4,7 @@ import { generateWeeklyDigestEmail } from '../emails/templates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Auto-publish pending/approved ideas for this week
+// Auto-publish pending ideas for this week
 export async function autoPublishIdeas() {
   try {
     const today = new Date();

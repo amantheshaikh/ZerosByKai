@@ -11,7 +11,6 @@ import adminRouter from './routes/admin.js';
 
 // Jobs
 import { autoPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
-import { runRedditFlow } from './workflows/daily_startup_ideas.js';
 
 dotenv.config();
 
@@ -60,16 +59,7 @@ app.post('/api/subscribe', (req, res, next) => {
 });
 
 // Cron Jobs
-// Sunday 10 AM UTC: Scrape Reddit, stage ideas as pending for review
-cron.schedule('0 10 * * 0', async () => {
-  console.log('Running Reddit startup ideas workflow...');
-  try {
-    await runRedditFlow();
-    console.log('Reddit workflow completed');
-  } catch (error) {
-    console.error('Error running Reddit workflow:', error);
-  }
-});
+// Sunday scraping moved to GitHub Actions (.github/workflows/reddit-scraper.yml)
 
 // Monday 9 AM UTC: Auto-publish, calculate winner, send weekly digest (sequential)
 cron.schedule('0 9 * * 1', async () => {
