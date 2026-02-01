@@ -86,13 +86,13 @@ router.post('/signup', async (req, res) => {
     // Check if this is an existing user (for frontend messaging)
     let isExisting = false;
     if (data?.properties?.action_link && data.user?.id) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
+      const { data: subscriber } = await supabaseAdmin
+        .from('subscribers')
         .select('welcomed')
-        .eq('id', data.user.id)
+        .eq('user_id', data.user.id)
         .single();
 
-      isExisting = profile?.welcomed === true;
+      isExisting = subscriber?.welcomed === true;
     }
 
     // Send email using Resend
@@ -139,21 +139,21 @@ router.post('/post-login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Check if user has already been welcomed
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
+    // Check if user has already been welcomed (subscriber record created by trigger)
+    const { data: subscriber, error: subError } = await supabaseAdmin
+      .from('subscribers')
       .select('welcomed, name')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (subError) throw subError;
 
-    if (profile?.welcomed) {
+    if (subscriber?.welcomed) {
       return res.json({ isNewUser: false });
     }
 
     // New user: send welcome email (fire-and-forget)
-    const userName = profile?.name || user.user_metadata?.name || null;
+    const userName = subscriber?.name || user.user_metadata?.name || null;
     const userEmail = user.email;
 
     try {
@@ -173,24 +173,11 @@ router.post('/post-login', async (req, res) => {
       console.error('Failed to send welcome email:', emailError);
     }
 
-    // Add to subscribers table only if no existing record (preserves unsubscribe preferences)
-    const { data: existingSub } = await supabaseAdmin
-      .from('subscribers')
-      .select('id')
-      .eq('email', userEmail)
-      .single();
-
-    if (!existingSub) {
-      await supabaseAdmin
-        .from('subscribers')
-        .insert({ email: userEmail, name: userName });
-    }
-
     // Mark user as welcomed
     await supabaseAdmin
-      .from('profiles')
+      .from('subscribers')
       .update({ welcomed: true })
-      .eq('id', user.id);
+      .eq('user_id', user.id);
 
     res.json({ isNewUser: true });
   } catch (error) {
@@ -236,11 +223,11 @@ router.get('/user', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Get profile
+    // Get subscriber record (replaces profiles)
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('subscribers')
       .select('*')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
     res.json({ user, profile });

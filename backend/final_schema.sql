@@ -57,7 +57,6 @@ CREATE TABLE IF NOT EXISTS weekly_batches (
   total_votes INTEGER DEFAULT 0,
   posts_scraped INTEGER,
   email_sent_at TIMESTAMPTZ,
-  badge_emails_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -72,24 +71,13 @@ CREATE TABLE IF NOT EXISTS user_badges (
   UNIQUE(user_id, idea_id)
 );
 
--- Users Profile Table (Extensions of auth.users)
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT,
-  welcomed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Migration for existing databases:
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcomed BOOLEAN DEFAULT FALSE;
--- UPDATE profiles SET welcomed = TRUE WHERE welcomed IS NULL OR welcomed = FALSE;
-
--- Newsletter Subscribers Table (for non-authenticated users)
+-- Subscribers Table (unified: newsletter-only + authenticated users)
 CREATE TABLE IF NOT EXISTS subscribers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   name TEXT,
+  welcomed BOOLEAN DEFAULT FALSE,
   subscribed_at TIMESTAMPTZ DEFAULT NOW(),
   unsubscribed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -103,13 +91,13 @@ CREATE INDEX IF NOT EXISTS idx_votes_user ON votes(user_id);
 CREATE INDEX IF NOT EXISTS idx_badges_user ON user_badges(user_id);
 CREATE INDEX IF NOT EXISTS idx_weekly_batches_date ON weekly_batches(week_start_date);
 CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
+CREATE INDEX IF NOT EXISTS idx_subscribers_user_id ON subscribers(user_id);
 
 -- 4. SECURITY (RLS)
 ALTER TABLE ideas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weekly_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
 -- 5. POLICIES (Drop existing to ensure clean slate if re-running)
@@ -136,29 +124,31 @@ CREATE POLICY "Anyone can view weekly batches" ON weekly_batches FOR SELECT USIN
 DROP POLICY IF EXISTS "Users can view own badges" ON user_badges;
 CREATE POLICY "Users can view own badges" ON user_badges FOR SELECT USING (auth.uid() = user_id);
 
--- Profiles
-DROP POLICY IF EXISTS "Anyone can view profiles" ON profiles;
-CREATE POLICY "Anyone can view profiles" ON profiles FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-
--- Subscribers (public insert for newsletter signup)
+-- Subscribers
 DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
 CREATE POLICY "Anyone can subscribe" ON subscribers FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can view own subscriber record" ON subscribers;
+CREATE POLICY "Users can view own subscriber record" ON subscribers FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own subscriber record" ON subscribers;
+CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE USING (auth.uid() = user_id);
+
 -- 6. FUNCTIONS & TRIGGERS
 
--- Handle New User
+-- Handle New User (upsert into subscribers, linking user_id)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name)
+  INSERT INTO public.subscribers (user_id, email, name)
   VALUES (
     NEW.id,
+    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', '')
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (email) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
+    name = COALESCE(NULLIF(EXCLUDED.name, ''), subscribers.name);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

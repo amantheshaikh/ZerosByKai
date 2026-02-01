@@ -164,52 +164,15 @@ export async function sendWeeklyDigest() {
       .eq('week_start_date', lastWeekStart)
       .single();
 
-    // Get auth user emails
-    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-
-    if (authError) throw authError;
-
-    const authEmailList = authUsers.users.map(u => ({
-      email: u.email,
-      name: u.user_metadata?.name || u.email.split('@')[0]
-    }));
-
-    // Get newsletter-only subscribers
-    const { data: subscribers, error: subsError } = await supabaseAdmin
+    // Get all active subscribers (unified: both auth users and newsletter-only)
+    const { data: emailList, error: subsError } = await supabaseAdmin
       .from('subscribers')
       .select('email, name')
       .is('unsubscribed_at', null);
 
     if (subsError) throw subsError;
 
-    // Merge both lists, dedup by email (auth users take priority)
-    // Also suppressed unsubscribed emails (checked against subscribers table)
-    const uniqueEmails = new Map();
-
-    // 1. Add Auth Users first
-    authEmailList.forEach(u => {
-      uniqueEmails.set(u.email, { ...u, type: 'auth' });
-    });
-
-    // 2. Add Newsletter Subscribers (only if not already present)
-    subscribers.forEach(s => {
-      if (!uniqueEmails.has(s.email)) {
-        uniqueEmails.set(s.email, { ...s, type: 'subscriber' });
-      }
-    });
-
-    // 3. Filter out globally unsubscribed (users who are in subscribers table with unsubscribed_at set)
-    // We need to check the 'subscribers' table for suppression list even for auth users
-    const { data: suppressionList } = await supabaseAdmin
-      .from('subscribers')
-      .select('email')
-      .not('unsubscribed_at', 'is', null);
-
-    const suppressedEmails = new Set(suppressionList?.map(s => s.email) || []);
-
-    const emailList = Array.from(uniqueEmails.values()).filter(u => !suppressedEmails.has(u.email));
-
-    console.log(`Sending digest to ${emailList.length} unique subscribers (deduplicated & filtered)`);
+    console.log(`Sending digest to ${emailList.length} active subscribers`);
 
     // Get posts_scraped count from current week's batch
     const { data: currentBatch } = await supabaseAdmin
