@@ -101,7 +101,7 @@ const ZerosByKaiLanding = () => {
 
     const handleVote = async (ideaId) => {
         if (!user) {
-            openAuthModal('join');
+            openAuthModal();
             return;
         }
         if (votingIdeaId) return; // prevent double-click
@@ -311,7 +311,7 @@ const ZerosByKaiLanding = () => {
                             <p className="text-xs comic-body mt-2 text-center text-gray-500">
                                 Want to vote &amp; earn badges?{' '}
                                 <button
-                                    onClick={() => openAuthModal('join')}
+                                    onClick={() => openAuthModal()}
                                     className="text-rose-700 font-bold underline hover:text-rose-900"
                                 >
                                     Create an account &rarr;
@@ -357,7 +357,7 @@ const ZerosByKaiLanding = () => {
                                     Sign up to pick your winner and earn Zero Finder badges
                                 </p>
                                 <button
-                                    onClick={() => openAuthModal('join')}
+                                    onClick={() => openAuthModal()}
                                     className="px-8 py-3 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-colors"
                                 >
                                     GET STARTED
@@ -715,7 +715,7 @@ const ZerosByKaiLanding = () => {
                                         Want to vote &amp; earn badges?
                                     </p>
                                     <button
-                                        onClick={() => openAuthModal('join')}
+                                        onClick={() => openAuthModal()}
                                         className="mt-2 text-rose-700 font-bold comic-body hover:text-rose-900 inline-flex items-center gap-1 underline"
                                     >
                                         Create an account <ChevronRight className="w-4 h-4" />

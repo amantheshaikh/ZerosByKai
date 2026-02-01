@@ -7,6 +7,48 @@ import { verifyEmailToken } from '../utils/emailToken.js';
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// POST /api/auth/check - Check if user exists and has name
+router.post('/check', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (!supabaseAdmin) {
+      console.error('❌ Check failed: SUPABASE_SERVICE_KEY missing');
+      return res.status(503).json({ error: 'Service temporarily unavailable' });
+    }
+
+    // Check subscribers table
+    const { data: subscriber, error } = await supabaseAdmin
+      .from('subscribers')
+      .select('name, welcomed')
+      .eq('email', email)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
+      throw error;
+    }
+
+    // If no subscriber found, check auth.users (fallback for legacy cases)
+    // Note: This requires admin privileges which supabaseAdmin has
+    let name = subscriber?.name || null;
+
+    // Return status
+    res.json({
+      exists: !!subscriber,
+      hasName: !!name,
+      name: name
+    });
+
+  } catch (error) {
+    console.error('Check user error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/auth/subscribe - Newsletter-only subscribe (no account creation)
 router.post('/subscribe', async (req, res) => {
   try {

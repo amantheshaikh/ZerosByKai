@@ -226,6 +226,35 @@ export function AuthProvider({ children }) {
         // Check for email token first
         await checkEmailToken();
 
+        // Check for hash fragment with tokens (Magic Link fix)
+        // Sometimes Supabase auto-detection fails, so we handle it manually
+        if (typeof window !== 'undefined' && window.location.hash) {
+          const params = new URLSearchParams(window.location.hash.replace('#', ''));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            console.log('🔑 Detected tokens in hash, manually setting session...');
+            const { data, error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (setSessionError) {
+              console.error('❌ Failed to set session from hash:', setSessionError);
+            } else if (data?.session) {
+              console.log('✅ Session manually set from hash');
+
+              // Clear hash from URL
+              const newUrl = window.location.href.split('#')[0];
+              window.history.replaceState({}, document.title, newUrl);
+
+              // Trigger post login immediately since we just established session
+              await handlePostLogin(data.session);
+            }
+          }
+        }
+
         // Get current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
 

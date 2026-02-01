@@ -75,10 +75,10 @@ export default function Header({ variant = 'landing' }) {
           </>
         ) : (
           <button
-            onClick={() => openAuthModal('signin')}
+            onClick={() => openAuthModal()}
             className="px-6 py-2 bg-black text-yellow-400 comic-title text-sm hover:bg-gray-900 transition-colors comic-shadow"
           >
-            Sign In
+            JOIN / SIGN IN
           </button>
         )}
       </nav>
@@ -141,12 +141,12 @@ export default function Header({ variant = 'landing' }) {
           ) : (
             <button
               onClick={() => {
-                openAuthModal('signin');
+                openAuthModal();
                 setIsMenuOpen(false);
               }}
               className="w-full px-6 py-4 bg-black text-yellow-400 comic-title text-xl hover:bg-gray-900 transition-colors comic-shadow"
             >
-              Sign In
+              JOIN / SIGN IN
             </button>
           )}
         </div>,
