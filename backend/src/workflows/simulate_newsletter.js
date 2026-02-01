@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generateWeeklyDigestEmail } from '../emails/templates.js';
+import { generateEmailToken } from '../utils/emailToken.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -97,8 +98,31 @@ async function simulateNewsletter() {
     console.log(`Sending simulated newsletter to ${targetEmail}...`);
 
     try {
+        // Check if this email has a user_id (authenticated user)
+        const { data: subscriber } = await supabaseAdmin
+            .from('subscribers')
+            .select('user_id')
+            .eq('email', targetEmail)
+            .single();
+
         const token = Buffer.from(targetEmail).toString('base64');
+
+        // Generate auth token if user is authenticated
+        let voteUrl = `${process.env.FRONTEND_URL}?utm_source=email`;
+        if (subscriber?.user_id) {
+            const authToken = generateEmailToken(subscriber.user_id, targetEmail);
+            voteUrl += `&token=${authToken}`;
+            console.log('✅ Generated auth token for authenticated user - auto-login will work!');
+        } else {
+            console.log('ℹ️  No user_id found - sending as newsletter-only subscriber (no auto-login)');
+        }
+
+        // Replace the main CTA link with tokenized version
         const personalHtml = html
+            .replace(
+                `href="${process.env.FRONTEND_URL}?utm_source=email"`,
+                `href="${voteUrl}"`
+            )
             .replace('{{email}}', targetEmail)
             .replace('{{token}}', token);
 

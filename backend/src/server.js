@@ -7,7 +7,6 @@ import cron from 'node-cron';
 import ideasRouter from './routes/ideas.js';
 import votesRouter from './routes/votes.js';
 import authRouter from './routes/auth.js';
-import adminRouter from './routes/admin.js';
 
 // Jobs
 import { autoPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
@@ -50,7 +49,6 @@ app.get('/health', (req, res) => {
 app.use('/api/ideas', ideasRouter);
 app.use('/api/votes', votesRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/admin', adminRouter);
 
 // Newsletter subscribe shortcut (maps to /api/auth/subscribe)
 app.post('/api/subscribe', (req, res, next) => {

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { Resend } from 'resend';
 import { generateWeeklyDigestEmail } from '../emails/templates.js';
+import { generateEmailToken } from '../utils/emailToken.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -167,7 +168,7 @@ export async function sendWeeklyDigest() {
     // Get all active subscribers (unified: both auth users and newsletter-only)
     const { data: emailList, error: subsError } = await supabaseAdmin
       .from('subscribers')
-      .select('email, name')
+      .select('email, name, user_id')
       .is('unsubscribed_at', null);
 
     if (subsError) throw subsError;
@@ -199,7 +200,20 @@ export async function sendWeeklyDigest() {
     const sendPromises = emailList.map(subscriber => {
       // Simple token for unsubscribe (base64 of email for MVP, can be JWT later)
       const token = Buffer.from(subscriber.email).toString('base64');
+
+      // Generate auth token for authenticated users (those with user_id)
+      let voteUrl = `${process.env.FRONTEND_URL}?utm_source=email`;
+      if (subscriber.user_id) {
+        const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
+        voteUrl += `&token=${authToken}`;
+      }
+
+      // Replace the main CTA link with tokenized version
       const personalHtml = baseHtml
+        .replace(
+          `href="${process.env.FRONTEND_URL}?utm_source=email"`,
+          `href="${voteUrl}"`
+        )
         .replace('{{email}}', subscriber.email)
         .replace('{{token}}', token);
 

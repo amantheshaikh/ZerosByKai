@@ -5,58 +5,80 @@ This document documents the technology stack and file tree structure for ZerosBy
 ## Technology Stack
 
 ### Backend
-- **Node.js** - Runtime environment.
-- **Express** - Web framework.
-- **Supabase** - Database and Authentication (magic link OTP + Google OAuth).
-- **Google Gemini** - AI analysis (integration via SDK).
-- **Fly.io** - Deployment platform.
+- **Node.js** - Runtime environment
+- **Express** - Web framework
+- **Supabase** - Database and Authentication (magic link, Google OAuth, email tokens)
+- **Google Gemini** - AI analysis (`gemini-2.0-flash-preview`, fallback: `gemini-2.5-flash`)
+- **Resend** - Email delivery
+- **node-cron** - Cron job scheduling
+- **Fly.io** - Deployment platform
 
 ### Frontend
-- **Next.js 14** - React framework (Pages Router).
-- **JavaScript/React** - Language/Library.
-- **Tailwind CSS** - Styling with custom comic-panel design system.
-- **Framer Motion** - Animations.
-- **@supabase/ssr** - Auth client (`createPagesBrowserClient`).
-- **Vercel** - Deployment platform.
+- **Next.js 14** - React framework (Pages Router)
+- **JavaScript/React** - Language/Library
+- **Tailwind CSS** - Styling with custom comic-panel design system
+- **Framer Motion** - Animations
+- **@supabase/ssr** - Auth client (`createPagesBrowserClient`)
+- **Vercel** - Deployment platform
 
 ## Complete Project Structure
 
 ```
 ZerosByKai/
-├── CLAUDE.md                           # Master AI context file
+├── CLAUDE.md                           # Tier 1: Master AI context file
+├── PROJECT_DOCUMENTATION.md            # Comprehensive project guide
+├── AUTH_DOCUMENTATION.md               # Authentication system guide
+├── CHANGELOG.md                        # Change history
 ├── task.md                             # Current task tracking
-├── .claude/                            # Claude Code configuration
-│   ├── settings.json                   # Settings
-│   ├── commands/                       # AI orchestration commands
-│   └── hooks/                          # Automation hooks
+│
+├── .github/workflows/                  # GitHub Actions
+│   └── reddit-scraper.yml              # Sunday Reddit scraping workflow
+│
 ├── backend/                            # Backend application
-│   ├── CONTEXT.md                      # Backend component docs (Tier 2)
+│   ├── CONTEXT.md                      # Tier 2: Backend component docs
+│   ├── README.md                       # Backend setup guide
+│   ├── SIMULATION.md                   # Testing & simulation guide
 │   ├── src/                            # Source code
-│   │   ├── CONTEXT.md                  # Backend source docs (Tier 3)
-│   │   ├── server.js                   # Main entry point
+│   │   ├── server.js                   # Main entry point + cron jobs
+│   │   ├── config/
+│   │   │   └── supabase.js             # Supabase client (RLS + Admin)
 │   │   ├── routes/                     # API Routes
-│   │   │   ├── auth.js                 # Auth routes (signup, subscribe, unsubscribe)
-│   │   │   ├── ideas.js                # Ideas CRUD & leaderboard routes
-│   │   │   ├── votes.js                # Voting, badges, last-week result
-│   │   │   └── admin.js                # Admin routes
-│   │   ├── jobs/                       # Cron jobs (weekly winner + digest)
-│   │   ├── emails/                     # Email templates (digest, welcome, magic link)
-│   │   ├── workflows/                  # AI analysis workflows
-│   │   └── config/                     # Configuration (Supabase client)
+│   │   │   ├── auth.js                 # Auth endpoints (subscribe, signup, verify, etc.)
+│   │   │   ├── ideas.js                # Ideas CRUD & leaderboard
+│   │   │   └── votes.js                # Voting, badges, results
+│   │   ├── jobs/                       # Production cron jobs
+│   │   │   ├── reddit_scraper.js       # Sunday: Reddit → Gemini → 10 ideas
+│   │   │   └── weekly.js               # Monday: publish, winner, digest
+│   │   ├── workflows/                  # Testing/simulation scripts
+│   │   │   ├── simulate_monday_workflow.js
+│   │   │   ├── simulate_newsletter.js
+│   │   │   ├── simulate_welcome.js
+│   │   │   └── simulate_magic_link.js
+│   │   ├── emails/                     # Email templates
+│   │   │   ├── templates.js            # Re-exports all templates
+│   │   │   └── templates/
+│   │   │       ├── shared.js           # Shared components & styles
+│   │   │       ├── weekly-digest.js    # Weekly digest email
+│   │   │       ├── welcome.js          # Welcome email
+│   │   │       └── magic-link.js       # Magic link email
+│   │   ├── utils/
+│   │   │   └── emailToken.js           # JWT token generation/verification
+│   │   └── scripts/
+│   │       └── delete-user-by-email.sql
 │   ├── package.json                    # Dependencies
 │   ├── fly.toml                        # Fly.io config
-│   ├── schema.sql                      # Database schema
-│   └── Dockerfile                      # Container config
+│   └── .env                            # Environment variables
+│
 ├── frontend/                           # Frontend application
-│   ├── CONTEXT.md                      # Frontend component docs (Tier 2)
+│   ├── CONTEXT.md                      # Tier 2: Frontend component docs
 │   ├── pages/                          # Next.js pages (Pages Router)
 │   │   ├── _app.js                     # App wrapper: AuthProvider, JSON-LD schemas
 │   │   ├── _document.js                # Document: meta, favicon, preconnect
-│   │   ├── index.jsx                   # Landing page: hero, ideas, voting, FAQ schema
+│   │   ├── index.jsx                   # Landing page: hero, ideas, voting, FAQ
 │   │   ├── about.jsx                   # About Kai page
 │   │   ├── story.jsx                   # Origin story page
 │   │   ├── archive.jsx                 # Past weekly idea archives
-│   │   ├── profile.jsx                 # User profile: tier, vote, last week result, badges
+│   │   ├── profile.jsx                 # User profile: tier, votes, badges
 │   │   ├── terms.jsx                   # Terms & guidelines
 │   │   ├── privacy.jsx                 # Privacy policy
 │   │   ├── unsubscribe.jsx             # Email unsubscribe handler
@@ -71,7 +93,7 @@ ZerosByKai/
 │   ├── lib/                            # Shared utilities
 │   │   └── auth.js                     # AuthProvider context, Supabase client
 │   ├── styles/
-│   │   └── globals.css                 # Global styles, comic design system classes
+│   │   └── globals.css                 # Global styles, comic design system
 │   ├── public/                         # Static assets
 │   │   ├── favicon.ico                 # Site favicon
 │   │   ├── favicon-32x32.png           # 32x32 favicon
@@ -88,10 +110,122 @@ ZerosByKai/
 │   ├── postcss.config.js               # PostCSS config
 │   ├── jsconfig.json                   # JS path aliases (@/)
 │   └── .eslintrc.json                  # ESLint rules
-├── docs/                               # Documentation
-│   ├── ai-context/                     # AI documentation
-│   │   ├── project-structure.md        # This file
-│   │   └── docs-overview.md            # Documentation system overview
-│   └── ...                             # Specs and guides
-└── ...                                 # Other root files
+│
+└── docs/                               # Documentation
+    ├── CLAUDE-CODE-GUIDE.md            # AI coding guide
+    ├── CLAUDE.md                       # AI context (legacy)
+    ├── CONTEXT-tier2-component.md      # Component context template
+    ├── CONTEXT-tier3-feature.md        # Feature context template
+    ├── README.md                       # Docs overview
+    └── ai-context/                     # AI documentation
+        ├── project-structure.md        # This file
+        ├── docs-overview.md            # Documentation system overview
+        ├── deployment-infrastructure.md
+        ├── system-integration.md
+        └── handoff.md
 ```
+
+## File Organization Principles
+
+### Backend
+- **`jobs/`** - Production cron jobs (scheduled tasks)
+- **`workflows/`** - Testing and simulation scripts
+- **`routes/`** - API endpoint definitions
+- **`emails/templates/`** - Individual email template files
+- **`emails/templates/shared.js`** - Shared email components (DRY)
+- **`utils/`** - Reusable utilities
+- **`config/`** - Configuration files
+
+### Frontend
+- **`pages/`** - Next.js pages (Pages Router)
+- **`components/`** - Reusable UI components
+- **`lib/`** - Shared utilities and context providers
+- **`styles/`** - Global styles
+- **`public/`** - Static assets
+
+## Key Files to Know
+
+### Backend Critical Files
+| File | Purpose |
+|------|---------|
+| `server.js` | Entry point, cron scheduling, middleware |
+| `jobs/reddit_scraper.js` | Sunday Reddit scraping workflow |
+| `jobs/weekly.js` | Monday publish, winner, digest workflow |
+| `routes/auth.js` | All authentication endpoints |
+| `emails/templates/shared.js` | Shared email components |
+| `utils/emailToken.js` | JWT token utilities |
+
+### Frontend Critical Files
+| File | Purpose |
+|------|---------|
+| `pages/_app.js` | App wrapper, AuthProvider, global meta |
+| `pages/index.jsx` | Landing page (main entry point) |
+| `lib/auth.js` | Auth context provider (all auth flows) |
+| `components/AuthModal.jsx` | Authentication modal |
+| `components/Header.jsx` | Site header with auth state |
+
+## Documentation Hierarchy
+
+### Tier 1: Foundation
+- **`/CLAUDE.md`** - Master AI context, coding standards, key patterns
+- **`/PROJECT_DOCUMENTATION.md`** - Comprehensive project guide
+- **`/AUTH_DOCUMENTATION.md`** - Authentication system guide
+
+### Tier 2: Components
+- **`/backend/CONTEXT.md`** - Backend component documentation
+- **`/frontend/CONTEXT.md`** - Frontend component documentation
+
+### Tier 3: Features
+- Feature-specific CONTEXT.md files as needed
+- Created only when a component grows significant complexity
+
+### Reference Documentation
+- **`/backend/README.md`** - Backend setup and deployment
+- **`/backend/SIMULATION.md`** - Testing and simulation guide
+- **`/CHANGELOG.md`** - Change history
+
+## Environment Variables
+
+### Backend (.env)
+```bash
+SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
+RESEND_API_KEY
+GEMINI_API_KEY
+JWT_SECRET
+FRONTEND_URL
+PORT, NODE_ENV
+```
+
+### Frontend (.env.local)
+```bash
+NEXT_PUBLIC_API_URL
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_SITE_URL
+```
+
+## Deployment
+
+### Backend (Fly.io)
+```bash
+cd backend
+fly deploy
+```
+
+### Frontend (Vercel)
+```bash
+cd frontend
+vercel --prod
+```
+
+## Recent Changes (Feb 2, 2026)
+- ✅ Moved `workflows/daily_startup_ideas.js` → `jobs/reddit_scraper.js`
+- ✅ Removed `routes/admin.js` (use Supabase dashboard)
+- ✅ Separated email templates into individual files
+- ✅ Added `utils/emailToken.js` for JWT tokens
+- ✅ Added comprehensive testing scripts in `workflows/`
+- ✅ Removed redundant wrapper scripts
+
+---
+
+**Last Updated:** February 2, 2026

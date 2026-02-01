@@ -22,7 +22,7 @@ jobs:
         working-directory: backend
 
       - name: Run Reddit scraping workflow
-        run: node src/scripts/run-reddit-flow.js
+        run: node src/jobs/reddit_scraper.js
         working-directory: backend
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

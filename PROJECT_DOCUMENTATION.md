@@ -28,6 +28,10 @@
      SUPABASE_ANON_KEY="xxx" \
      SUPABASE_SERVICE_KEY="xxx" \
      RESEND_API_KEY="re_xxx" \
+     GEMINI_API_KEY="xxx" \
+     JWT_SECRET="xxx" \
+     FRONTEND_URL="https://zerosbykai.com" \
+     NODE_ENV="production" \
      PORT=3001
    ```
 3. **Logs**: `fly logs -a zerosbykai-api-prod`
@@ -42,44 +46,49 @@
    - `NEXT_PUBLIC_API_URL`: `https://zerosbykai-api-prod.fly.dev`
    - `NEXT_PUBLIC_SUPABASE_URL`: `https://xxx.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `xxx`
+   - `NEXT_PUBLIC_SITE_URL`: `https://zerosbykai.com`
 
 ### DNS (Spaceship)
 - **A Record**: `@` → `76.76.21.21`
 - **CNAME**: `www` → `cname.vercel-dns.com`
 
+### Email Forwarding (Cloudflare)
+- **kai@zerosbykai.com** → **amantheshaikh@gmail.com**
+- Use Cloudflare Email Routing (free, unlimited forwards)
+
 ---
 
 ## 🧪 Testing & Verification
 
-### 1. Manual Seeding (Add Test Idea)
-Since the database starts empty, run this to populate a test idea:
+### 1. Test Reddit Scraping Workflow
 ```bash
-# 1. Create Idea
-curl -X POST https://zerosbykai-api-prod.fly.dev/api/webhook/bubblelab \
-  -H "x-webhook-secret: YOUR_WEBHOOK_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ideas": [{
-      "name": "TestIdea",
-      "title": "A Test Idea",
-      "problem": "App is empty.",
-      "solution": "Add data.",
-      "targetAudience": "Devs",
-      "whyItMatters": "Sanity.",
-      "tags": {"geography": ["global"], "category": ["test"]},
-      "sourceUrls": ["http://test.com"]
-    }]
-  }'
-
-# 2. Approve & Publish
-curl -X POST -H "x-admin-password: YOUR_ADMIN_PASS" \
-  https://zerosbykai-api-prod.fly.dev/api/admin/publish
+cd backend
+node src/jobs/reddit_scraper.js
 ```
 
-### 2. Verify Flows
-- **Signup**: Join via landing page. Check for Magic Link email.
+### 2. Test Monday Workflow (End-to-End)
+```bash
+cd backend
+node src/workflows/simulate_monday_workflow.js
+```
+
+### 3. Test Email Templates
+```bash
+# Weekly digest
+node src/workflows/simulate_newsletter.js
+
+# Welcome email
+node src/workflows/simulate_welcome.js
+
+# Magic link
+node src/workflows/simulate_magic_link.js
+```
+
+### 4. Verify Flows
+- **Newsletter Signup**: Subscribe via landing page. Check for welcome email.
+- **Account Creation**: Sign up with email. Check for magic link.
+- **Auto-Login**: Click link in weekly digest email. Should auto-login.
 - **Vote**: Click "I'D BUILD THIS" (requires login). Checks `votes` table.
-- **Cron Jobs**: Run weekly at Sunday 11PM (winner) and Monday 9AM (digest).
 
 ---
 
@@ -87,32 +96,227 @@ curl -X POST -H "x-admin-password: YOUR_ADMIN_PASS" \
 
 ```
 zerosbykai/
-├── backend/              # Express API
-│   ├── src/server.js     # Entry point + Cron
-│   ├── src/routes/       # /ideas, /votes, /auth
-│   └── fly.toml          # Deployment config
+├── backend/                          # Express API
+│   ├── src/
+│   │   ├── server.js                 # Entry point + Cron jobs
+│   │   ├── config/                   # Supabase, environment
+│   │   ├── routes/                   # API routes
+│   │   │   ├── ideas.js              # Ideas endpoints
+│   │   │   ├── votes.js              # Voting endpoints
+│   │   │   └── auth.js               # Auth endpoints
+│   │   ├── jobs/                     # Production cron jobs
+│   │   │   ├── reddit_scraper.js     # Sunday: Reddit scraping
+│   │   │   └── weekly.js             # Monday: publish, winner, digest
+│   │   ├── workflows/                # Testing/simulation scripts
+│   │   │   ├── simulate_monday_workflow.js
+│   │   │   ├── simulate_newsletter.js
+│   │   │   ├── simulate_welcome.js
+│   │   │   └── simulate_magic_link.js
+│   │   ├── emails/                   # Email templates
+│   │   │   ├── templates.js          # Re-exports all templates
+│   │   │   └── templates/
+│   │   │       ├── shared.js         # Shared components
+│   │   │       ├── weekly-digest.js  # Weekly digest email
+│   │   │       ├── welcome.js        # Welcome email
+│   │   │       └── magic-link.js     # Magic link email
+│   │   ├── utils/                    # Utilities
+│   │   │   └── emailToken.js         # JWT token generation/verification
+│   │   └── scripts/                  # Utility scripts
+│   │       └── delete-user-by-email.sql
+│   └── fly.toml                      # Deployment config
 │
-└── frontend/             # Next.js
-    ├── pages/index.jsx   # Main Comic Landing Page
-    ├── public/           # Assets (kai-hero.jpg)
-    └── .env.production   # Env vars
+├── frontend/                         # Next.js
+│   ├── pages/
+│   │   ├── index.jsx                 # Main landing page
+│   │   ├── profile.jsx               # User profile
+│   │   └── story.jsx                 # About page
+│   ├── components/                   # React components
+│   ├── lib/
+│   │   └── auth.js                   # Auth context provider
+│   └── public/                       # Static assets
+│
+├── .github/workflows/                # GitHub Actions
+│   └── reddit-scraper.yml            # Sunday Reddit scraping
+│
+└── AUTH_DOCUMENTATION.md             # Comprehensive auth guide
 ```
 
+---
+
 ## 🔑 Core Business Rules
+
+### Voting
 - **One Vote per Week**: Users can change their vote, but only one counts per week.
-- **Badges**: Bronze (1-2 wins), Silver (3-5), Gold (6-10), Diamond (11+).
-- **Weekly Cycle**:
-  - **Thu-Sun**: Admin moderates ideas.
-  - **Sun 11PM**: Winner calculated. Badges awarded.
-  - **Mon 9AM**: Digest email sent. Top 10 ideas go live.
+- **Authenticated Users Only**: Must sign in to vote.
+
+### Badges
+- **Bronze Finder** (1-2 wins)
+- **Silver Finder** (3-5 wins)
+- **Gold Finder** (6-10 wins)
+- **Diamond Finder** (11+ wins)
+
+### Weekly Cycle
+- **Sunday 10 AM UTC**: Reddit scraping → 10 ideas generated (status: `pending`)
+- **Monday 9 AM UTC**: 
+  1. Auto-publish pending ideas
+  2. Calculate last week's winner
+  3. Send weekly digest emails (with auto-login tokens)
+
+---
+
+## 🔐 Authentication Flows
+
+See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
+
+### Quick Overview:
+1. **Email Token Auto-Login** - Users click links in weekly digest emails
+2. **Magic Link** - Passwordless sign-in/sign-up
+3. **Google OAuth** - Sign in with Google
+4. **Newsletter-Only** - Subscribe without creating account
+
+---
+
+## 📧 Email System
+
+### Email Provider: Resend
+- **From**: `kai@zerosbykai.com`
+- **Reply-To**: `kai@zerosbykai.com`
+
+### Email Types:
+1. **Weekly Digest** - Sent every Monday to all subscribers
+2. **Welcome Email** - Sent to new subscribers
+3. **Magic Link** - Sent for passwordless authentication
+
+### Auto-Login Feature:
+- Authenticated users receive weekly digest with `?token=<jwt>` in URL
+- Clicking link automatically signs them in
+- Token expires after 7 days
+
+---
+
+## 🤖 AI & Scraping
+
+### Reddit Scraping
+- **Frequency**: Sunday 10 AM UTC (via GitHub Actions)
+- **Subreddits**: 17+ startup-related subreddits
+- **Anti-Detection**: Rotating user agents, randomized delays, exponential backoff
+- **Output**: ~150 posts scraped
+
+### AI Idea Generation (Google Gemini)
+- **Model**: `gemini-3-flash-preview` (with `gemini-2.5-flash` fallback)
+- **Input**: Scraped Reddit posts
+- **Output**: 10 startup ideas
+- **Retry Logic**: Up to 3 workflow retries to ensure 10 ideas
 
 ---
 
 ## 🎨 Design System
-- **Theme**: Comic Book / Pop Art.
-- **Fonts**: 'Bangers' (Headers), 'Courier Prime' (Body).
-- **Colors**: Yellow (#FBBF24), Black (#000), Rose (#BE123C).
-- **Components**: Thick borders (3-4px), Halftone patterns, offset shadows.
+
+- **Theme**: Comic Book / Pop Art
+- **Fonts**: 
+  - 'Bangers' (Headers)
+  - 'Courier Prime' (Body)
+- **Colors**: 
+  - Yellow: `#FCD933`
+  - Black: `#000`
+  - Rose: `#BE123C`
+- **Components**: Thick borders (3-4px), Halftone patterns, offset shadows
 
 ---
-**Last Updated**: 2026-01-30
+
+## 🔧 Environment Variables
+
+### Backend (.env)
+```bash
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=xxx
+SUPABASE_SERVICE_KEY=xxx
+
+# Email
+RESEND_API_KEY=re_xxx
+
+# AI
+GEMINI_API_KEY=xxx
+
+# App
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# JWT for email tokens
+JWT_SECRET=xxx
+```
+
+### Frontend (.env.local)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+---
+
+## 📊 Database Schema
+
+### Core Tables
+- **ideas** - Startup ideas (pending/published)
+- **votes** - User votes (one per week)
+- **user_badges** - Badges earned by users
+- **weekly_batches** - Weekly metadata (winner, stats)
+- **subscribers** - Email subscribers (with/without auth)
+
+### Supabase Auth
+- **auth.users** - Authenticated users (managed by Supabase)
+
+---
+
+## 🚨 Troubleshooting
+
+### Backend won't start
+- Check `.env` file exists and has all required variables
+- Verify Supabase keys are correct
+- Check port 3001 is not in use
+
+### Emails not sending
+- Verify `RESEND_API_KEY` is set
+- Check Resend dashboard for logs
+- Ensure `kai@zerosbykai.com` is verified in Resend
+
+### Reddit scraping fails
+- Check `GEMINI_API_KEY` is valid
+- Verify GitHub Actions secrets are set
+- Check for rate limiting (429 errors)
+
+### Auto-login not working
+- Verify `JWT_SECRET` is set in backend
+- Check token hasn't expired (7 days)
+- Ensure frontend can reach backend API
+
+---
+
+## 📝 Recent Changes (2026-02-02)
+
+### Code Organization
+- ✅ Moved `daily_startup_ideas.js` → `jobs/reddit_scraper.js`
+- ✅ Removed redundant `run-reddit-flow.js` wrapper
+- ✅ Separated email templates into individual files
+- ✅ Removed admin routes (use Supabase dashboard instead)
+- ✅ Refactored `auth.js` with comprehensive documentation
+
+### New Features
+- ✅ Email token auto-login from weekly digest
+- ✅ Enhanced Reddit scraping anti-detection
+- ✅ Improved Gemini retry logic (ensures 10 ideas)
+- ✅ Newsletter-only subscription flow
+- ✅ Comprehensive auth documentation
+
+### Bug Fixes
+- ✅ Fixed duplicate welcome emails
+- ✅ Improved error handling in auth flows
+- ✅ Better session management
+
+---
+
+**Last Updated**: 2026-02-02

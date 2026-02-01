@@ -2,6 +2,7 @@ import express from 'express';
 import { Resend } from 'resend';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { generateWelcomeEmail, generateMagicLinkEmail } from '../emails/templates.js';
+import { verifyEmailToken } from '../utils/emailToken.js';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -207,6 +208,39 @@ router.post('/verify', async (req, res) => {
     res.status(401).json({ error: error.message });
   }
 });
+
+// POST /api/auth/verify-email-token - Verify email link token and create session
+router.post('/verify-email-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Verify and decode the email token
+    const { userId, email } = verifyEmailToken(token);
+
+    // Create a session for this user using Supabase Admin
+    const { data, error } = await supabaseAdmin.auth.admin.createSession({
+      user_id: userId
+    });
+
+    if (error) {
+      console.error('Failed to create session:', error);
+      throw error;
+    }
+
+    res.json({
+      session: data.session,
+      user: data.user
+    });
+  } catch (error) {
+    console.error('Email token verification error:', error.message);
+    res.status(401).json({ error: error.message });
+  }
+});
+
 
 // GET /api/auth/user - Get current user
 router.get('/user', async (req, res) => {
