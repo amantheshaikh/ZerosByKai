@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 
 // Routes
 import ideasRouter from './routes/ideas.js';
@@ -15,6 +18,23 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Trust proxy (required for Fly.io/Vercel to see real IPs)
+app.set('trust proxy', 1);
+
+// Security & Performance Middleware
+app.use(helmet());
+app.use(compression());
+
+// Rate Limiting (100 reqs / 15 mins)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+app.use(limiter);
 
 // Middleware
 const allowedOrigins = [
