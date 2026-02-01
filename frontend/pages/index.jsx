@@ -31,7 +31,7 @@ function normalizeIdea(idea) {
 const ZerosByKaiLanding = () => {
     const { user, session, isLoading: authLoading, openAuthModal } = useAuth();
     const [email, setEmail] = useState('');
-    const [name, setName] = useState('');
+
     const { subscribe, status: subscribeStatus, error: subscribeError } = useSubscribe();
 
     // Real ideas state
@@ -86,10 +86,9 @@ const ZerosByKaiLanding = () => {
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        const success = await subscribe({ email, name });
+        const success = await subscribe({ email });
         if (success) {
             setEmail('');
-            setName('');
         }
     };
 
@@ -149,7 +148,7 @@ const ZerosByKaiLanding = () => {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
             />
             <Head>
-                <title>ZerosByKai | Validated Startup Ideas from Reddit — 10 New Business Opportunities Weekly</title>
+                <title>ZerosByKai | 10 Startup Ideas from Reddit Weekly</title>
                 <meta name="description" content="Find your next validated startup idea. Kai curates 10 real business opportunities every Monday from thousands of Reddit threads. Free weekly startup ideas newsletter for entrepreneurs, indie hackers, and builders. No AI slop — just real pain points waiting to be built." />
                 <meta name="keywords" content="startup ideas, validated business ideas, Reddit startup ideas, side project ideas, business opportunities, startup idea newsletter, indie hacker ideas, SaaS ideas, entrepreneur tools, startup validation, find startup ideas" />
                 <meta property="og:title" content="ZerosByKai | Validated Startup Ideas from Reddit" />
@@ -167,12 +166,12 @@ const ZerosByKaiLanding = () => {
                 {/* Halftone pattern overlay */}
                 <div className="absolute inset-0 halftone"></div>
 
-                <div className="relative max-w-7xl mx-auto px-6 pt-32 pb-12">
+                <div className="relative max-w-7xl mx-auto px-6 pt-32 pb-6">
                     {/* Header */}
                     <Header variant="landing" />
 
                     {/* Main Hero */}
-                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-8 lg:py-12">
+                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-4 lg:py-6">
                         {/* Left: Text Content */}
                         <div className="space-y-6 lg:space-y-8">
                             <div className="comic-panel p-3 sm:p-4 bg-white inline-block transform -rotate-2">
@@ -201,140 +200,10 @@ const ZerosByKaiLanding = () => {
                                 For the <span className="font-bold">doers</span>. The <span className="font-bold">hustlers</span>.
                                 The <span className="font-bold">builders</span> who actually ship.
                             </p>
-
-                            {/* CTA: Newsletter subscribe (unauthenticated) or Welcome panel (authenticated) */}
-                            {user ? (
-                                <div className="comic-panel p-8 bg-white max-w-xl comic-shadow">
-                                    <h3 className="comic-title text-2xl mb-3">
-                                        WELCOME BACK{user.user_metadata?.name ? `, ${user.user_metadata.name.toUpperCase()}` : ''}!
-                                    </h3>
-                                    <p className="comic-body text-gray-700 mb-4">
-                                        This week&apos;s ideas are live. Cast your vote and pick the winner.
-                                    </p>
-                                    <button
-                                        onClick={scrollToIdeas}
-                                        className="w-full px-6 py-4 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-all comic-shadow"
-                                    >
-                                        VOTE FOR YOUR PICK
-                                    </button>
-                                    {userVote && (
-                                        <p className="comic-body text-sm text-green-700 mt-3 font-bold">✓ You&apos;ve voted this week</p>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="max-w-xl">
-                                    <AnimatePresence mode="wait">
-                                        {!showHeroSubscribe ? (
-                                            <motion.button
-                                                key="subscribe-button"
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setShowHeroSubscribe(true)}
-                                                className="group px-8 py-5 bg-black text-yellow-400 comic-title text-xl hover:bg-yellow-400 hover:text-black transition-all duration-300 comic-shadow border-4 border-yellow-400"
-                                            >
-                                                <span className="flex items-center gap-3">
-                                                    <Zap className="w-6 h-6" />
-                                                    UNLOCK WEEKLY ZEROS
-                                                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                                </span>
-                                            </motion.button>
-                                        ) : (
-                                            <motion.div
-                                                key="subscribe-form"
-                                                initial={{ opacity: 0, height: 0, y: -20 }}
-                                                animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                                exit={{ opacity: 0, height: 0, y: -20 }}
-                                                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                                                className="comic-panel p-8 bg-white comic-shadow overflow-hidden"
-                                            >
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="comic-title text-2xl text-black">GET THE WEEKLY ZEROS</h3>
-                                                    <button
-                                                        onClick={() => setShowHeroSubscribe(false)}
-                                                        className="text-gray-400 hover:text-black transition-colors text-2xl font-bold"
-                                                    >
-                                                        ×
-                                                    </button>
-                                                </div>
-
-                                                {subscribeStatus === 'success' ? (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.9 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        className="text-center py-2"
-                                                    >
-                                                        <div className="text-4xl mb-3">⚡</div>
-                                                        <h4 className="comic-title text-xl mb-2 text-black">YOU&apos;RE IN!</h4>
-                                                        <p className="comic-body text-gray-700">First email drops Monday.</p>
-                                                    </motion.div>
-                                                ) : (
-                                                    <form onSubmit={handleSubscribe} className="space-y-4">
-                                                        <motion.input
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: 0.1 }}
-                                                            type="text"
-                                                            value={name}
-                                                            onChange={(e) => setName(e.target.value)}
-                                                            placeholder="Your Name"
-                                                            className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
-                                                            required
-                                                        />
-                                                        <motion.input
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: 0.2 }}
-                                                            type="email"
-                                                            value={email}
-                                                            onChange={(e) => setEmail(e.target.value)}
-                                                            placeholder="your@email.com"
-                                                            className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
-                                                            required
-                                                        />
-
-                                                        {subscribeStatus === 'error' && (
-                                                            <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm">
-                                                                {subscribeError}
-                                                            </div>
-                                                        )}
-
-                                                        <motion.button
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: 0.3 }}
-                                                            type="submit"
-                                                            disabled={subscribeStatus === 'loading'}
-                                                            className="w-full px-6 py-4 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50"
-                                                        >
-                                                            {subscribeStatus === 'loading' ? 'SUBSCRIBING...' : 'SUBSCRIBE FREE'}
-                                                        </motion.button>
-                                                    </form>
-                                                )}
-
-                                                <p className="text-xs comic-body mt-3 text-gray-600">
-                                                    ✓ Free forever &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
-                                                </p>
-                                                <p className="text-xs comic-body mt-2 text-gray-500">
-                                                    Want to vote &amp; earn badges?{' '}
-                                                    <button
-                                                        onClick={() => openAuthModal('join')}
-                                                        className="text-rose-700 font-bold underline hover:text-rose-900"
-                                                    >
-                                                        Create an account &rarr;
-                                                    </button>
-                                                </p>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            )}
                         </div>
 
                         {/* Right: Kai Character with Social Proof Cards */}
-                        <div className="relative flex flex-col items-center mt-8 lg:mt-0">
+                        <div className="relative flex flex-col items-center mt-0 lg:mt-0">
                             {/* Container for Kai Image + Floating Cards */}
                             <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md mx-auto">
                                 {/* Social Proof Card: Meet Kai - Top Left */}
@@ -390,6 +259,68 @@ const ZerosByKaiLanding = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Subscription Form Section - Horizontal Layout */}
+            {!user && (
+                <section className="relative bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 border-t-4 border-black">
+                    <div className="absolute inset-0 halftone"></div>
+                    <div className="relative max-w-5xl mx-auto px-6 py-8">
+                        <div className="comic-panel p-8 bg-white comic-shadow">
+                            <h3 className="comic-title text-2xl text-black mb-2 text-center">JOIN THE REVOLUTION!</h3>
+                            <p className="comic-body text-lg text-gray-700 mb-6 text-center">
+                                The only newsletter that feeds you <span className="font-bold text-rose-700">real startup ideas</span> from real problems.
+                            </p>
+
+                            {subscribeStatus === 'success' ? (
+                                <div className="text-center py-2">
+                                    <div className="text-4xl mb-3">⚡</div>
+                                    <h4 className="comic-title text-xl mb-2 text-black">YOU&apos;RE IN!</h4>
+                                    <p className="comic-body text-gray-700">First email drops Monday.</p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <form onSubmit={handleSubscribe} className="flex gap-3 mb-4">
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="your@email.com"
+                                            className="flex-1 px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
+                                            required
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={subscribeStatus === 'loading'}
+                                            className="px-8 py-3 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 whitespace-nowrap"
+                                        >
+                                            {subscribeStatus === 'loading' ? 'SUBSCRIBING...' : 'SUBSCRIBE FREE'}
+                                        </button>
+                                    </form>
+
+                                    {subscribeStatus === 'error' && (
+                                        <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm mb-4">
+                                            {subscribeError}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <p className="text-xs comic-body text-center text-gray-600">
+                                ✓ 100% Free &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
+                            </p>
+                            <p className="text-xs comic-body mt-2 text-center text-gray-500">
+                                Want to vote &amp; earn badges?{' '}
+                                <button
+                                    onClick={() => openAuthModal('join')}
+                                    className="text-rose-700 font-bold underline hover:text-rose-900"
+                                >
+                                    Create an account &rarr;
+                                </button>
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            )}
 
 
             <section id="ideas-section" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-yellow-50">
@@ -732,38 +663,20 @@ const ZerosByKaiLanding = () => {
                             </div>
 
                             {/* Right: Subscribe Form */}
-                            <motion.div
-                                initial={{ opacity: 0, x: 30, rotate: 1 }}
-                                whileInView={{ opacity: 1, x: 0, rotate: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.6, delay: 0.2 }}
-                                className="comic-panel p-6 sm:p-8 bg-white comic-shadow transform rotate-1 hover:rotate-0 transition-transform duration-300"
-                            >
+                            <div className="comic-panel p-6 sm:p-8 bg-white comic-shadow transform rotate-1 hover:rotate-0 transition-transform duration-300">
                                 <h3 className="comic-title text-xl sm:text-2xl mb-4 text-black flex items-center gap-2">
                                     <Mail className="w-6 h-6 text-rose-700" />
                                     GET THE WEEKLY ZEROS
                                 </h3>
 
                                 {subscribeStatus === 'success' ? (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="text-center py-4"
-                                    >
+                                    <div className="text-center py-4">
                                         <div className="text-5xl mb-3">⚡</div>
                                         <h4 className="comic-title text-2xl mb-2 text-black">YOU&apos;RE IN!</h4>
                                         <p className="comic-body text-gray-700">First email drops Monday.</p>
-                                    </motion.div>
+                                    </div>
                                 ) : (
                                     <form onSubmit={handleSubscribe} className="space-y-4">
-                                        <input
-                                            type="text"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="Your Name"
-                                            className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black bg-white"
-                                            required
-                                        />
                                         <input
                                             type="email"
                                             value={email}
@@ -795,7 +708,7 @@ const ZerosByKaiLanding = () => {
                                 )}
 
                                 <p className="text-xs comic-body mt-4 text-gray-600 text-center">
-                                    ✓ Free forever &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
+                                    ✓ 100% Free &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
                                 </p>
                                 <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-200 text-center">
                                     <p className="text-sm comic-body text-gray-600">
@@ -808,7 +721,7 @@ const ZerosByKaiLanding = () => {
                                         Create an account <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
-                            </motion.div>
+                            </div>
                         </div>
                     </div>
                 </section>

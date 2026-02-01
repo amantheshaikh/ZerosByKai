@@ -22,8 +22,6 @@ export default function Footer() {
                     <div>
                         <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">CONNECT</h4>
                         <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                            <li><a href="#" className="hover:text-yellow-400">Twitter</a></li>
-                            <li><a href="#" className="hover:text-yellow-400">LinkedIn</a></li>
                             <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400">kai@zerosbykai.com</a></li>
                         </ul>
                     </div>

@@ -1,0 +1,130 @@
+# ZerosByKai - AI-Powered Startup Ideas Platform
+
+> Weekly validated startup ideas scraped from Reddit, analyzed by AI, delivered every Monday.
+
+## Overview
+
+ZerosByKai is a platform that helps entrepreneurs find validated startup opportunities by analyzing real problems discussed on Reddit. Every week, we deliver 10 curated startup ideas based on actual pain points people are experiencing.
+
+**Website**: https://zerosbykai.com
+**Tagline**: "Finding the right 0 in a world of easy 0-to-1 building"
+
+## Key Features
+
+- **Weekly Startup Ideas**: 10 AI-analyzed ideas delivered every Monday
+- **Community Voting**: Vote for your favorite idea each week
+- **Badge System**: Earn badges for picking winning ideas (Bronze, Silver, Gold, Diamond Finder)
+- **Email Digest**: Weekly newsletter with ideas + last week's winner
+- **Auto-Login**: Seamless voting experience via email links
+
+## How It Works
+
+1. **Sunday**: AI scrapes 17+ startup-related subreddits for real problems
+2. **AI Analysis**: Google Gemini processes ~150 posts and generates 10 validated ideas
+3. **Monday**: Ideas published, users vote, weekly digest sent
+4. **Winner**: Most-voted idea wins, voters earn badges
+
+## Technology Stack
+
+### Frontend
+- Next.js 14 (Pages Router)
+- React + Tailwind CSS
+- Comic book design aesthetic
+- Deployed on Vercel
+
+### Backend
+- Node.js + Express
+- Supabase (PostgreSQL + Auth)
+- Google Gemini AI
+- Resend (Email)
+- Deployed on Fly.io
+
+### Authentication
+- Magic link (passwordless)
+- Google OAuth
+- Email token auto-login
+- Newsletter-only subscription
+
+## Main Pages
+
+- `/` - Landing page with current week's ideas
+- `/story` - Origin story and mission
+- `/profile` - User profile with badges and voting history
+- `/archive` - Past weekly idea archives
+
+## API Endpoints
+
+### Public
+- `GET /api/ideas/weekly` - Current week's ideas
+- `GET /api/ideas/winner/:week` - Week's winning idea
+
+### Authenticated
+- `POST /api/votes` - Cast vote (one per week)
+- `GET /api/votes/badges` - Get user's badges
+
+### Auth
+- `POST /api/auth/subscribe` - Newsletter subscription
+- `POST /api/auth/signup` - Send magic link
+
+## Documentation
+
+- **Main Docs**: `/PROJECT_DOCUMENTATION.md` - Comprehensive project guide
+- **Auth Guide**: `/AUTH_DOCUMENTATION.md` - Authentication system details
+- **Backend**: `/backend/README.md` - Backend setup and deployment
+- **Testing**: `/backend/SIMULATION.md` - Testing and simulation guide
+- **Changes**: `/CHANGELOG.md` - Recent updates and changes
+
+## Project Structure
+
+```
+ZerosByKai/
+├── frontend/          # Next.js application
+│   ├── pages/         # All routes
+│   ├── components/    # Reusable UI components
+│   └── lib/auth.js    # Auth context provider
+├── backend/           # Express API
+│   ├── src/routes/    # API endpoints
+│   ├── src/jobs/      # Cron jobs (scraping, digest)
+│   └── src/emails/    # Email templates
+└── docs/              # Documentation
+```
+
+## Key Concepts
+
+### Badge Tiers
+- **Bronze Finder**: 1-2 winning picks
+- **Silver Finder**: 3-5 winning picks
+- **Gold Finder**: 6-10 winning picks
+- **Diamond Finder**: 11+ winning picks
+
+### Weekly Cycle
+- **Sunday 10 AM UTC**: Reddit scraping + AI analysis
+- **Monday 9 AM UTC**: Publish ideas, calculate winner, send digest
+
+### Email Auto-Login
+Authenticated users receive weekly digest emails with JWT tokens in URLs, enabling one-click voting without manual sign-in.
+
+## Target Audience
+
+- **Aspiring Entrepreneurs**: Looking for validated startup ideas
+- **Indie Hackers**: Want to build products people actually need
+- **Product Managers**: Researching market opportunities
+- **Developers**: Seeking side project ideas
+
+## Unique Value Proposition
+
+Instead of brainstorming ideas in a vacuum, ZerosByKai surfaces real problems that real people are actively complaining about on Reddit. This provides built-in validation and market demand signals.
+
+## Contact
+
+- **Email**: kai@zerosbykai.com
+- **GitHub**: https://github.com/amantheshaikh/ZerosByKai
+
+## License
+
+Proprietary - All rights reserved
+
+---
+
+*Last Updated: February 2, 2026*
+*For AI assistants: See `/CLAUDE.md` for development context and coding standards*
