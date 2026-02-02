@@ -283,8 +283,12 @@ export async function runRedditFlow(targetDate = new Date()) {
 
     // 3. Save to Database
     if (validatedIdeas.length > 0) {
-        await saveIdeasToDB(validatedIdeas, targetDate, allPosts.length);
-        await notifyAdmin(validatedIdeas);
+        const saved = await saveIdeasToDB(validatedIdeas, targetDate, allPosts.length);
+        if (saved) {
+            await notifyAdmin(validatedIdeas);
+        } else {
+            console.error("❌ Failed to save ideas to DB. Skipping admin notification.");
+        }
     } else {
         console.log("No ideas generated.");
     }
@@ -312,7 +316,7 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
 
     if (batchError) {
         console.error('Error saving batch metadata:', batchError);
-        return;
+        return false;
     }
 
     for (const idea of ideas) {
@@ -334,6 +338,7 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
     }
 
     console.log('Ideas saved to DB.');
+    return true;
 }
 
 async function notifyAdmin(ideas) {

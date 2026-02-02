@@ -5,6 +5,14 @@ import { generateEmailToken } from '../utils/emailToken.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Helper to mask email for PII-safe logging
+const maskEmail = (email) => {
+  if (!email) return 'unknown';
+  const [local, domain] = email.split('@');
+  if (!domain) return email.substring(0, 3) + '...';
+  return `${local.substring(0, 2)}...${local.slice(-1)}@${domain}`;
+};
+
 // Auto-publish pending ideas for this week
 export async function autoPublishIdeas() {
   try {
@@ -232,7 +240,19 @@ export async function sendWeeklyDigest() {
       });
     });
 
-    await Promise.allSettled(sendPromises);
+    const results = await Promise.allSettled(sendPromises);
+
+    // Log results for debugging
+    results.forEach((result, index) => {
+      const email = emailList[index].email;
+      const maskedEmail = maskEmail(email);
+      if (result.status === 'fulfilled' && !result.value.error) {
+        console.log(`✅ Email sent to ${maskedEmail}: ${result.value.data.id}`);
+      } else {
+        const error = result.status === 'rejected' ? result.reason : result.value.error;
+        console.error(`❌ Failed to send email to ${maskedEmail}:`, error);
+      }
+    });
 
     // Update batch
     await supabaseAdmin
