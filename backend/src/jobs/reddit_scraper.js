@@ -311,18 +311,25 @@ export async function runRedditFlow(targetDate = new Date()) {
     const maxPostsPerBatch = 30;
 
     let validatedIdeas = [];
-    const TARGET_IDEAS = 10;
+    const GENERATION_TARGET = 15; // Generate more to pick the best/non-duplicates
+    const FINAL_LIMIT = 10;
     const MAX_WORKFLOW_RETRIES = 3;
 
-    // Retry entire workflow if we don't get 10 ideas
+    // Fetch existing ideas to avoid repetition
+    const existingIdeas = await getExistingIdeaTitles();
+    const exclusionText = existingIdeas.length > 0
+        ? `\n**EXCLUSION LIST (Do NOT repeat these ideas):**\n- ${existingIdeas.join('\n- ')}`
+        : "";
+
+    // Retry entire workflow if we don't get enough ideas
     for (let workflowAttempt = 0; workflowAttempt < MAX_WORKFLOW_RETRIES; workflowAttempt++) {
-        if (validatedIdeas.length >= TARGET_IDEAS) {
+        if (validatedIdeas.length >= GENERATION_TARGET) {
             console.log(`✅ Successfully generated ${validatedIdeas.length} ideas!`);
             break;
         }
 
         if (workflowAttempt > 0) {
-            console.log(`\n🔄 Workflow retry ${workflowAttempt}/${MAX_WORKFLOW_RETRIES - 1} - Need ${TARGET_IDEAS - validatedIdeas.length} more ideas...`);
+            console.log(`\n🔄 Workflow retry ${workflowAttempt}/${MAX_WORKFLOW_RETRIES - 1} - Need ${GENERATION_TARGET - validatedIdeas.length} more ideas...`);
         }
 
         // Prepare batches for this attempt
@@ -331,11 +338,11 @@ export async function runRedditFlow(targetDate = new Date()) {
         const batches = [batch1Posts, batch2Posts].filter(b => b.length > 5);
 
         // How many ideas do we still need?
-        const ideasNeeded = TARGET_IDEAS - validatedIdeas.length;
+        const ideasNeeded = GENERATION_TARGET - validatedIdeas.length;
         const ideasPerBatch = Math.ceil(ideasNeeded / batches.length);
 
         for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
-            if (validatedIdeas.length >= TARGET_IDEAS) break;
+            if (validatedIdeas.length >= GENERATION_TARGET) break;
 
             const batch = batches[batchIdx];
             const promptText = `
@@ -351,8 +358,11 @@ export async function runRedditFlow(targetDate = new Date()) {
       **Input Data:**
       ${batch.map(p => `[r/${p.subreddit}] ${p.title}: ${p.body.substring(0, 200)}...`).join('\n')}
 
+      ${exclusionText}
+
       **Task:**
       Generate ${ideasPerBatch} distinct, high-quality startup ideas based *only* on the problems found in this text.
+      The ideas MUST be different from the EXCLUSION LIST provided above.
       
       **CRITICAL CONSTRAINT:** 
       Do NOT mention specific subreddits (e.g., "r/SaaS"), specific Reddit posts, or usernames in the output fields. Use general terms like "online communities", "founder forums", or "industry groups" instead. The output must feel platform-agnostic.
@@ -400,7 +410,7 @@ export async function runRedditFlow(targetDate = new Date()) {
                     const ideas = JSON.parse(cleanJson);
                     if (Array.isArray(ideas) && ideas.length > 0) {
                         validatedIdeas = [...validatedIdeas, ...ideas];
-                        console.log(`✅ Generated ${ideas.length} ideas (Total: ${validatedIdeas.length}/${TARGET_IDEAS})`);
+                        console.log(`✅ Generated ${ideas.length} ideas (Total: ${validatedIdeas.length}/${GENERATION_TARGET})`);
                         batchSuccess = true;
                     } else {
                         throw new Error('Invalid response format or empty array');
@@ -426,24 +436,48 @@ export async function runRedditFlow(targetDate = new Date()) {
     }
 
     // Final check
-    if (validatedIdeas.length < TARGET_IDEAS) {
-        console.warn(`⚠️  WARNING: Only generated ${validatedIdeas.length}/${TARGET_IDEAS} ideas after ${MAX_WORKFLOW_RETRIES} workflow attempts`);
+    if (validatedIdeas.length < FINAL_LIMIT) {
+        console.warn(`⚠️  WARNING: Only generated ${validatedIdeas.length}/${FINAL_LIMIT} ideas after ${MAX_WORKFLOW_RETRIES} workflow attempts`);
     }
 
+    // Final filtering stage: Ensure no repeats of existing things (Manual safety check)
+    const existingTitlesSet = new Set(existingIdeas.map(t => t.toLowerCase()));
+    let finalIdeas = validatedIdeas.filter(idea => {
+        const fullTitle = `${idea.name}: ${idea.title}`.toLowerCase();
+        return !existingTitlesSet.has(fullTitle);
+    });
+
     // Ensure we have exactly 10 or whatever we managed to get
-    validatedIdeas = validatedIdeas.slice(0, TARGET_IDEAS);
-    console.log(`\n📊 Final result: ${validatedIdeas.length} validated ideas.`);
+    finalIdeas = finalIdeas.slice(0, FINAL_LIMIT);
+    console.log(`\n📊 Final result: ${finalIdeas.length} validated uniqueness ideas.`);
 
     // 3. Save to Database
-    if (validatedIdeas.length > 0) {
-        const saved = await saveIdeasToDB(validatedIdeas, targetDate, allPosts.length);
+    if (finalIdeas.length > 0) {
+        const saved = await saveIdeasToDB(finalIdeas, targetDate, allPosts.length);
         if (saved) {
-            await notifyAdmin(validatedIdeas);
+            await notifyAdmin(finalIdeas);
         } else {
             console.error("❌ Failed to save ideas to DB. Skipping admin notification.");
         }
     } else {
         console.log("No ideas generated.");
+    }
+}
+
+async function getExistingIdeaTitles() {
+    if (!supabaseAdmin) return [];
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('ideas')
+            .select('title, name')
+            .order('created_at', { ascending: false })
+            .limit(100); // Check last 100 ideas for duplicates
+
+        if (error) throw error;
+        return data.map(i => `${i.name}: ${i.title}`);
+    } catch (e) {
+        console.error('⚠️ Could not fetch existing ideas for deduplication:', e.message);
+        return [];
     }
 }
 
