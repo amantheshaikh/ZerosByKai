@@ -58,6 +58,9 @@ const USER_AGENTS = [
 
 const getRandomUserAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 
+// Session-level User-Agent to avoid triggering bot detection by changing UA mid-run
+const SESSION_USER_AGENT = getRandomUserAgent();
+
 // Human-like delay with variation
 const humanDelay = (baseMs = 2000) => {
     const variation = Math.random() * baseMs; // 0-100% variation
@@ -66,7 +69,12 @@ const humanDelay = (baseMs = 2000) => {
 
 // Helper to fetch valid posts from a subreddit JSON with retry logic and fallbacks
 async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit = 5, retries = 3) {
-    const domains = ['www.reddit.com', 'old.reddit.com'];
+    // try official API if credentials exist
+    if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
+        return fetchViaOfficialApi(subreddit, sort, time, limit);
+    }
+
+    const domains = ['www.reddit.com', 'old.reddit.com', 'pay.reddit.com'];
 
     for (const domain of domains) {
         // raw_json=1 prevents double encoding of HTML entities and gives cleaner data
@@ -79,8 +87,13 @@ async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit =
             try {
                 const response = await fetch(url, {
                     headers: {
-                        'User-Agent': getRandomUserAgent(),
-                        'Accept': 'application/json',
+                        'User-Agent': SESSION_USER_AGENT,
+                        'Accept': 'application/json, text/plain, */*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Referer': 'https://www.google.com/',
+                        'DNT': '1',
+                        'Pragma': 'no-cache',
+                        'Cache-Control': 'no-cache',
                     },
                     signal: controller.signal
                 });
@@ -420,4 +433,60 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             console.error('❌ Reddit flow failed:', error);
             process.exit(1);
         });
+}
+
+/**
+ * Fallback to official Reddit API if blocked
+ */
+async function fetchViaOfficialApi(subreddit, sort, time, limit) {
+    try {
+        console.log(`📡 Using official Reddit API for r/${subreddit}...`);
+
+        // 1. Get access token (Client Credentials Flow)
+        const auth = Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString('base64');
+        const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'ZerosByKai/1.0.0'
+            },
+            body: 'grant_type=client_credentials'
+        });
+
+        if (!tokenResponse.ok) {
+            throw new Error(`Auth failed: ${tokenResponse.status}`);
+        }
+
+        const { access_token } = await tokenResponse.json();
+
+        // 2. Fetch data
+        const url = `https://oauth.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${access_token}`,
+                'User-Agent': 'ZerosByKai/1.0.0'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API fetch failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data.children
+            .filter(child => !child.data.stickied && !(child.data.title || '').toLowerCase().includes('[sticky]'))
+            .map(child => ({
+                subreddit: child.data.subreddit,
+                title: child.data.title,
+                body: child.data.selftext || '',
+                url: child.data.url,
+                score: child.data.score,
+                created_utc: child.data.created_utc
+            }));
+
+    } catch (error) {
+        console.error(`❌ Official API fallback failed for r/${subreddit}:`, error.message);
+        return [];
+    }
 }
