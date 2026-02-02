@@ -25,6 +25,11 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+// GET /api/votes - Get votes status (public)
+router.get('/', (req, res) => {
+  res.json({ status: 'active', message: 'Use POST to cast votes or GET /user for your current vote.' });
+});
+
 // POST /api/votes - Cast or change vote (one vote per week)
 router.post('/', requireAuth, async (req, res) => {
   try {
