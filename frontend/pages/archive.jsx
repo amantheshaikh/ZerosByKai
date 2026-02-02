@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { Award, ChevronDown, ChevronUp } from 'lucide-react';
-import { getApiUrl } from '@/lib/auth';
+import { normalizeIdea } from '@/lib/utils';
+import { fetchArchiveBatches } from '@/lib/ideas';
 import Header from '@/components/Header';
 
 export default function ArchivePage() {
@@ -10,23 +11,18 @@ export default function ArchivePage() {
     const [loading, setLoading] = useState(true);
     const [expandedWeeks, setExpandedWeeks] = useState({});
 
-    useEffect(() => {
-        const url = `${getApiUrl()}/api/ideas/weekly-batches`;
-        fetch(url)
-            .then((r) => r.json())
-            .then((data) => {
-                setBatches(data.batches || []);
-            })
-            .catch(() => setBatches([]))
-            .finally(() => setLoading(false));
-    }, []);
-
     const toggleWeek = (batchId) => {
         setExpandedWeeks(prev => ({
             ...prev,
             [batchId]: !prev[batchId]
         }));
     };
+
+    useEffect(() => {
+        fetchArchiveBatches()
+            .then(setBatches)
+            .finally(() => setLoading(false));
+    }, []);
 
     return (
         <div className="min-h-screen bg-yellow-50">
@@ -90,16 +86,11 @@ export default function ArchivePage() {
                                                 🏆 WINNER
                                             </div>
                                             <div className="flex flex-wrap gap-2 mb-3">
-                                                {(winner.tags?.region || winner.tag) && (
-                                                    <span className="px-2 py-0.5 text-xs font-bold bg-blue-50 border border-black">
-                                                        {winner.tags?.region || winner.tag}
+                                                {winner.tagsList.map((t, idx) => (
+                                                    <span key={idx} className={`px-2 py-0.5 text-xs font-bold border border-black ${idx % 2 === 0 ? 'bg-blue-50' : 'bg-purple-50'}`}>
+                                                        {t}
                                                     </span>
-                                                )}
-                                                {(winner.tags?.category || winner.category) && (
-                                                    <span className="px-2 py-0.5 text-xs font-bold bg-purple-50 border border-black">
-                                                        {winner.tags?.category || winner.category}
-                                                    </span>
-                                                )}
+                                                ))}
                                             </div>
                                             <h3 className="comic-title text-2xl mb-1 text-black">{winner.name}</h3>
                                             <p className="comic-body font-bold text-gray-600 text-sm mb-3">{winner.title}</p>
@@ -137,8 +128,8 @@ export default function ArchivePage() {
                                                             <div
                                                                 key={idea.id}
                                                                 className={`p-4 border-2 ${isWinner
-                                                                        ? 'border-yellow-400 bg-yellow-50'
-                                                                        : 'border-gray-300 bg-white'
+                                                                    ? 'border-yellow-400 bg-yellow-50'
+                                                                    : 'border-gray-300 bg-white'
                                                                     }`}
                                                             >
                                                                 <div className="flex items-start gap-3">
@@ -147,16 +138,11 @@ export default function ArchivePage() {
                                                                     </div>
                                                                     <div className="flex-1">
                                                                         <div className="flex flex-wrap gap-2 mb-2">
-                                                                            {idea.tags?.region && (
-                                                                                <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-50 border border-black">
-                                                                                    {idea.tags.region}
+                                                                            {idea.tagsList.map((t, idx) => (
+                                                                                <span key={idx} className={`px-2 py-0.5 text-[10px] font-bold border border-black ${idx % 2 === 0 ? 'bg-blue-50' : 'bg-purple-50'}`}>
+                                                                                    {t}
                                                                                 </span>
-                                                                            )}
-                                                                            {idea.tags?.category && (
-                                                                                <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-50 border border-black">
-                                                                                    {idea.tags.category}
-                                                                                </span>
-                                                                            )}
+                                                                            ))}
                                                                             {isWinner && (
                                                                                 <span className="px-2 py-0.5 text-[10px] font-bold bg-yellow-400 border border-black">
                                                                                     🏆 WINNER

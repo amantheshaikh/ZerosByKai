@@ -17,16 +17,13 @@ const VoteConfirmation = dynamic(() => import('@/components/VoteConfirmation'), 
     loading: () => null,
 });
 
-// Normalize DB fields to display fields
-function normalizeIdea(idea) {
-    return {
-        ...idea,
-        tag: idea.tags?.region || idea.tag || '🌍 Global',
-        category: idea.tags?.category || idea.category || '',
-        target: idea.target_audience || idea.target || '',
-        why: idea.market_potential || idea.why || '',
-    };
-}
+import { normalizeIdea } from '@/lib/utils';
+import {
+    fetchCurrentWeekIdeas,
+    fetchLeaderboard,
+    castVote,
+    getUserVote
+} from '@/lib/ideas';
 
 const ZerosByKaiLanding = () => {
     const { user, session, isLoading: authLoading, openAuthModal } = useAuth();
@@ -40,32 +37,15 @@ const ZerosByKaiLanding = () => {
     const [userVote, setUserVote] = useState(null);
     const [votingIdeaId, setVotingIdeaId] = useState(null);
     const [voteConfirmation, setVoteConfirmation] = useState(null);
+    const [voteError, setVoteError] = useState(null);
 
     // State for hero subscribe button expansion
     const [showHeroSubscribe, setShowHeroSubscribe] = useState(false);
 
-    // Fetch current week ideas (public)
+    // Fetch data
     useEffect(() => {
-        const url = `${getApiUrl()}/api/ideas/weekly`;
-        fetch(url)
-            .then((r) => r.json())
-            .then((data) => {
-                if (data.ideas && data.ideas.length > 0) {
-                    setIdeas(data.ideas.map(normalizeIdea));
-                }
-            })
-            .catch(() => { });
-
-        // Fetch Leaderboard (Last Week's Winners)
-        const leaderboardUrl = `${getApiUrl()}/api/ideas/leaderboard`;
-        fetch(leaderboardUrl)
-            .then(r => r.json())
-            .then(data => {
-                if (Array.isArray(data) && data.length > 0) {
-                    setLeaderboard(data.map(normalizeIdea));
-                }
-            })
-            .catch(err => console.error("Leaderboard fetch error:", err));
+        fetchCurrentWeekIdeas().then(data => data.length > 0 && setIdeas(data));
+        fetchLeaderboard().then(data => data.length > 0 && setLeaderboard(data));
     }, []);
 
     // Fetch user's current vote (if authenticated)
@@ -74,11 +54,7 @@ const ZerosByKaiLanding = () => {
             setUserVote(null);
             return;
         }
-        apiFetch('/api/votes/user', {}, session)
-            .then((data) => {
-                setUserVote(data.vote?.idea_id || null);
-            })
-            .catch(() => { });
+        getUserVote(session).then(setUserVote);
     }, [session]);
 
     const displayIdeas = ideas || sampleIdeas;
@@ -108,10 +84,7 @@ const ZerosByKaiLanding = () => {
 
         setVotingIdeaId(ideaId);
         try {
-            const data = await apiFetch('/api/votes', {
-                method: 'POST',
-                body: JSON.stringify({ ideaId }),
-            }, session);
+            const data = await castVote(ideaId, session);
 
             const votedIdea = displayIdeas.find((i) => i.id === ideaId);
             setVoteConfirmation({
@@ -119,8 +92,12 @@ const ZerosByKaiLanding = () => {
                 changed: data.changedFrom !== null,
             });
             setUserVote(ideaId);
+            setVoteError(null);
         } catch (err) {
-            // Vote errors are non-critical; the VoteConfirmation modal won't show
+            console.error('Voting error:', err);
+            setVoteError(err.message || 'Failed to cast vote. Please try again.');
+            // Clear error after 5 seconds
+            setTimeout(() => setVoteError(null), 5000);
         } finally {
             setVotingIdeaId(null);
         }
@@ -349,6 +326,32 @@ const ZerosByKaiLanding = () => {
                             />
                         ))}
                     </div>
+
+                    {/* Vote Error Message */}
+                    <AnimatePresence>
+                        {voteError && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="fixed bottom-4 right-4 z-50 comic-panel p-4 bg-rose-100 border-2 border-rose-700 text-rose-700 comic-body comic-shadow shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">⚠️</span>
+                                    <div>
+                                        <p className="font-bold">Ouch! Vote failed.</p>
+                                        <p className="text-sm">{voteError}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setVoteError(null)}
+                                        className="ml-4 text-rose-900 hover:text-rose-700 font-bold"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {!user && (
                         <div className="text-center">

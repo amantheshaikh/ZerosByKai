@@ -1,22 +1,8 @@
 import { supabaseAdmin } from '../config/supabase.js';
-import { Resend } from 'resend';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { sendEmail } from '../utils/emailService.js';
+import { ADMIN_CONFIG } from '../utils/helpers.js';
 
-// Load env if not already loaded
-if (!process.env.RESEND_API_KEY) {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    dotenv.config({ path: path.join(__dirname, '../../.env') });
-}
-
-if (!process.env.RESEND_API_KEY) {
-    console.error('❌ FATAL: RESEND_API_KEY is missing. Cannot initialize backlog check.');
-    process.exit(1);
-}
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const adminEmail = 'kai@zerosbykai.com';
+const adminEmail = ADMIN_CONFIG.email;
 
 /**
  * Checks the current backlog count and sends an alert if it's too low.
@@ -33,13 +19,13 @@ export async function checkBacklogHealth() {
 
         if (error) throw error;
 
-        console.log(`📊 Current backlog: ${count} ideas.`);
+        const threshold = ADMIN_CONFIG.backlogThreshold || 10;
+        console.log(`📊 Current backlog: ${count} ideas (Threshold: ${threshold}).`);
 
-        if (count < 10) {
+        if (count < threshold) {
             console.log('⚠️  Backlog is low! Sending alert email...');
 
-            const { data, error: emailError } = await resend.emails.send({
-                from: 'Kai <kai@zerosbykai.com>',
+            const { success, error: emailError, data } = await sendEmail({
                 to: adminEmail,
                 subject: '🚨 Action Required: Backlog is Low!',
                 html: `
@@ -57,10 +43,10 @@ export async function checkBacklogHealth() {
                 `
             });
 
-            if (emailError) {
+            if (!success) {
                 console.error('❌ Failed to send alert email:', emailError);
             } else {
-                console.log(`✅ Alert email sent successfully. ID: ${data.id}`);
+                console.log(`✅ Alert email sent successfully. ID: ${data.MessageId}`);
             }
         } else {
             console.log('✅ Backlog health is GOOD.');

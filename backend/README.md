@@ -18,8 +18,10 @@ SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_KEY=xxx
 
-# Email
-RESEND_API_KEY=re_xxx
+# Email (Amazon SES)
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+AWS_REGION=ap-southeast-2
 
 # AI
 GEMINI_API_KEY=xxx
@@ -31,6 +33,11 @@ FRONTEND_URL=http://localhost:3000
 
 # JWT for email tokens
 JWT_SECRET=your_secure_random_string
+
+# Admin Config
+ADMIN_EMAIL=kai@zerosbykai.com
+ADMIN_NAME=Kai
+BACKLOG_THRESHOLD=10
 ```
 
 ### 3. Database Setup
@@ -69,11 +76,16 @@ fly launch
 fly secrets set SUPABASE_URL="your_url"
 fly secrets set SUPABASE_ANON_KEY="your_key"
 fly secrets set SUPABASE_SERVICE_KEY="your_service_key"
-fly secrets set RESEND_API_KEY="your_resend_key"
+fly secrets set AWS_ACCESS_KEY_ID="xxx"
+fly secrets set AWS_SECRET_ACCESS_KEY="xxx"
+fly secrets set AWS_REGION="ap-southeast-2"
 fly secrets set GEMINI_API_KEY="your_gemini_key"
 fly secrets set JWT_SECRET="your_jwt_secret"
 fly secrets set FRONTEND_URL="https://zerosbykai.com"
 fly secrets set NODE_ENV="production"
+fly secrets set ADMIN_EMAIL="your_admin_email"
+fly secrets set ADMIN_NAME="Kai"
+fly secrets set BACKLOG_THRESHOLD="10"
 ```
 
 ### 5. Deploy
@@ -151,10 +163,7 @@ backend/
 │   ├── jobs/                         # Production cron jobs
 │   │   ├── reddit_scraper.js         # Sunday: Reddit scraping
 │   │   └── weekly.js                 # Monday: publish, winner, digest
-│   ├── workflows/                    # Testing/simulation scripts
-│   │   ├── simulate_monday_workflow.js
-│   │   ├── simulate_welcome.js
-│   │   └── simulate_magic_link.js
+│   ├── workflows/                    # Not used (Cleanup performed)
 │   ├── emails/                       # Email templates
 │   │   ├── templates.js              # Re-exports all templates
 │   │   └── templates/
@@ -164,36 +173,22 @@ backend/
 │   │       └── magic-link.js         # Magic link email
 │   ├── utils/                        # Utilities
 │   │   └── emailToken.js             # JWT token generation/verification
-│   └── scripts/                      # Utility scripts
 │       └── delete-user-by-email.sql  # User deletion script
+│       └── migration_v2.sql          # Final schema alignment script
 ├── fly.toml                          # Fly.io deployment config
 └── package.json
 ```
 
 ---
 
-## Testing & Simulation
+### Run Migration
+```bash
+# Run migration_v2.sql in Supabase SQL Editor to align production
+```
 
 ### Test Reddit Scraping
 ```bash
-node src/jobs/reddit_scraper.js
-```
-
-### Test Monday Workflow (End-to-End)
-```bash
-node src/workflows/simulate_monday_workflow.js
-```
-
-### Test Email Templates
-```bash
-# Weekly digest
-node src/workflows/simulate_newsletter.js
-
-# Welcome email
-node src/workflows/simulate_welcome.js
-
-# Magic link
-node src/workflows/simulate_magic_link.js
+npm run scrape:local
 ```
 
 ---
@@ -224,32 +219,24 @@ Use Supabase Dashboard:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `SUPABASE_URL` | Supabase project URL | ✅ |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ |
-| `SUPABASE_SERVICE_KEY` | Supabase service role key | ✅ |
-| `RESEND_API_KEY` | Resend API key for emails | ✅ |
+| `AWS_ACCESS_KEY_ID` | AWS Access Key | ✅ |
+| `AWS_SECRET_ACCESS_KEY` | AWS Secret Key | ✅ |
+| `AWS_REGION` | AWS Region (e.g., ap-southeast-2) | ✅ |
 | `GEMINI_API_KEY` | Google Gemini API key | ✅ |
 | `JWT_SECRET` | Secret for email token signing | ✅ |
 | `FRONTEND_URL` | Frontend URL for CORS | ✅ |
+| `ADMIN_EMAIL` | Administrator alert email | ✅ |
+| `ADMIN_NAME` | Administrator name | ❌ |
+| `BACKLOG_THRESHOLD` | Ideas needed for health | ❌ |
 | `PORT` | Server port (default: 3001) | ❌ |
 | `NODE_ENV` | Environment (development/production) | ❌ |
 
 ---
 
-### Recent Changes (2026-02-02)
-
-### File Structure
-- ✅ Moved `workflows/daily_startup_ideas.js` → `jobs/reddit_scraper.js`
-- ✅ **Cleanup**: Removed temporary simulation scripts (`simulate_newsletter.js`, `preview_email_html.js`)
-- ✅ Removed admin routes (use Supabase dashboard)
-- ✅ Separated email templates into individual files
-
-### New Features
-- ✅ **Brand Design**: Emails now match website aesthetic ("Rose 700" Pink + Yellow + Comic Cards)
-- ✅ **Consistent Metrics**: Implemented robust thread count heuristic (2,100+) for weekly stats
-- ✅ **Backlog Health**: Automated alerts on Fridays/Sundays if backlog < 10 ideas
-- ✅ Email token auto-login (JWT-based)
-- ✅ Enhanced Reddit scraping (anti-detection)
+- ✅ **Next-Gen Models**: Integrated `gemini-3-flash-preview` and `gemini-3-pro-preview`.
+- ✅ **Hardening**: CRLF protection, RFC 2047 subject encoding, Base64 email bodies.
+- ✅ **Maintenance**: PII masked in logs, UTC standardized dates, ADMIN_CONFIG in env.
+- ✅ **Sync**: Unified `tags` array (max 5) on ideas.
 
 
 ---
@@ -262,9 +249,9 @@ Use Supabase Dashboard:
 - Check Supabase keys are correct
 
 ### Emails not sending
-- Verify `RESEND_API_KEY` is set
-- Check Resend dashboard for logs: https://resend.com/emails
-- Ensure `kai@zerosbykai.com` is verified in Resend
+- Verify AWS credentials are set correctly in Fly secrets
+- Check AWS SES Console (Sydney region) for status
+- Ensure your identities (sender and recipient in Sandbox) are verified
 
 ### Reddit scraping fails
 - Check `GEMINI_API_KEY` is valid
@@ -283,7 +270,7 @@ Use Supabase Dashboard:
 - **Frontend**: https://zerosbykai.com
 - **API**: https://zerosbykai-api-prod.fly.dev
 - **Supabase Dashboard**: https://supabase.com/dashboard
-- **Resend Dashboard**: https://resend.com/emails
+- **AWS SES Console**: https://console.aws.amazon.com/ses/home
 - **Fly.io Dashboard**: https://fly.io/dashboard
 
 ---

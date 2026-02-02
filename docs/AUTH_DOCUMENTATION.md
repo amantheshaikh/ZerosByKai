@@ -224,10 +224,11 @@ try {
 
 ## Security Features
 
-1. **JWT tokens** - Email tokens expire after 7 days
-2. **Single-use tokens** - Email tokens can only be used once
-3. **Supabase RLS** - Row-level security on all tables
-4. **HTTPS only** - All auth flows require HTTPS in production
+- **Supabase RLS** - Row-level security on all tables (updated for `winner` status)
+- **Email Security** - CRLF protection, RFC 2047 encoding, Base64 bodies
+- **Secure Token Masking** - Enhanced PII protection in logs and emails
+- **HTTPS only** - All auth flows require HTTPS in production
+- **Session management** - Automatic token refresh by Supabase
 5. **Session management** - Automatic token refresh by Supabase
 
 ---
@@ -257,27 +258,25 @@ NEXT_PUBLIC_API_URL=https://your-api.fly.dev
 NEXT_PUBLIC_SITE_URL=https://zerosbykai.com
 
 # Backend (.env)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
-RESEND_API_KEY=your-resend-key
-JWT_SECRET=your-jwt-secret
-FRONTEND_URL=https://zerosbykai.com
+SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+JWT_SECRET
+FRONTEND_URL
+ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD
 ```
 
 ---
 
 ## Testing
 
-### Test magic link flow
+### Run Migration
 ```bash
-node src/workflows/simulate_magic_link.js
+# Apply migration_v2.sql in Supabase SQL Editor
 ```
 
-
-### Test welcome email
+### Test Scraper
 ```bash
-node src/workflows/simulate_welcome.js
+cd backend && npm run scrape:local
 ```
 
 ---
@@ -294,7 +293,7 @@ node src/workflows/simulate_welcome.js
 
 ### Issue: "Magic link not working"
 **Cause:** Email provider blocking emails or wrong redirect URL  
-**Solution:** Check Resend logs and verify `FRONTEND_URL` is correct
+**Solution:** Check Supabase Dashboard logs and verify `FRONTEND_URL` is correct
 
 ---
 

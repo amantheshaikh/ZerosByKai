@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.EMAIL_TOKEN_SECRET || process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { config } from '../config/env.js';
+
+const SECRET = config.jwtSecret;
 const EXPIRATION = '7d'; // 7 days - matches weekly email cadence
 
 /**

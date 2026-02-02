@@ -1,5 +1,6 @@
 import express from 'express';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { getLastMonday } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -26,7 +27,6 @@ const requireAuth = async (req, res, next) => {
 };
 
 // Helper: Get the current active week for voting
-// This is always the latest week that has published ideas
 const getActiveWeek = async () => {
   const { data: latestIdea } = await supabaseAdmin
     .from('ideas')
@@ -116,7 +116,6 @@ router.post('/', requireAuth, async (req, res) => {
 router.get('/user', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-
     const weekStart = await getActiveWeek();
 
     // Get current week's ideas
@@ -152,48 +151,49 @@ router.get('/user', requireAuth, async (req, res) => {
 router.get('/last-week', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
+    const lastWeekStart = getLastMonday();
 
-    // Get last week's Monday
-    const today = new Date();
-    const lastMonday = new Date(today);
-    const day = today.getDay();
+    console.log(`[DEBUG] /last-week: userId=${userId}, lastWeekStart=${lastWeekStart}`);
 
-    // Correct logic for LAST week's Monday:
-    const currentMondayDiff = today.getDate() - day + (day === 0 ? -6 : 1);
-    lastMonday.setDate(currentMondayDiff - 7);
-
-    const lastWeekStart = lastMonday.toISOString().split('T')[0];
-
-    // Get last week's batch with winner
-    const { data: batch } = await supabaseAdmin
+    // 1. Get last week's batch with winner
+    const { data: batch, error: batchError } = await supabaseAdmin
       .from('weekly_batches')
       .select(`
         *,
-        winner:winner_idea_id (id, name, title)
+        winner:ideas!fk_weekly_batches_winner_idea (id, name, title)
       `)
       .eq('week_start_date', lastWeekStart)
-      .single();
+      .maybeSingle();
 
-    if (!batch || !batch.winner) {
-      return res.json({ lastWeekVote: null, winner: null, earnedBadge: false });
+    if (batchError) {
+      console.error(`[DEBUG] Error fetching batch for ${lastWeekStart}:`, batchError);
     }
 
-    // Count votes for winner
+    if (!batch || !batch.winner) {
+      console.log(`[DEBUG] No winner data found for ${lastWeekStart}. Batch: ${!!batch}, Winner: ${!!batch?.winner}`);
+      return res.json({
+        lastWeekVote: null,
+        winner: null,
+        earnedBadge: false,
+        debug: { lastWeekStart, userId, hasBatch: !!batch }
+      });
+    }
+
+    // 2. Count votes for winner
     const { count: winnerVoteCount } = await supabaseAdmin
       .from('votes')
       .select('*', { count: 'exact', head: true })
-      .eq('idea_id', batch.winner.id);
+      .eq('idea_id', batch.winner_idea_id);
 
-    // Get last week's ideas
+    // 3. Get user's vote from last week
+    // We need to find if the user voted for ANY idea that was active last week
     const { data: lastWeekIdeas } = await supabaseAdmin
       .from('ideas')
       .select('id')
-      .eq('week_published', lastWeekStart)
-      .eq('status', 'published');
+      .eq('week_published', lastWeekStart);
 
     const lastWeekIdeaIds = lastWeekIdeas?.map(i => i.id) || [];
 
-    // Get user's vote from last week
     let lastWeekVote = null;
     if (lastWeekIdeaIds.length > 0) {
       const { data: vote } = await supabaseAdmin
@@ -201,30 +201,32 @@ router.get('/last-week', requireAuth, async (req, res) => {
         .select('*, idea:ideas(id, name, title)')
         .eq('user_id', userId)
         .in('idea_id', lastWeekIdeaIds)
-        .single();
+        .maybeSingle();
 
       lastWeekVote = vote || null;
     }
 
-    // Check if user earned a badge for the winning idea
-    let earnedBadge = false;
-    if (batch.winner) {
-      const { data: badge } = await supabaseAdmin
-        .from('user_badges')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('idea_id', batch.winner.id)
-        .single();
-
-      earnedBadge = !!badge;
-    }
+    // 4. Check if user earned a badge for the winning idea
+    const { data: badge } = await supabaseAdmin
+      .from('user_badges')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('idea_id', batch.winner_idea_id)
+      .maybeSingle();
 
     res.json({
       lastWeekVote: lastWeekVote ? { name: lastWeekVote.idea?.name, title: lastWeekVote.idea?.title } : null,
-      winner: { name: batch.winner.name, title: batch.winner.title, voteCount: winnerVoteCount || 0 },
-      earnedBadge
+      winner: {
+        name: batch.winner.name,
+        title: batch.winner.title,
+        voteCount: winnerVoteCount || 0
+      },
+      earnedBadge: !!badge,
+      debug: { lastWeekStart, userId }
     });
+
   } catch (error) {
+    console.error('[DEBUG] /last-week error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -242,7 +244,6 @@ router.get('/badges', requireAuth, async (req, res) => {
 
     if (error) throw error;
 
-    // Calculate tier
     const kaiPickCount = badges?.filter(b => b.badge_type === 'kai_pick').length || 0;
     let tier = 'none';
     if (kaiPickCount >= 11) tier = 'diamond';

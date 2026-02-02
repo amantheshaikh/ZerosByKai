@@ -8,8 +8,8 @@ This document documents the technology stack and file tree structure for ZerosBy
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Supabase** - Database and Authentication (magic link, Google OAuth, email tokens)
-- **Google Gemini** - AI analysis (`gemini-2.0-flash-preview`, fallback: `gemini-2.5-flash`)
-- **Resend** - Email delivery
+- **Google Gemini** - AI analysis (`gemini-3-flash-preview`, fallback: `gemini-3-pro-preview`)
+- **Amazon SES** - Email delivery service (hardened multipart/alternative)
 - **node-cron** - Cron job scheduling
 - **Fly.io** - Deployment platform
 
@@ -26,34 +26,26 @@ This document documents the technology stack and file tree structure for ZerosBy
 ```
 ZerosByKai/
 ├── CLAUDE.md                           # Tier 1: Master AI context file
-├── PROJECT_DOCUMENTATION.md            # Comprehensive project guide
-├── AUTH_DOCUMENTATION.md               # Authentication system guide
-├── CHANGELOG.md                        # Change history
 ├── task.md                             # Current task tracking
 │
 ├── .github/workflows/                  # GitHub Actions
 │   └── reddit-scraper.yml              # Sunday Reddit scraping workflow
 │
 ├── backend/                            # Backend application
-│   ├── CONTEXT.md                      # Tier 2: Backend component docs
 │   ├── README.md                       # Backend setup guide
-│   ├── SIMULATION.md                   # Testing & simulation guide
+│   ├── final_schema.sql                # Definitive schema
+│   ├── migration_v2.sql                # Production alignment script
 │   ├── src/                            # Source code
 │   │   ├── server.js                   # Main entry point + cron jobs
 │   │   ├── config/
 │   │   │   └── supabase.js             # Supabase client (RLS + Admin)
 │   │   ├── routes/                     # API Routes
-│   │   │   ├── auth.js                 # Auth endpoints (subscribe, signup, verify, etc.)
+│   │   │   ├── auth.js                 # Auth endpoints
 │   │   │   ├── ideas.js                # Ideas CRUD & leaderboard
 │   │   │   └── votes.js                # Voting, badges, results
 │   │   ├── jobs/                       # Production cron jobs
-│   │   │   ├── reddit_scraper.js       # Sunday: Reddit → Gemini → 10 ideas
-│   │   │   └── weekly.js               # Monday: publish, winner, digest
-│   │   ├── workflows/                  # Testing/simulation scripts
-│   │   │   ├── simulate_monday_workflow.js
-│   │   │   ├── simulate_newsletter.js
-│   │   │   ├── simulate_welcome.js
-│   │   │   └── simulate_magic_link.js
+│   │   │   ├── reddit_scraper.js       # Sunday: Reddit → Gemini 3 Preview → 10 ideas
+│   │   │   └── weekly.js               # Monday: publish, winner, digest (SES)
 │   │   ├── emails/                     # Email templates
 │   │   │   ├── templates.js            # Re-exports all templates
 │   │   │   └── templates/
@@ -62,7 +54,10 @@ ZerosByKai/
 │   │   │       ├── welcome.js          # Welcome email
 │   │   │       └── magic-link.js       # Magic link email
 │   │   ├── utils/
-│   │   │   └── emailToken.js           # JWT token generation/verification
+│   │   │   ├── emailToken.js           # JWT utilities
+│   │   │   ├── emailService.js         # SES Hardened service
+│   │   │   ├── helpers.js              # PII Masking & Config
+│   │   │   └── dateUtils.js            # UTC Date utilities
 │   │   └── scripts/
 │   │       └── delete-user-by-email.sql
 │   ├── package.json                    # Dependencies
@@ -189,7 +184,7 @@ ZerosByKai/
 ### Backend (.env)
 ```bash
 SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
-RESEND_API_KEY
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
 GEMINI_API_KEY
 JWT_SECRET
 FRONTEND_URL

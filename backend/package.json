@@ -10,6 +10,7 @@
     "scrape:local": "node src/jobs/reddit_scraper.js"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.980.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.39.0",
     "compression": "^1.8.1",
@@ -19,8 +20,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "node-cron": "^3.0.3",
-    "resend": "^3.0.0"
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",

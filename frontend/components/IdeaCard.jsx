@@ -20,8 +20,11 @@ export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdea
                 {/* Header */}
                 <div className="mb-4 sm:mb-6 border-b-4 border-gray-100 pb-4 sm:pb-6">
                     <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                        <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-blue-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.tag}</span>
-                        <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold bg-purple-50 border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)]">{idea.category}</span>
+                        {(idea.tagsList || []).map((t, i) => (
+                            <span key={i} className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)] ${i % 2 === 0 ? 'bg-blue-50' : 'bg-purple-50'}`}>
+                                {t}
+                            </span>
+                        ))}
                     </div>
                     <h3 className="comic-title text-2xl sm:text-3xl mb-2 leading-none">{idea.name}</h3>
                     <h4 className="comic-body font-bold text-gray-600 text-xs sm:text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>

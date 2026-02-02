@@ -1,24 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import { config } from './env.js';
 
-dotenv.config();
+const { url, anonKey, serviceKey } = config.supabase;
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!url || !anonKey) {
   console.warn('⚠️  Supabase credentials missing. DB features will be disabled.');
-} else if (!supabaseServiceKey) {
+} else if (!serviceKey) {
   console.warn('⚠️  SUPABASE_SERVICE_KEY missing. Admin features (like newsletter subscribe) will be disabled.');
 }
 
 // Client for regular operations (respects RLS)
-export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = (url && anonKey)
+  ? createClient(url, anonKey)
   : null;
 
 // Admin client (bypasses RLS)
-export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
-  ? createClient(supabaseUrl, supabaseServiceKey)
+export const supabaseAdmin = (url && serviceKey)
+  ? createClient(url, serviceKey)
   : null;

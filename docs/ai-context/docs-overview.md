@@ -6,11 +6,10 @@
 - **[Docs Overview](/docs/ai-context/docs-overview.md)**: This file.
 
 ## Tier 2: Components
-- **[Backend](/backend/CONTEXT.md)**: Server implementation.
 - **[Frontend](/frontend/CONTEXT.md)**: Web app implementation.
+- **[Backend Guide](/backend/README.md)**: Server setup & reference.
 
 ## Tier 3: Features
-- **[Backend Source](/backend/src/CONTEXT.md)**: Backend logic & services.
-- **[Frontend Components](/frontend/components/CONTEXT.md)**: UI components (If exists).
+- **[Auth Docs](/docs/AUTH_DOCUMENTATION.md)**: Authentication system.
 
 > Note: Create new CONTEXT.md files only when a component grows significant complexity.

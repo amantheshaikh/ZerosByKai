@@ -113,7 +113,7 @@ const Leaderboard = ({ winners }) => {
                                             </div>
 
                                             <div className="inline-block px-2 py-1 bg-gray-100 border border-gray-300 text-[10px] font-bold uppercase tracking-wider mb-2">
-                                                {winner.category}
+                                                {winner.tagsList?.[0] || '🌍 Global'}
                                             </div>
 
                                             <h3 className="comic-title text-xl md:text-2xl mb-3 leading-tight line-clamp-3">

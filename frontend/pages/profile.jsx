@@ -16,7 +16,7 @@ const TIERS = [
 function getTierInfo(tier, count) {
     const current = TIERS.find((t) => t.key === tier) || TIERS[0];
     const nextTier = TIERS[TIERS.indexOf(current) + 1] || null;
-    const progress = nextTier ? ((count - current.min) / (nextTier.min - current.min)) * 100 : 100;
+    const progress = nextTier ? (count / nextTier.min) * 100 : 100;
     return { current, nextTier, progress: Math.min(progress, 100) };
 }
 
@@ -113,7 +113,7 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <p className="comic-body text-xs text-gray-500 mt-1">
-                                {tierInfo.nextTier.min - count} more badge{tierInfo.nextTier.min - count !== 1 ? 's' : ''} to {tierInfo.nextTier.label}
+                                {count} / {tierInfo.nextTier.min} badges to {tierInfo.nextTier.label} — {tierInfo.nextTier.min - count} more to go!
                             </p>
                         </div>
                     )}

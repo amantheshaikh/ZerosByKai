@@ -5,8 +5,8 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 
 **Monorepo:** `frontend/` (Next.js 14, Pages Router, Vercel) + `backend/` (Node.js/Express, Fly.io)  
 **Database:** Supabase (PostgreSQL + Auth)  
-**Email:** Resend  
-**AI:** Google Gemini  
+**Email:** Resend - **AI:** Google Gemini (Gemini 3 Preview for main jobs)
+  
 
 ## Quick Reference
 - **Dev:** `npm run dev` in `frontend/` (port 3000) and `backend/` (port 3001)
@@ -44,11 +44,11 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 - **Auth:** Bearer token validation via Supabase `getUser()`
 
 ### Cron Jobs
-- **Sunday 10 AM UTC:** Reddit scraping → Gemini AI → 10 ideas (status: `backlog`)
+- **Sunday 10 AM UTC:** Reddit scraping → Gemini 3 Preview → 10 ideas (status: `backlog`)
 - **Monday 9 AM UTC:** 
   1. Auto-publish backlog ideas
-  2. Calculate last week's winner
-  3. Send weekly digest (with auto-login tokens for authenticated users)
+  2. Calculate last week's winner (set status to `winner`)
+  3. Send weekly digest (Base64 encoded bodies, CRLF protected, RFC 2047 subjects)
 
 ### Badges System
 - Users who vote for the winning idea earn badges
@@ -71,10 +71,10 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
    - Anti-detection measures (rotating user agents, delays)
    - Collects ~150 posts
 
-2. **AI Analysis** (Gemini)
+2. **AI Analysis** (Gemini 3 Preview)
    - Processes posts in batches
-   - Generates 10 startup ideas
-   - Retry logic ensures 10 ideas always generated
+   - Generates 10 startup ideas with up to 5 flexible tags
+   - Uses `gemini-3-flash-preview` as primary, `gemini-3-pro-preview` as fallback
    - Saves as `status: 'backlog'`
 
 ### Monday (9 AM UTC)
@@ -119,6 +119,7 @@ GEMINI_API_KEY
 JWT_SECRET
 FRONTEND_URL
 PORT, NODE_ENV
+ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD
 ```
 
 ### Frontend
@@ -140,13 +141,12 @@ NEXT_PUBLIC_SITE_URL
 - ✅ Email token auto-login implemented
 - ✅ Email templates separated into individual files
 - ✅ Reddit scraping enhanced with anti-detection
-- ✅ Gemini retry logic improved (ensures 10 ideas)
-- ✅ **Status Model**: Simplified idea status to `backlog` -> `published`
-- ✅ **Brand**: Emails updated to "Rose 700" Pink + Yellow Comic theme
-- ✅ **Metrics**: Robust thread count heuristic (2,100+) implemented
-- ✅ Admin routes removed (use Supabase dashboard)
-- ✅ File structure reorganized (workflows → jobs)
-- ✅ Comprehensive documentation added
+- ✅ Gemini 3 Preview models integrated (Flash/Pro)
+- ✅ **Tagging Refactor**: Flexible array-based tags (max 5) replacing region/category
+- ✅ **Hardening**: CRLF protection, RFC 2047 subject encoding, Base64 email bodies
+- ✅ **Database**: Schema standardized, RLS updated for `winner` status
+- ✅ **Maintenance**: PII masked in logs, UTC standardized dates, ADMIN_CONFIG in env
+- ✅ **Status Model**: `backlog` -> `published` -> `winner`
 
 ## Documentation Hierarchy
 - **Tier 1 (Foundation):** This file - Master context

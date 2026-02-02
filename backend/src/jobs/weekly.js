@@ -1,17 +1,11 @@
 import { supabaseAdmin } from '../config/supabase.js';
-import { Resend } from 'resend';
 import { generateWeeklyDigestEmail } from '../emails/templates.js';
 import { generateEmailToken } from '../utils/emailToken.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getMonday, getLastMonday } from '../utils/dateUtils.js';
+import { maskEmail } from '../utils/helpers.js';
+import { config } from '../config/env.js';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Helper to mask email for PII-safe logging
-const maskEmail = (email) => {
-  if (!email) return 'unknown';
-  const [local, domain] = email.split('@');
-  if (!domain) return email.substring(0, 3) + '...';
-  return `${local.substring(0, 2)}...${local.slice(-1)}@${domain}`;
-};
 
 
 
@@ -21,50 +15,59 @@ const maskEmail = (email) => {
  */
 export async function pickAndPublishIdeas() {
   try {
-    const today = new Date();
-    const monday = new Date(today);
-    // Correct calculation: Map Sunday (0) -> 6, Monday (1) -> 0, etc.
-    const dayOffset = (today.getDay() + 6) % 7;
-    monday.setDate(today.getDate() - dayOffset);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = getMonday();
 
     console.log(`📡 Picking 10 ideas from backlog for week ${weekStart}...`);
 
-    // Step 0: Double-run protection
-    // Check if ideas are already published for this week or if email was already sent
-    const { data: existingBatch } = await supabaseAdmin
+    // Step 0: Ensure Weekly Batch Exists (Publisher Log)
+    // We treat 'weekly_batches' as the log of what WAS published, not an input requirement.
+    let { data: currentBatch, error: batchError } = await supabaseAdmin
       .from('weekly_batches')
-      .select('total_ideas, email_sent_at, posts_scraped')
+      .select('*')
       .eq('week_start_date', weekStart)
       .maybeSingle();
 
-    if (existingBatch?.email_sent_at) {
-      console.log(`🛑 Workflow aborted: Emails already sent for week ${weekStart}.`);
-      return [];
+    if (batchError) console.error('Error fetching batch:', batchError);
+
+    // Double-run protection: If batch exists AND has ideas, we are done.
+    if (currentBatch?.total_ideas > 0) {
+      console.log(`⚠️  Workflow skipped: ${currentBatch.total_ideas} ideas already published for week ${weekStart}.`);
+      return currentBatch; // Return existing batch context
     }
 
-    if (existingBatch?.total_ideas > 0) {
-      console.log(`⚠️  Workflow aborted: ${existingBatch.total_ideas} ideas are already published for week ${weekStart}.`);
-      return [];
+    // If no batch exists, create one now
+    if (!currentBatch) {
+      console.log(`🆕 Creating new weekly batch for ${weekStart}...`);
+      const { data: newBatch, error: createError } = await supabaseAdmin
+        .from('weekly_batches')
+        .insert({ week_start_date: weekStart, total_ideas: 0 })
+        .select()
+        .single();
+
+      if (createError) throw new Error(`Failed to create batch: ${createError.message}`);
+      currentBatch = newBatch;
     }
 
-    // 1. Select 10 oldest ideas from backlog
+    // Step 1: Select 10 oldest ideas from backlog
+    console.log('🔍 Picking 10 ideas from backlog...');
     const { data: backlogIdeas, error: fetchError } = await supabaseAdmin
       .from('ideas')
-      .select('id')
+      .select('id, name')
       .eq('status', 'backlog')
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: true }) // FIFO: Oldest first
       .limit(10);
 
     if (fetchError) throw fetchError;
-    if (!backlogIdeas || backlogIdeas.length === 0) {
-      console.warn('⚠️ Backlog is empty! No ideas to publish.');
-      return [];
+
+    if (!backlogIdeas || backlogIdeas.length < 10) {
+      // Alert but publish what we have (or strict fail if you prefer)
+      console.warn(`⚠️ Warning: Only found ${backlogIdeas?.length || 0} ideas in backlog (target: 10).`);
+      if (!backlogIdeas || backlogIdeas.length === 0) return [];
     }
 
+    // Step 2: Publish them (Atomic-ish)
+    // We update them to 'published' and link to this week
     const ideaIds = backlogIdeas.map(i => i.id);
-
-    // 2. Assign to current week and mark as published
     const { data: published, error: updateError } = await supabaseAdmin
       .from('ideas')
       .update({
@@ -74,22 +77,17 @@ export async function pickAndPublishIdeas() {
       .in('id', ideaIds)
       .select();
 
-    if (updateError) throw updateError;
+    if (updateError) throw new Error(`Failed to publish ideas: ${updateError.message}`);
 
-    // 3. Create weekly batch metadata (preserving posts_scraped if it was set by scraper)
-    const { error: batchError } = await supabaseAdmin
+    // Step 3: Update Batch Metrics
+    const { error: finalBatchError } = await supabaseAdmin
       .from('weekly_batches')
-      .upsert({
-        week_start_date: weekStart,
-        total_ideas: published.length,
-        posts_scraped: existingBatch?.posts_scraped || 0
-      }, {
-        onConflict: 'week_start_date'
-      });
+      .update({ total_ideas: backlogIdeas.length })
+      .eq('id', currentBatch.id);
 
-    if (batchError) console.error('Error saving batch metadata:', batchError);
+    if (finalBatchError) console.error('Error updating batch metrics:', finalBatchError);
 
-    console.log(`✅ Successfully published ${published.length} ideas from backlog.`);
+    console.log(`✅ Successfully published ${backlogIdeas.length} ideas for week ${weekStart}`);
     return published;
   } catch (error) {
     console.error('Error in pickAndPublishIdeas:', error);
@@ -100,13 +98,11 @@ export async function pickAndPublishIdeas() {
 // Calculate winner and award badges
 export async function calculateWinner() {
   try {
-    // Get last week's Monday
-    const today = new Date();
-    const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - today.getDay() - 6); // Last Monday
-    const weekStart = lastMonday.toISOString().split('T')[0];
+    const weekStart = getLastMonday();
 
-    // Get last week's published ideas
+    console.log(`🏆 Calculating winner for week ${weekStart}...`);
+
+    // 1. Get ideas for that week
     const { data: ideas, error: ideasError } = await supabaseAdmin
       .from('ideas')
       .select('id, name, title')
@@ -116,35 +112,31 @@ export async function calculateWinner() {
     if (ideasError) throw ideasError;
 
     if (!ideas || ideas.length === 0) {
-      console.log('No ideas from last week to calculate winner');
+      console.log(`No published ideas found for week ${weekStart}`);
       return;
     }
 
-    // Count votes for each idea
-    const ideaVotes = await Promise.all(
-      ideas.map(async (idea) => {
-        const { count, error } = await supabaseAdmin
-          .from('votes')
-          .select('*', { count: 'exact', head: true })
-          .eq('idea_id', idea.id);
+    // 2 & 3. Get vote counts and find winner in a single efficient query
+    const { data: voteCounts, error: countError } = await supabaseAdmin
+      .from('votes')
+      .select('idea_id, count:idea_id.count()')
+      .in('idea_id', ideas.map(i => i.id));
 
-        if (error) throw error;
+    if (countError) throw countError;
 
-        return {
-          ...idea,
-          voteCount: count || 0
-        };
-      })
-    );
+    // Map counts back to ideas and find winner
+    const ideaVotes = ideas.map(idea => ({
+      ...idea,
+      voteCount: parseInt(voteCounts.find(v => v.idea_id === idea.id)?.count || '0', 10)
+    }));
 
-    // Find winner (highest votes)
     const winner = ideaVotes.reduce((max, idea) =>
       idea.voteCount > max.voteCount ? idea : max
       , ideaVotes[0]);
 
-    console.log(`Winner: ${winner.name} with ${winner.voteCount} votes`);
+    console.log(`Winner identified: ${winner.name} (${winner.voteCount} votes)`);
 
-    // Create/update weekly batch
+    // 4. Update Weekly Batch with winner
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('weekly_batches')
       .upsert({
@@ -160,7 +152,18 @@ export async function calculateWinner() {
 
     if (batchError) throw batchError;
 
-    // Award badges to users who voted for winner
+    // 5. Update Idea status to 'winner'
+    const { error: winnerStatusError } = await supabaseAdmin
+      .from('ideas')
+      .update({ status: 'winner' })
+      .eq('id', winner.id);
+
+    if (winnerStatusError) {
+      console.error(`❌ Failed to update winner status for idea ${winner.id}:`, winnerStatusError);
+      throw new Error(`Critical failure: Could not set winner status for ${winner.id}`);
+    }
+
+    // 6. Award badges to users who voted for winner
     const { data: winningVoters, error: votersError } = await supabaseAdmin
       .from('votes')
       .select('user_id')
@@ -197,11 +200,7 @@ export async function calculateWinner() {
 // Send weekly digest to all subscribers
 export async function sendWeeklyDigest() {
   try {
-    // Get current week's Monday
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = getMonday();
 
     // Get this week's published ideas
     const { data: ideas, error: ideasError } = await supabaseAdmin
@@ -219,20 +218,18 @@ export async function sendWeeklyDigest() {
     }
 
     // Get last week's winner
-    const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - 7);
-    const lastWeekStart = lastMonday.toISOString().split('T')[0];
+    const lastWeekStart = getLastMonday(new Date(weekStart));
 
     const { data: lastWeekBatch } = await supabaseAdmin
       .from('weekly_batches')
       .select(`
         *,
-        winner:winner_idea_id (*)
+        winner:ideas!fk_weekly_batches_winner_idea (*)
       `)
       .eq('week_start_date', lastWeekStart)
-      .single();
+      .maybeSingle();
 
-    // Get all active subscribers (unified: both auth users and newsletter-only)
+    // Get all active subscribers
     const { data: emailList, error: subsError } = await supabaseAdmin
       .from('subscribers')
       .select('email, name, user_id')
@@ -240,13 +237,11 @@ export async function sendWeeklyDigest() {
 
     if (subsError) throw subsError;
 
-    console.log(`Sending digest to ${emailList.length} active subscribers`);
+    console.log(`📡 Preparing digest for ${emailList.length} active subscribers via Amazon SES...`);
 
-    // We estimate engagement based on the 10 ideas (approx 200 threads analyzed per high-quality idea)
-    // This ensures consistency week-over-week even if scraping happened in a large batch previously.
     const threadCount = 2100 + Math.floor(Math.random() * 450);
 
-    // Generate email HTML base (personalization happens in loop)
+    // Generate email HTML base
     const baseHtml = generateWeeklyDigestEmail({
       ideas,
       winner: lastWeekBatch?.winner,
@@ -258,67 +253,68 @@ export async function sendWeeklyDigest() {
       })
     });
 
-    // Send emails (batch)
-    const sendPromises = emailList.map(subscriber => {
-      // Simple token for unsubscribe (base64 of email for MVP, can be JWT later)
-      const token = Buffer.from(subscriber.email).toString('base64');
+    // Sequential sending for Sandbox Mode (1 email/sec limit)
+    let successCount = 0;
+    let failCount = 0;
 
-      // Generate auth token for authenticated users (those with user_id)
-      let voteUrl = `${process.env.FRONTEND_URL}?utm_source=email`;
+    for (const subscriber of emailList) {
+      const maskedEmail = maskEmail(subscriber.email);
+
+      // Secure token for unsubscribe
+      const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
+
+      // Generate auth token for authenticated users
+      let voteUrl = `${config.frontendUrl}?utm_source=email`;
       if (subscriber.user_id) {
         const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
         voteUrl += `&token=${authToken}`;
       }
 
-      // Replace the main CTA link with tokenized version
       const personalHtml = baseHtml
         .replace(
-          `href="${process.env.FRONTEND_URL}?utm_source=email"`,
+          `href="${config.frontendUrl}?utm_source=email"`,
           `href="${voteUrl}"`
         )
         .replace('{{email}}', subscriber.email)
         .replace('{{token}}', token);
 
-      const unsubscribeUrl = `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
+      const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
 
-      return resend.emails.send({
-        from: 'Kai <kai@zerosbykai.com>',
-        reply_to: 'kai@zerosbykai.com',
+      const { success, error } = await sendEmail({
         to: subscriber.email,
         subject: `Kai's Zeros: Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
         html: personalHtml,
+        text: `Kai's Zeros - Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}\n\n10 new startup opportunities are waiting for you.\n\nView this week's ideas: ${voteUrl}\n\nUnsubscribe: ${unsubscribeUrl}`,
         headers: {
           'List-Unsubscribe': `<${unsubscribeUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
         }
       });
-    });
 
-    const results = await Promise.allSettled(sendPromises);
-
-    // Log results for debugging
-    results.forEach((result, index) => {
-      const email = emailList[index].email;
-      const maskedEmail = maskEmail(email);
-      if (result.status === 'fulfilled' && !result.value.error) {
-        console.log(`✅ Email sent to ${maskedEmail}: ${result.value.data.id}`);
+      if (success) {
+        console.log(`✅ Email sent to ${maskedEmail}`);
+        successCount++;
       } else {
-        const error = result.status === 'rejected' ? result.reason : result.value.error;
-        console.error(`❌ Failed to send email to ${maskedEmail}:`, error);
+        console.error(`❌ Failed to send to ${maskedEmail}:`, error);
+        failCount++;
       }
-    });
 
-    // Update batch
+      // Respect Sandbox Rate Limit: Wait 1.1s between sends
+      await new Promise(resolve => setTimeout(resolve, 1100));
+    }
+
+    console.log(`📊 Final Result: ${successCount} sent, ${failCount} failed.`);
+
+    // Update batch status
     await supabaseAdmin
       .from('weekly_batches')
       .update({ email_sent_at: new Date().toISOString() })
       .eq('week_start_date', weekStart);
 
-    console.log('Weekly digest sent successfully');
+    console.log(`✅ Weekly cycle complete for ${weekStart}`);
+
     return { sent: emailList.length, ideas: ideas.length };
   } catch (error) {
     console.error('Error sending weekly digest:', error);
-    throw error;
   }
 }
-

@@ -11,14 +11,15 @@ import ideasRouter from './routes/ideas.js';
 import votesRouter from './routes/votes.js';
 import authRouter from './routes/auth.js';
 
+// Config & Services
+import { config } from './config/env.js';
+
 // Jobs
 import { pickAndPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
 import { checkBacklogHealth } from './jobs/backlog_check.js';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port;
 
 // Trust proxy (required for Fly.io/Vercel to see real IPs)
 app.set('trust proxy', 1);
@@ -27,10 +28,10 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(compression());
 
-// Rate Limiting (100 reqs / 15 mins)
+// Rate Limiting (Relaxed in non-production)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: config.nodeEnv === 'production' ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' }
@@ -43,7 +44,7 @@ const allowedOrigins = [
   'https://zerosbykai.vercel.app',
   'https://zerosbykai.com',
   'https://www.zerosbykai.com',
-  process.env.FRONTEND_URL
+  config.frontendUrl
 ].filter(Boolean);
 
 app.use(cors({
@@ -51,7 +52,7 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (allowedOrigins.indexOf(origin) !== -1 || config.nodeEnv !== 'production') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -119,10 +120,17 @@ cron.schedule('0 9 * * 5,0', async () => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  const statusCode = err.status || err.statusCode || 500;
+
+  if (config.nodeEnv !== 'test') {
+    console.error(`[Error] ${req.method} ${req.url}:`, err.message);
+    if (statusCode === 500) console.error(err.stack);
+  }
+
+  res.status(statusCode).json({
+    error: statusCode === 500 ? 'Internal Server Error' : err.message,
+    message: config.nodeEnv === 'development' ? err.message : undefined,
+    code: err.code
   });
 });
 

@@ -1,14 +1,23 @@
 import express from 'express';
-import { Resend } from 'resend';
+import { config } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { generateWelcomeEmail, generateMagicLinkEmail } from '../emails/templates.js';
 import { verifyEmailToken } from '../utils/emailToken.js';
+import { sendEmail } from '../utils/emailService.js';
+import rateLimit from 'express-rate-limit';
+import { generateEmailToken } from '../utils/emailToken.js';
 
 const router = express.Router();
-const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Rate limiters for public endpoints (Relaxed in non-production)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.nodeEnv === 'production' ? 15 : 100, // 15 requests per 15 minutes in prod, 100 in dev
+  message: { error: 'Too many authentication requests, please try again later.' }
+});
 
 // POST /api/auth/check - Check if user exists and has name
-router.post('/check', async (req, res) => {
+router.post('/check', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -50,7 +59,7 @@ router.post('/check', async (req, res) => {
 });
 
 // POST /api/auth/subscribe - Newsletter-only subscribe (no account creation)
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', authLimiter, async (req, res) => {
   try {
     const { email, name } = req.body;
 
@@ -76,20 +85,19 @@ router.post('/subscribe', async (req, res) => {
 
     // Send welcome email (fire-and-forget, don't block the response)
     try {
+      const token = generateEmailToken(email, email); // Secure token for unsubscribe
       const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
-      const { data, error: emailError } = await resend.emails.send({
-        from: 'Kai <kai@zerosbykai.com>',
-        reply_to: 'kai@zerosbykai.com',
+      const { success, error: emailError, data } = await sendEmail({
         to: email,
         subject: "Welcome to ZerosByKai",
         html: welcomeHtml,
         headers: {
-          'List-Unsubscribe': `<${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${Buffer.from(email).toString('base64')}>`,
+          'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
         }
       });
-      if (emailError) console.error('❌ Failed to send welcome email:', emailError);
-      else console.log('✅ Welcome email sent:', data.id);
+      if (!success) console.error('❌ Failed to send welcome email:', emailError);
+      else console.log('✅ Welcome email sent:', data.MessageId);
     } catch (emailError) {
       console.error('❌ Unexpected error sending welcome email:', emailError);
     }
@@ -101,7 +109,7 @@ router.post('/subscribe', async (req, res) => {
 });
 
 // POST /api/auth/signup - Send magic link
-router.post('/signup', async (req, res) => {
+router.post('/signup', authLimiter, async (req, res) => {
   try {
     const { email, name } = req.body;
 
@@ -119,7 +127,7 @@ router.post('/signup', async (req, res) => {
       type: 'magiclink',
       email,
       options: {
-        redirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
+        redirectTo: `${config.frontendUrl}/auth/callback`,
         data: {
           name: name || ''
         }
@@ -140,26 +148,24 @@ router.post('/signup', async (req, res) => {
       isExisting = subscriber?.welcomed === true;
     }
 
-    // Send email using Resend
+    // Send email using SES
     try {
       const magicLinkHtml = generateMagicLinkEmail({
         email,
         actionLink: data.properties.action_link
       });
 
-      const { data: emailData, error: emailError } = await resend.emails.send({
-        from: 'Kai <kai@zerosbykai.com>',
-        reply_to: 'kai@zerosbykai.com',
+      const { success, error: emailError, data: emailData } = await sendEmail({
         to: email,
         subject: "Your Login Link",
         html: magicLinkHtml
       });
 
-      if (emailError) {
+      if (!success) {
         console.error('❌ Failed to send magic link email:', emailError);
         return res.status(500).json({ error: 'Failed to send verification email' });
       }
-      console.log('✅ Magic link sent:', emailData.id);
+      console.log('✅ Magic link sent:', emailData.MessageId);
     } catch (emailError) {
       console.error('❌ Unexpected error sending magic link email:', emailError);
       return res.status(500).json({ error: 'Failed to send verification email' });
@@ -225,20 +231,19 @@ router.post('/post-login', async (req, res) => {
     const userEmail = user.email;
 
     try {
+      const token = generateEmailToken(user.id, userEmail);
       const welcomeHtml = generateWelcomeEmail({ name: userName, email: userEmail });
-      const { data, error: emailError } = await resend.emails.send({
-        from: 'Kai <kai@zerosbykai.com>',
-        reply_to: 'kai@zerosbykai.com',
+      const { success, error: emailError, data } = await sendEmail({
         to: userEmail,
         subject: "Welcome to ZerosByKai",
         html: welcomeHtml,
         headers: {
-          'List-Unsubscribe': `<${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(userEmail)}&token=${Buffer.from(userEmail).toString('base64')}>`,
+          'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(userEmail)}&token=${token}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
         }
       });
 
-      if (emailError) {
+      if (!success) {
         console.error('❌ Failed to send welcome email:', emailError);
         // Don't mark as welcomed so we can try again on next login
         return res.json({ isNewUser: true, emailError: true });
@@ -250,7 +255,7 @@ router.post('/post-login', async (req, res) => {
         .update({ welcomed: true })
         .eq('user_id', user.id);
 
-      console.log(`✅ Welcome email sent and status updated for ${userEmail}. ID: ${data.id}`);
+      console.log(`✅ Welcome email sent and status updated for ${userEmail}. ID: ${data.MessageId}`);
       res.json({ isNewUser: true });
 
     } catch (emailError) {
@@ -263,6 +268,7 @@ router.post('/post-login', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // POST /api/auth/verify - Verify magic link token
 router.post('/verify', async (req, res) => {
@@ -375,10 +381,14 @@ router.get('/unsubscribe', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Validate token (simple base64 check for MVP)
-    const validToken = Buffer.from(email).toString('base64');
-    if (!token || token !== validToken) {
-      return res.status(401).json({ error: 'Invalid unsubscribe token' });
+    // Secure token verification
+    try {
+      const decoded = verifyEmailToken(token);
+      if (decoded.email !== email) {
+        return res.status(401).json({ error: 'Invalid unsubscribe token for this email' });
+      }
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid or expired unsubscribe token' });
     }
 
     // Mark as unsubscribed in subscribers table (acts as suppression list)

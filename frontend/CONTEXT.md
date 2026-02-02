@@ -249,9 +249,10 @@ npm run build
 - ✅ Refactored `lib/auth.js` with comprehensive documentation
 - ✅ Added `sendMagicLink()` and `subscribeNewsletter()` methods
 - ✅ Implemented email token auto-login flow
+- ✅ **Tagging System**: Refactored to use a flexible array of up to 5 tags
+- ✅ **Leaderboard**: Updated to extract primary tag from the new array structure
+- ✅ **Archive**: Enhanced to display multiple tags for winners and ideas
 - ✅ Improved error handling in auth flows
-- ✅ Better session management (prevents duplicate post-login calls)
-- ✅ Enhanced logging with emoji prefixes
 
 ## Common Patterns
 

@@ -16,8 +16,16 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
     const safeTitle = escapeHtml(idea.title);
     const safeProblem = escapeHtml(idea.problem);
     const safeSolution = escapeHtml(idea.solution);
-    const safeRegion = escapeHtml(idea.tags?.region || 'Global');
-    const safeCategory = escapeHtml(idea.tags?.category || 'Startup');
+    const getTags = (idea) => {
+      const raw = idea.tags || {};
+      if (Array.isArray(raw)) return raw;
+      const list = [];
+      if (raw.region) list.push(`📍 ${raw.region}`);
+      if (raw.category) list.push(`🏷️ ${raw.category}`);
+      return list;
+    };
+
+    const tagsList = getTags(idea);
 
     return `
     <div style="margin-bottom: 48px; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; background: #ffffff;">
@@ -43,12 +51,11 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
       <p style="font-size: 14px; color: #444; margin-bottom: 16px; font-style: italic;">${safeTitle}</p>
       
       <div style="margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 8px;">
-        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
-          📍 ${safeRegion}
-        </span>
-        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;">
-          🏷️ ${safeCategory}
-        </span>
+        ${tagsList.map(t => `
+          <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
+            ${escapeHtml(t)}
+          </span>
+        `).join('')}
       </div>
 
       <div style="margin-bottom: 16px;">

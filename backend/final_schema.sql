@@ -32,12 +32,8 @@ CREATE TABLE IF NOT EXISTS ideas (
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
   week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT CHECK (status IN ('backlog', 'published')) DEFAULT 'backlog',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-
-  -- Diversity tracking
-  problem_keywords TEXT[],
-  theme TEXT
+  status TEXT CHECK (status IN ('backlog', 'published', 'winner')) DEFAULT 'backlog',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Resolve circular dependency: weekly_batches.winner_idea_id → ideas(id)
@@ -106,7 +102,7 @@ ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Ideas
 DROP POLICY IF EXISTS "Anyone can view published ideas" ON ideas;
-CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status = 'published');
+CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status IN ('published', 'winner'));
 
 -- Votes
 DROP POLICY IF EXISTS "Users can view own votes" ON votes;
@@ -128,13 +124,13 @@ CREATE POLICY "Users can view own badges" ON user_badges FOR SELECT USING (auth.
 
 -- Subscribers
 DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
-CREATE POLICY "Anyone can subscribe" ON subscribers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can subscribe" ON subscribers FOR INSERT WITH CHECK (user_id IS NULL OR user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users can view own subscriber record" ON subscribers;
 CREATE POLICY "Users can view own subscriber record" ON subscribers FOR SELECT USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can update own subscriber record" ON subscribers;
-CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- 6. FUNCTIONS & TRIGGERS
 
@@ -142,11 +138,14 @@ CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Security fix: explicitly set search_path
+  SET LOCAL search_path = public, pg_temp;
+
   INSERT INTO public.subscribers (user_id, email, name)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', '')
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', '')
   )
   ON CONFLICT (email) DO UPDATE SET
     user_id = EXCLUDED.user_id,
