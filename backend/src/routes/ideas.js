@@ -80,50 +80,35 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/ideas/weekly - Get current week's ideas
+// GET /api/ideas/weekly - Get latest published batch of ideas
 router.get('/weekly', async (req, res) => {
   try {
-    // Get current week's Monday
-    // Get current week's Monday
-    const today = new Date();
-    const monday = new Date(today);
-    const day = today.getDay();
-    // precise diff: if sunday (0), go back 6 days. else go back day-1
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    monday.setDate(diff);
-    const weekStart = monday.toISOString().split('T')[0];
+    // 1. Find the latest week that has published ideas
+    const { data: latestIdea, error: weekError } = await supabase
+      .from('ideas')
+      .select('week_published')
+      .eq('status', 'published')
+      .order('week_published', { ascending: false })
+      .limit(1)
+      .single();
 
-    const { data: ideas, error } = await supabase
+    if (weekError && weekError.code !== 'PGRST116') throw weekError;
+
+    if (!latestIdea) {
+      return res.json({ ideas: [], weekStart: null });
+    }
+
+    const weekStart = latestIdea.week_published;
+
+    // 2. Fetch all published ideas for that week
+    const { data: ideas, error: ideasError } = await supabase
       .from('ideas')
       .select('*')
       .eq('status', 'published')
       .eq('week_published', weekStart)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
-
-    // Fallback logic for Monday mornings: 
-    // If current week has no published ideas, find the most recent week that does
-    if (!ideas || ideas.length === 0) {
-      console.log(`No ideas found for current week (${weekStart}). Falling back to latest published batch.`);
-      const { data: latestIdeas, error: latestError } = await supabase
-        .from('ideas')
-        .select('*')
-        .eq('status', 'published')
-        .order('week_published', { ascending: false })
-        .limit(10); // Assuming batches are usually 10
-
-      if (latestError) throw latestError;
-
-      if (latestIdeas && latestIdeas.length > 0) {
-        const actualWeek = latestIdeas[0].week_published;
-        return res.json({
-          ideas: latestIdeas.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
-          weekStart: actualWeek,
-          isFallback: true
-        });
-      }
-    }
+    if (ideasError) throw ideasError;
 
     res.json({ ideas, weekStart });
   } catch (error) {

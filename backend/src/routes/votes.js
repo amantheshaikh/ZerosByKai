@@ -26,25 +26,8 @@ const requireAuth = async (req, res, next) => {
 };
 
 // Helper: Get the current active week for voting
-// Falls back to latest published week if current calendar week is empty
+// This is always the latest week that has published ideas
 const getActiveWeek = async () => {
-  const today = new Date();
-  const monday = new Date(today);
-  const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-  monday.setDate(diff);
-  const weekStart = monday.toISOString().split('T')[0];
-
-  // Check if current week has ideas
-  const { count } = await supabaseAdmin
-    .from('ideas')
-    .select('*', { count: 'exact', head: true })
-    .eq('week_published', weekStart)
-    .eq('status', 'published');
-
-  if (count > 0) return weekStart;
-
-  // Fallback to latest published week
   const { data: latestIdea } = await supabaseAdmin
     .from('ideas')
     .select('week_published')
@@ -53,7 +36,7 @@ const getActiveWeek = async () => {
     .limit(1)
     .single();
 
-  return latestIdea?.week_published || weekStart;
+  return latestIdea?.week_published || null;
 };
 
 // GET /api/votes - Get votes status (public)
