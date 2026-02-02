@@ -77,7 +77,7 @@ router.post('/subscribe', async (req, res) => {
     // Send welcome email (fire-and-forget, don't block the response)
     try {
       const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
-      await resend.emails.send({
+      const { data, error: emailError } = await resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
         reply_to: 'kai@zerosbykai.com',
         to: email,
@@ -88,8 +88,10 @@ router.post('/subscribe', async (req, res) => {
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
         }
       });
+      if (emailError) console.error('❌ Failed to send welcome email:', emailError);
+      else console.log('✅ Welcome email sent:', data.id);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      console.error('❌ Unexpected error sending welcome email:', emailError);
     }
 
     res.json({ message: "You're in!" });
@@ -145,15 +147,21 @@ router.post('/signup', async (req, res) => {
         actionLink: data.properties.action_link
       });
 
-      await resend.emails.send({
+      const { data: emailData, error: emailError } = await resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
         reply_to: 'kai@zerosbykai.com',
         to: email,
         subject: "Your Login Link",
         html: magicLinkHtml
       });
+
+      if (emailError) {
+        console.error('❌ Failed to send magic link email:', emailError);
+        return res.status(500).json({ error: 'Failed to send verification email' });
+      }
+      console.log('✅ Magic link sent:', emailData.id);
     } catch (emailError) {
-      console.error('Failed to send magic link email:', emailError);
+      console.error('❌ Unexpected error sending magic link email:', emailError);
       return res.status(500).json({ error: 'Failed to send verification email' });
     }
 
@@ -218,7 +226,7 @@ router.post('/post-login', async (req, res) => {
 
     try {
       const welcomeHtml = generateWelcomeEmail({ name: userName, email: userEmail });
-      await resend.emails.send({
+      const { data, error: emailError } = await resend.emails.send({
         from: 'Kai <kai@zerosbykai.com>',
         reply_to: 'kai@zerosbykai.com',
         to: userEmail,
@@ -230,18 +238,23 @@ router.post('/post-login', async (req, res) => {
         }
       });
 
+      if (emailError) {
+        console.error('❌ Failed to send welcome email:', emailError);
+        // Don't mark as welcomed so we can try again on next login
+        return res.json({ isNewUser: true, emailError: true });
+      }
+
       // Mark user as welcomed ONLY after successful email send
       await supabaseAdmin
         .from('subscribers')
         .update({ welcomed: true })
         .eq('user_id', user.id);
 
-      console.log(`✅ Welcome email sent and status updated for ${userEmail}`);
+      console.log(`✅ Welcome email sent and status updated for ${userEmail}. ID: ${data.id}`);
       res.json({ isNewUser: true });
 
     } catch (emailError) {
-      console.error('❌ Failed to send welcome email:', emailError);
-      // Don't mark as welcomed so we can try again on next login
+      console.error('❌ Unexpected error sending welcome email:', emailError);
       res.json({ isNewUser: true, emailError: true });
     }
 

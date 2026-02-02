@@ -44,7 +44,8 @@ export default function Terms() {
                             "r/smallbusiness", "r/roastmystartup", "r/GrowthHacking",
                             "r/indiehackers", "r/startups", "r/nocode", "r/vibecoding",
                             "r/Entrepreneur", "r/InternetIsBeautiful", "r/startup",
-                            "r/ProductHunters", "r/StartUpIndia", "r/Startup_Ideas"
+                            "r/ProductHunters", "r/StartUpIndia", "r/Startup_Ideas",
+                            "r/edtech", "r/HealthTech", "r/fintech", "r/smallbusinessindia"
                         ].map((sub, i) => (
                             <span key={i} className="comic-body text-sm font-bold px-3 py-1 bg-gray-100 border-2 border-black text-black hover:bg-yellow-200 transition-colors cursor-default">
                                 {sub}

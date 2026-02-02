@@ -32,16 +32,21 @@ async function simulateWelcomeEmail() {
     console.log(`Sending simulated welcome email to ${targetEmail}...`);
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: 'Kai <kai@zerosbykai.com>',
             reply_to: 'kai@zerosbykai.com',
             to: targetEmail,
             subject: `[SIMULATION] Welcome to ZerosByKai`,
             html: html
         });
-        console.log('Simulation welcome email sent successfully!');
+
+        if (error) {
+            console.error('❌ Failed to send simulation welcome email:', error);
+        } else {
+            console.log('✅ Simulation welcome email sent successfully!', data);
+        }
     } catch (e) {
-        console.error('Failed to send simulation welcome email:', e);
+        console.error('❌ Unexpected error in simulation script:', e);
     }
 }
 

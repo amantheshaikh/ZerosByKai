@@ -35,19 +35,25 @@ const SUBREDDITS = [
     { name: 'startup', sort: 'hot' },
     { name: 'ProductHunters', sort: 'new' },
     { name: 'StartUpIndia', sort: 'hot' },
-    { name: 'Startup_Ideas', sort: 'new' }
+    { name: 'Startup_Ideas', sort: 'new' },
+    { name: 'edtech', sort: 'hot' },
+    { name: 'HealthTech', sort: 'hot' },
+    { name: 'fintech', sort: 'hot' },
+    { name: 'smallbusinessindia', sort: 'hot' }
 ];
 
 // Helper to wait
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Rotating User-Agents to appear more human
+// Rotating User-Agents to appear more human and diverse
 const USER_AGENTS = [
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0'
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1',
+    'ZerosByKai/1.0.0 (by /u/amantheshaikh)'
 ];
 
 const getRandomUserAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -58,58 +64,87 @@ const humanDelay = (baseMs = 2000) => {
     return wait(baseMs + variation);
 };
 
-// Helper to fetch valid posts from a subreddit JSON with retry logic
+// Helper to fetch valid posts from a subreddit JSON with retry logic and fallbacks
 async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit = 5, retries = 3) {
-    const url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}`;
+    const domains = ['www.reddit.com', 'old.reddit.com'];
 
-    for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-            // Rotate user agent for each request
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': getRandomUserAgent(),
-                    'Accept': 'application/json',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1'
+    for (const domain of domains) {
+        // raw_json=1 prevents double encoding of HTML entities and gives cleaner data
+        const url = `https://${domain}/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
+
+        for (let attempt = 0; attempt < retries; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout from Bubble Lab inspiration
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': getRandomUserAgent(),
+                        'Accept': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.status === 403) {
+                    console.warn(`🛑 403 Forbidden on ${domain}/r/${subreddit}. Cloud runner block?`);
+                    // Don't retry same domain on 403 in the inner loop, break to try fallback domain
+                    break;
                 }
-            });
 
-            if (response.status === 429) {
-                // Rate limited - exponential backoff
-                const backoffTime = Math.pow(2, attempt) * 5000; // 5s, 10s, 20s
-                console.warn(`⚠️  Rate limited on r/${subreddit}, waiting ${backoffTime / 1000}s...`);
-                await wait(backoffTime);
-                continue;
-            }
-
-            if (!response.ok) {
-                console.warn(`[${response.status}] Failed to fetch r/${subreddit}`);
-                if (attempt < retries - 1) {
-                    await humanDelay(3000);
+                if (response.status === 429) {
+                    const backoffTime = Math.pow(2, attempt) * 5000;
+                    console.warn(`⚠️ Rate limited on ${domain}/r/${subreddit}, waiting ${backoffTime / 1000}s...`);
+                    await wait(backoffTime);
                     continue;
                 }
-                return [];
-            }
 
-            const data = await response.json();
-            return data.data.children.map(child => {
-                const p = child.data;
-                return {
-                    subreddit: p.subreddit,
-                    title: p.title,
-                    body: p.selftext || '',
-                    url: p.url,
-                    score: p.score,
-                    created_utc: p.created_utc
-                };
-            });
-        } catch (error) {
-            console.warn(`Error scraping r/${subreddit} (attempt ${attempt + 1}/${retries}):`, error.message);
-            if (attempt < retries - 1) {
-                await humanDelay(3000);
+                if (!response.ok) {
+                    console.warn(`[${response.status}] Failed to fetch ${domain}/r/${subreddit} (attempt ${attempt + 1}/${retries})`);
+                    if (attempt < retries - 1) {
+                        await humanDelay(3000);
+                        continue;
+                    }
+                    break;
+                }
+
+                const data = await response.json();
+                if (!data?.data?.children) {
+                    console.warn(`Empty data from ${domain}/r/${subreddit}`);
+                    break;
+                }
+
+                return data.data.children
+                    .filter(child => {
+                        // Filter out stickied posts (often rules/FAQs) - Bubble Lab inspiration
+                        const p = child.data;
+                        if (!p) return false;
+                        const title = p.title || '';
+                        return !p.stickied && !title.toLowerCase().includes('[sticky]');
+                    })
+                    .map(child => {
+                        const p = child.data;
+                        return {
+                            subreddit: p.subreddit,
+                            title: p.title,
+                            body: p.selftext || '',
+                            url: p.url,
+                            score: p.score,
+                            created_utc: p.created_utc
+                        };
+                    });
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    console.warn(`⏰ Request timeout on ${domain}/r/${subreddit} after 15s`);
+                } else {
+                    console.warn(`Error scraping ${domain}/r/${subreddit} (attempt ${attempt + 1}/${retries}):`, error.message);
+                }
+
+                if (attempt < retries - 1) {
+                    await humanDelay(3000);
+                }
             }
         }
     }
@@ -203,6 +238,9 @@ export async function runRedditFlow(targetDate = new Date()) {
 
       **Task:**
       Generate ${ideasPerBatch} distinct, high-quality startup ideas based *only* on the problems found in this text.
+      
+      **CRITICAL CONSTRAINT:** 
+      Do NOT mention specific subreddits (e.g., "r/SaaS"), specific Reddit posts, or usernames in the output fields. Use general terms like "online communities", "founder forums", or "industry groups" instead. The output must feel platform-agnostic.
       
       **Output Format:**
       Strictly a valid JSON array of ${ideasPerBatch} objects (no markdown, no backticks):
@@ -352,16 +390,21 @@ async function notifyAdmin(ideas) {
   `).join('');
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: 'Kai <kai@zerosbykai.com>',
             reply_to: 'kai@zerosbykai.com',
             to: adminEmail,
             subject: `Review Required: ${ideas.length} New Zeros Staged`,
             html: `<h1>Weekly Zeros Report</h1><p>Scraped ~20 subreddits successfully. ${ideas.length} ideas are staged as <b>pending</b>.</p><p>Review, edit, or reject ideas before <b>Monday 9 AM UTC</b> — unreviewed ideas will auto-publish.</p>${htmlPreview}`
         });
-        console.log(`Admin report sent to ${adminEmail}`);
+
+        if (error) {
+            console.error('❌ Failed to send admin report email:', error);
+        } else {
+            console.log(`✅ Admin report sent successfully. ID: ${data.id}`);
+        }
     } catch (e) {
-        console.error('Failed to send email:', e);
+        console.error('❌ Unexpected error sending admin report email:', e);
     }
 }
 
