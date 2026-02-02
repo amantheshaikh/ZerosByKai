@@ -433,23 +433,23 @@ const ZerosByKaiLanding = () => {
                         <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🕵️</div>
                             <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-400">ONLOOKER</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">0-3 winning picks</p>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">0 winning picks</p>
                         </div>
                         <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🦾</div>
                             <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-300">FIELD AGENT</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">4-6 winning picks</p>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">1-2 winning picks</p>
                         </div>
                         <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
                             <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-400">LEAD ANALYST</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">7-11 winning picks</p>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">3-5 winning picks</p>
                         </div>
                         <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700 relative overflow-hidden">
                             <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[8px] font-bold px-1 uppercase">Expert</div>
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🌐</div>
                             <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-500">HEAD OF INTEL</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">12-19 winning picks</p>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">6-10 winning picks</p>
                         </div>
                         <div className="comic-panel p-4 sm:p-5 bg-gradient-to-br from-indigo-900 to-gray-800 text-center border-indigo-500 ring-2 ring-indigo-500/20">
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3 animate-pulse">🦄</div>

@@ -33,7 +33,7 @@ export const faqSchema = {
             "name": "How do badges work?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Badges are earned when you vote for the winning startup idea of the week. Your total badge count determines your Designation, ranging from Onlooker (0-3) to Field Agent (4+), Lead Analyst (7+), Head of Intelligence (12+), and the ultimate Unicorn Hunter (20+)."
+                "text": "Badges are earned when you vote for the winning startup idea of the week. Your total badge count determines your Designation, ranging from Onlooker (0) to Field Agent (1-2), Lead Analyst (3-5), Head of Intelligence (6-10), and the ultimate Unicorn Hunter (11+)."
             }
         },
         {

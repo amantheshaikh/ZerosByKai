@@ -257,10 +257,10 @@ router.get('/badges', requireAuth, async (req, res) => {
 
     const kaiPickCount = badges?.filter(b => b.badge_type === 'kai_pick').length || 0;
     let tier = 'onlooker';
-    if (kaiPickCount >= 20) tier = 'unicorn_hunter';
-    else if (kaiPickCount >= 12) tier = 'head_intelligence';
-    else if (kaiPickCount >= 7) tier = 'lead_analyst';
-    else if (kaiPickCount >= 4) tier = 'field_agent';
+    if (kaiPickCount >= 11) tier = 'unicorn_hunter';
+    else if (kaiPickCount >= 6) tier = 'head_intelligence';
+    else if (kaiPickCount >= 3) tier = 'lead_analyst';
+    else if (kaiPickCount >= 1) tier = 'field_agent';
 
     res.json({
       badges,
