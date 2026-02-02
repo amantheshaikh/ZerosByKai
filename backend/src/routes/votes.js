@@ -25,6 +25,37 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+// Helper: Get the current active week for voting
+// Falls back to latest published week if current calendar week is empty
+const getActiveWeek = async () => {
+  const today = new Date();
+  const monday = new Date(today);
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  monday.setDate(diff);
+  const weekStart = monday.toISOString().split('T')[0];
+
+  // Check if current week has ideas
+  const { count } = await supabaseAdmin
+    .from('ideas')
+    .select('*', { count: 'exact', head: true })
+    .eq('week_published', weekStart)
+    .eq('status', 'published');
+
+  if (count > 0) return weekStart;
+
+  // Fallback to latest published week
+  const { data: latestIdea } = await supabaseAdmin
+    .from('ideas')
+    .select('week_published')
+    .eq('status', 'published')
+    .order('week_published', { ascending: false })
+    .limit(1)
+    .single();
+
+  return latestIdea?.week_published || weekStart;
+};
+
 // GET /api/votes - Get votes status (public)
 router.get('/', (req, res) => {
   res.json({ status: 'active', message: 'Use POST to cast votes or GET /user for your current vote.' });
@@ -36,14 +67,7 @@ router.post('/', requireAuth, async (req, res) => {
     const { ideaId } = req.body;
     const userId = req.user.id;
 
-    // Get current week's Monday
-    const today = new Date();
-    const monday = new Date(today);
-    const day = today.getDay(); // Sun=0, Mon=1...
-    // If Sunday (0), we need to go back 6 days. If Monday (1) to Sat (6), go back day-1.
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    monday.setDate(diff);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = await getActiveWeek();
 
     // Check if idea exists and is from current week
     const { data: idea, error: ideaError } = await supabaseAdmin
@@ -110,13 +134,7 @@ router.get('/user', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get current week's Monday
-    const today = new Date();
-    const monday = new Date(today);
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    monday.setDate(diff);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = await getActiveWeek();
 
     // Get current week's ideas
     const { data: weekIdeas } = await supabaseAdmin

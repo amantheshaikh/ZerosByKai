@@ -102,6 +102,29 @@ router.get('/weekly', async (req, res) => {
 
     if (error) throw error;
 
+    // Fallback logic for Monday mornings: 
+    // If current week has no published ideas, find the most recent week that does
+    if (!ideas || ideas.length === 0) {
+      console.log(`No ideas found for current week (${weekStart}). Falling back to latest published batch.`);
+      const { data: latestIdeas, error: latestError } = await supabase
+        .from('ideas')
+        .select('*')
+        .eq('status', 'published')
+        .order('week_published', { ascending: false })
+        .limit(10); // Assuming batches are usually 10
+
+      if (latestError) throw latestError;
+
+      if (latestIdeas && latestIdeas.length > 0) {
+        const actualWeek = latestIdeas[0].week_published;
+        return res.json({
+          ideas: latestIdeas.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+          weekStart: actualWeek,
+          isFallback: true
+        });
+      }
+    }
+
     res.json({ ideas, weekStart });
   } catch (error) {
     res.status(500).json({ error: error.message });

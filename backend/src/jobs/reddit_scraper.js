@@ -305,8 +305,7 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
         .from('weekly_batches')
         .upsert({
             week_start_date: weekStart,
-            total_ideas: ideas.length,
-            posts_scraped: postsScraped || 0
+            total_ideas: ideas.length
         }, {
             onConflict: 'week_start_date'
         });

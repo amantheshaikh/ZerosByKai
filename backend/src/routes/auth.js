@@ -182,21 +182,38 @@ router.post('/post-login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Check if user has already been welcomed (subscriber record created by trigger)
-    const { data: subscriber, error: subError } = await supabaseAdmin
-      .from('subscribers')
-      .select('welcomed, name')
-      .eq('user_id', user.id)
-      .single();
+    // Check if user has already been welcomed
+    // Use retry logic to wait for the subscriber record to be created by the Supabase trigger
+    let subscriber = null;
+    let retries = 5;
+    while (retries > 0) {
+      const { data, error: subError } = await supabaseAdmin
+        .from('subscribers')
+        .select('welcomed, name')
+        .eq('user_id', user.id)
+        .single();
 
-    if (subError) throw subError;
+      if (!subError && data) {
+        subscriber = data;
+        break;
+      }
 
-    if (subscriber?.welcomed) {
+      console.log(`Waiting for subscriber record... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      retries--;
+    }
+
+    if (!subscriber) {
+      console.error(`❌ Post-login: Subscriber record not found for user ${user.id} after retries`);
+      return res.status(404).json({ error: 'Subscriber record not found' });
+    }
+
+    if (subscriber.welcomed) {
       return res.json({ isNewUser: false });
     }
 
-    // New user: send welcome email (fire-and-forget)
-    const userName = subscriber?.name || user.user_metadata?.name || null;
+    // New user: send welcome email
+    const userName = subscriber.name || user.user_metadata?.name || null;
     const userEmail = user.email;
 
     try {
@@ -212,17 +229,22 @@ router.post('/post-login', async (req, res) => {
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
         }
       });
+
+      // Mark user as welcomed ONLY after successful email send
+      await supabaseAdmin
+        .from('subscribers')
+        .update({ welcomed: true })
+        .eq('user_id', user.id);
+
+      console.log(`✅ Welcome email sent and status updated for ${userEmail}`);
+      res.json({ isNewUser: true });
+
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      console.error('❌ Failed to send welcome email:', emailError);
+      // Don't mark as welcomed so we can try again on next login
+      res.json({ isNewUser: true, emailError: true });
     }
 
-    // Mark user as welcomed
-    await supabaseAdmin
-      .from('subscribers')
-      .update({ welcomed: true })
-      .eq('user_id', user.id);
-
-    res.json({ isNewUser: true });
   } catch (error) {
     console.error('Post-login error:', error);
     res.status(500).json({ error: error.message });
