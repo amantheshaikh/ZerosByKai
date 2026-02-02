@@ -9,7 +9,9 @@
     "dev": "node --watch src/server.js",
     "scrape:local": "node src/jobs/reddit_scraper.js",
     "backlog:check": "node src/jobs/backlog_check.js",
-    "backlog:check:scheduled": "node src/jobs/backlog_check.js --scheduled"
+    "backlog:check:scheduled": "node src/jobs/backlog_check.js --scheduled",
+    "monday:weekly": "node src/jobs/weekly.js",
+    "monday:weekly:scheduled": "node src/jobs/weekly.js --scheduled"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.980.0",

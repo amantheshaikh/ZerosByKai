@@ -118,18 +118,18 @@ export async function calculateWinner() {
       return;
     }
 
-    // 2 & 3. Get vote counts and find winner in a single efficient query
-    const { data: voteCounts, error: countError } = await supabaseAdmin
+    // 2 & 3. Get vote counts and find winner efficiently
+    const { data: allVotes, error: countError } = await supabaseAdmin
       .from('votes')
-      .select('idea_id, count:idea_id.count()')
+      .select('idea_id')
       .in('idea_id', ideas.map(i => i.id));
 
     if (countError) throw countError;
 
-    // Map counts back to ideas and find winner
+    // Map counts back to ideas
     const ideaVotes = ideas.map(idea => ({
       ...idea,
-      voteCount: parseInt(voteCounts.find(v => v.idea_id === idea.id)?.count || '0', 10)
+      voteCount: allVotes.filter(v => v.idea_id === idea.id).length
     }));
 
     const winner = ideaVotes.reduce((max, idea) =>
@@ -319,4 +319,33 @@ export async function sendWeeklyDigest() {
   } catch (error) {
     console.error('Error sending weekly digest:', error);
   }
+}
+
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const runWorkflow = async () => {
+    // Check if we should only run on specific days (Monday=1)
+    if (process.argv.includes('--scheduled')) {
+      const day = new Date().getUTCDay();
+      if (day !== 1) {
+        console.log(`ℹ️  Not a scheduled Monday check (Day: ${day}). Skipping.`);
+        process.exit(0);
+      }
+    }
+
+    console.log('🚀 Starting Weekly Monday Workflow...');
+
+    try {
+      await pickAndPublishIdeas();
+      await calculateWinner();
+      await sendWeeklyDigest();
+      console.log('✅ Weekly Workflow Completed Successfully.');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Weekly Workflow Failed:', error);
+      process.exit(1);
+    }
+  };
+
+  runWorkflow();
 }
