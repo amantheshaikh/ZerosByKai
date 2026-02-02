@@ -151,9 +151,20 @@ router.get('/user', requireAuth, async (req, res) => {
 router.get('/last-week', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const lastWeekStart = getLastMonday();
 
-    console.log(`[DEBUG] /last-week: userId=${userId}, lastWeekStart=${lastWeekStart}`);
+    // 1. Find the latest week that has published ideas (Data-Driven)
+    const activeWeek = await getActiveWeek();
+    if (!activeWeek) {
+      return res.json({ lastWeekVote: null, winner: null, earnedBadge: false });
+    }
+
+    // 2. Last week is exactly 7 days before the active one
+    const activeDate = new Date(activeWeek);
+    const lastWeekDate = new Date(activeDate);
+    lastWeekDate.setUTCDate(lastWeekDate.getUTCDate() - 7);
+    const lastWeekStart = lastWeekDate.toISOString().split('T')[0];
+
+    console.log(`[DEBUG] /last-week: userId=${userId}, activeWeek=${activeWeek}, lastWeekStart=${lastWeekStart}`);
 
     // 1. Get last week's batch with winner
     const { data: batch, error: batchError } = await supabaseAdmin
@@ -245,11 +256,11 @@ router.get('/badges', requireAuth, async (req, res) => {
     if (error) throw error;
 
     const kaiPickCount = badges?.filter(b => b.badge_type === 'kai_pick').length || 0;
-    let tier = 'none';
-    if (kaiPickCount >= 11) tier = 'diamond';
-    else if (kaiPickCount >= 6) tier = 'gold';
-    else if (kaiPickCount >= 3) tier = 'silver';
-    else if (kaiPickCount >= 1) tier = 'bronze';
+    let tier = 'onlooker';
+    if (kaiPickCount >= 20) tier = 'unicorn_hunter';
+    else if (kaiPickCount >= 12) tier = 'head_intelligence';
+    else if (kaiPickCount >= 7) tier = 'lead_analyst';
+    else if (kaiPickCount >= 4) tier = 'field_agent';
 
     res.json({
       badges,

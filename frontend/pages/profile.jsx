@@ -6,11 +6,46 @@ import { useAuth, apiFetch } from '@/lib/auth';
 import Header from '@/components/Header';
 
 const TIERS = [
-    { key: 'none', label: 'No Tier', emoji: '—', min: 0, next: 1 },
-    { key: 'bronze', label: 'Bronze', emoji: '🥉', min: 1, next: 3 },
-    { key: 'silver', label: 'Silver', emoji: '🥈', min: 3, next: 6 },
-    { key: 'gold', label: 'Gold', emoji: '🥇', min: 6, next: 11 },
-    { key: 'diamond', label: 'Diamond', emoji: '💎', min: 11, next: null },
+    {
+        key: 'onlooker',
+        label: 'Onlooker',
+        emoji: '🕵️',
+        min: 0,
+        next: 4,
+        description: "Just watching from the shadows. Time to get your hands dirty."
+    },
+    {
+        key: 'field_agent',
+        label: 'Field Agent',
+        emoji: '🦾',
+        min: 4,
+        next: 7,
+        description: "Gathering intel on the ground. You're starting to smell the opportunity."
+    },
+    {
+        key: 'lead_analyst',
+        label: 'Lead Analyst',
+        emoji: '🧠',
+        min: 7,
+        next: 12,
+        description: "Connecting the dots others miss. The signal is getting clearer."
+    },
+    {
+        key: 'head_intelligence',
+        label: 'Head of Intelligence',
+        emoji: '🌐',
+        min: 12,
+        next: 20,
+        description: "You see the big picture. Market movements are your playground."
+    },
+    {
+        key: 'unicorn_hunter',
+        label: 'Unicorn Hunter',
+        emoji: '🦄',
+        min: 20,
+        next: null,
+        description: "The ultimate prize. Quit your day job; you're ready to back the next billion-dollar Zero."
+    },
 ];
 
 function getTierInfo(tier, count) {
@@ -90,13 +125,20 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-4 mb-6">
                         <div className="text-6xl">{tierInfo.current.emoji}</div>
                         <div>
-                            <h2 className="comic-title text-3xl text-gray-900">
-                                {tierInfo.current.label.toUpperCase()} FINDER
+                            <h2 className="comic-title text-3xl text-primary-dark uppercase">
+                                {tierInfo.current.label}
                             </h2>
                             <p className="comic-body text-gray-600">
-                                {count} Zero Finder badge{count !== 1 ? 's' : ''}
+                                {count} badge{count !== 1 ? 's' : ''} earned
                             </p>
                         </div>
+                    </div>
+
+                    <div className="bg-rose-50 border-2 border-black p-4 mb-6 relative">
+                        <div className="absolute -top-3 left-4 bg-black text-white text-[10px] font-bold px-2 py-0.5 uppercase">Designation Status</div>
+                        <p className="comic-body text-sm text-gray-900 italic">
+                            &quot;{tierInfo.current.description}&quot;
+                        </p>
                     </div>
 
                     {/* Progress bar */}
@@ -112,13 +154,13 @@ export default function ProfilePage() {
                                     style={{ width: `${tierInfo.progress}%` }}
                                 />
                             </div>
-                            <p className="comic-body text-xs text-gray-500 mt-1">
-                                {count} / {tierInfo.nextTier.min} badges to {tierInfo.nextTier.label} — {tierInfo.nextTier.min - count} more to go!
+                            <p className="comic-body text-xs text-gray-500 mt-2">
+                                {count} / {tierInfo.nextTier.min} badges to reach {tierInfo.nextTier.label} — {tierInfo.nextTier.min - count} more to go!
                             </p>
                         </div>
                     )}
-                    {!tierInfo.nextTier && tier === 'diamond' && (
-                        <p className="comic-title text-lg text-blue-500">MAX TIER REACHED!</p>
+                    {!tierInfo.nextTier && (
+                        <p className="comic-title text-lg text-emerald-600">🏆 UNICORN HUNTER STATUS ACHIEVED!</p>
                     )}
                 </div>
 

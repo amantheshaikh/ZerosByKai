@@ -98,9 +98,11 @@ export async function pickAndPublishIdeas() {
 // Calculate winner and award badges
 export async function calculateWinner() {
   try {
-    const weekStart = getLastMonday();
+    // 1. Determine the week to calculate (the week BEFORE the newly published batch)
+    const currentMonday = getMonday();
+    const weekStart = getLastMonday(new Date(currentMonday));
 
-    console.log(`🏆 Calculating winner for week ${weekStart}...`);
+    console.log(`🏆 Calculating winner for week ${weekStart} (preceding current week ${currentMonday})...`);
 
     // 1. Get ideas for that week
     const { data: ideas, error: ideasError } = await supabaseAdmin

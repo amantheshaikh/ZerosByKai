@@ -7,10 +7,26 @@ const router = express.Router();
 // GET /api/ideas/leaderboard - Get top 3 winners from last week
 router.get('/leaderboard', async (req, res) => {
   try {
-    // 1. Calculate Last Week's Monday
-    const weekStart = getLastMonday();
+    // 1. Find the latest week that has published ideas
+    const { data: latestIdea } = await supabaseAdmin
+      .from('ideas')
+      .select('week_published')
+      .in('status', ['published', 'winner'])
+      .not('week_published', 'is', null)
+      .gt('week_published', '2025-01-01')
+      .order('week_published', { ascending: false })
+      .limit(1)
+      .single();
 
-    console.log(`Fetching leaderboard for week: ${weekStart}`);
+    if (!latestIdea) return res.json([]);
+
+    // 2. The leaderboard should show the week BEFORE the current one
+    const currentWeek = new Date(latestIdea.week_published);
+    const lastWeekDate = new Date(currentWeek);
+    lastWeekDate.setUTCDate(lastWeekDate.getUTCDate() - 7);
+    const weekStart = lastWeekDate.toISOString().split('T')[0];
+
+    console.log(`Fetching leaderboard for batch preceding ${latestIdea.week_published}: ${weekStart}`);
 
     // 2. Fetch ideas for that week with vote counts
     const { data: ideas, error } = await supabaseAdmin
@@ -108,6 +124,8 @@ router.get('/weekly-batches', async (req, res) => {
         *,
         winner:ideas!fk_weekly_batches_winner_idea (*)
       `)
+      .not('week_start_date', 'is', null)
+      .gt('week_start_date', '2025-01-01')
       .order('week_start_date', { ascending: false });
 
     if (error) throw error;

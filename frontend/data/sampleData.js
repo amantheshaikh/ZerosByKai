@@ -30,10 +30,10 @@ export const faqSchema = {
         },
         {
             "@type": "Question",
-            "name": "What are Zero Finder badges?",
+            "name": "How do badges work?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Zero Finder badges are earned when you vote for the winning startup idea of the week. Badges stack across tiers: Bronze (1-2 picks), Silver (3-5), Gold (6-10), and Diamond (11+). They prove your ability to spot winning business opportunities."
+                "text": "Badges are earned when you vote for the winning startup idea of the week. Your total badge count determines your Designation, ranging from Onlooker (0-3) to Field Agent (4+), Lead Analyst (7+), Head of Intelligence (12+), and the ultimate Unicorn Hunter (20+)."
             }
         },
         {

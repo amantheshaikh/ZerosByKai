@@ -309,7 +309,7 @@ const ZerosByKaiLanding = () => {
                         <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
                         <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
                             <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
-                            If it wins, you earn a Zero Finder badge.
+                            If it wins, you earn a badge—and level up your designation.
                         </p>
                     </div>
 
@@ -357,7 +357,7 @@ const ZerosByKaiLanding = () => {
                         <div className="text-center">
                             <div className="comic-panel inline-block p-6 bg-yellow-400 comic-shadow">
                                 <p className="comic-body font-bold text-lg mb-4 text-black">
-                                    Sign up to pick your winner and earn Zero Finder badges
+                                    Sign up to pick your winner and earn badges towards your next designation
                                 </p>
                                 <button
                                     onClick={() => openAuthModal()}
@@ -413,42 +413,48 @@ const ZerosByKaiLanding = () => {
                             </div>
                             <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">3. EARN YOUR BADGE</h3>
                             <p className="comic-body text-sm sm:text-base text-gray-700">
-                                Pick the winning idea? <span className="font-bold text-black">Zero Finder badge unlocked.</span> Prove you&apos;ve
-                                got the nose for opportunities. Stack badges. Become a Diamond Finder.
+                                Pick the winning idea? <span className="font-bold text-black">Badge unlocked.</span> Level up your designation and prove you&apos;ve
+                                got the nose for opportunities. Stack wins. Become a Unicorn Hunter.
                             </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Badge Tiers Section */}
+            {/* Designation Tiers Section */}
             <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gray-900 text-white">
-                <div className="max-w-5xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-3 sm:mb-4 text-yellow-400">ZERO FINDER BADGES</h2>
+                <div className="max-w-6xl mx-auto">
+                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-3 sm:mb-4 text-yellow-400">MISSION DESIGNATIONS</h2>
                     <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-8 sm:mb-12">
-                        Find the golden Zeros. Stack your wins. Become the next Kai.
+                        Stop lurking. Start building your record. Prove you can spot the signal.
                     </p>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥉</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-400">BRONZE FINDER</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">1-2 winning picks</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-4">
+                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🕵️</div>
+                            <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-400">ONLOOKER</h3>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">0-3 winning picks</p>
                         </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥈</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-gray-300">SILVER FINDER</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">3-5 winning picks</p>
+                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🦾</div>
+                            <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-300">FIELD AGENT</h3>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">4-6 winning picks</p>
                         </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🥇</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-yellow-300">GOLD FINDER</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">6-10 winning picks</p>
+                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
+                            <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-400">LEAD ANALYST</h3>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">7-11 winning picks</p>
                         </div>
-                        <div className="comic-panel p-4 sm:p-6 bg-gray-800 text-center">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💎</div>
-                            <h3 className="comic-title text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 text-blue-300">DIAMOND FINDER</h3>
-                            <p className="comic-body text-xs sm:text-sm text-gray-400">11+ winning picks</p>
+                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[8px] font-bold px-1 uppercase">Expert</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🌐</div>
+                            <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-500">HEAD OF INTEL</h3>
+                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">12-19 winning picks</p>
+                        </div>
+                        <div className="comic-panel p-4 sm:p-5 bg-gradient-to-br from-indigo-900 to-gray-800 text-center border-indigo-500 ring-2 ring-indigo-500/20">
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3 animate-pulse">🦄</div>
+                            <h3 className="comic-title text-base sm:text-lg mb-1 text-indigo-400">UNICORN HUNTER</h3>
+                            <p className="comic-body text-[10px] sm:text-xs text-indigo-300/60 uppercase font-bold tracking-tight">20+ winning picks</p>
                         </div>
                     </div>
                 </div>
