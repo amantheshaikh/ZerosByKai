@@ -11,38 +11,38 @@ const TIERS = [
         label: 'Onlooker',
         emoji: '🕵️',
         min: 0,
-        next: 1,
+        next: 3,
         description: "Just watching from the shadows. Time to get your hands dirty."
     },
     {
         key: 'field_agent',
         label: 'Field Agent',
         emoji: '🦾',
-        min: 1,
-        next: 3,
+        min: 3,
+        next: 7,
         description: "Gathering intel on the ground. You're starting to smell the opportunity."
     },
     {
         key: 'lead_analyst',
         label: 'Lead Analyst',
         emoji: '🧠',
-        min: 3,
-        next: 6,
+        min: 7,
+        next: 12,
         description: "Connecting the dots others miss. The signal is getting clearer."
     },
     {
         key: 'head_intelligence',
         label: 'Head of Intelligence',
         emoji: '🌐',
-        min: 6,
-        next: 11,
+        min: 12,
+        next: 20,
         description: "You see the big picture. Market movements are your playground."
     },
     {
         key: 'unicorn_hunter',
         label: 'Unicorn Hunter',
         emoji: '🦄',
-        min: 11,
+        min: 20,
         next: null,
         description: "The ultimate prize. Quit your day job; you're ready to back the next billion-dollar Zero."
     },
