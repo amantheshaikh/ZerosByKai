@@ -45,6 +45,9 @@ const SUBREDDITS = [
 // Helper to wait
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Modern Mobile UA for fallback (often less likely to be blocked by CDNs)
+const MOBILE_SAFARI_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1';
+
 // Rotating User-Agents to appear more human and diverse
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -52,7 +55,7 @@ const USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1',
+    MOBILE_SAFARI_UA,
     'ZerosByKai/1.0.0 (by /u/amantheshaikh)'
 ];
 
@@ -61,107 +64,206 @@ const getRandomUserAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGE
 // Session-level User-Agent to avoid triggering bot detection by changing UA mid-run
 const SESSION_USER_AGENT = getRandomUserAgent();
 
+// Export the mobile UA as the fallback source of truth
+const MOBILE_UA = MOBILE_SAFARI_UA;
+
+// Public Redlib instances for proxy fallback
+const REDLIB_INSTANCES = [
+    'safereddit.com',
+    'redlib.perennialte.ch',
+    'redlib.catsarch.com',
+    'red.ngn.tf',
+    'redlib.vimmer.dev'
+];
+
 // Human-like delay with variation
 const humanDelay = (baseMs = 2000) => {
     const variation = Math.random() * baseMs; // 0-100% variation
     return wait(baseMs + variation);
 };
 
-// Helper to fetch valid posts from a subreddit JSON with retry logic and fallbacks
+// Helper to fetch valid posts from a subreddit with multi-layer fallback
 async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit = 5, retries = 3) {
-    // try official API if credentials exist
+    // 1. Try Official API (if credentials exist)
     if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
         return fetchViaOfficialApi(subreddit, sort, time, limit);
     }
 
-    const domains = ['www.reddit.com', 'old.reddit.com', 'pay.reddit.com'];
+    // 2. Try Direct JSON (Multiple Subdomains)
+    const jsonDomains = ['www.reddit.com', 'old.reddit.com', 'pay.reddit.com', 'it.reddit.com'];
+    for (const domain of jsonDomains) {
+        const posts = await tryFetchJson(domain, subreddit, sort, time, limit, retries);
+        if (posts.length > 0) return posts;
+        console.log(`ℹ️ JSON approach failed on ${domain}, trying next...`);
+    }
 
-    for (const domain of domains) {
-        // raw_json=1 prevents double encoding of HTML entities and gives cleaner data
-        const url = `https://${domain}/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
+    // 3. Try Direct RSS (Often unblocked for SEO bots)
+    console.log(`📡 Falling back to Direct RSS for r/${subreddit}...`);
+    const directRss = await tryFetchRss('www.reddit.com', subreddit, sort, time, limit);
+    if (directRss.length > 0) return directRss;
 
-        for (let attempt = 0; attempt < retries; attempt++) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout from Bubble Lab inspiration
+    // 4. Try Redlib Proxies (Ultimate Resilience)
+    console.log(`📡 Falling back to Redlib Proxies for r/${subreddit}...`);
+    for (const instance of REDLIB_INSTANCES) {
+        const posts = await tryFetchRss(instance, subreddit, sort, time, limit);
+        if (posts.length > 0) {
+            console.log(`✅ Success via Redlib proxy: ${instance}`);
+            return posts;
+        }
+    }
 
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'User-Agent': SESSION_USER_AGENT,
-                        'Accept': 'application/json, text/plain, */*',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Referer': 'https://www.google.com/',
-                        'DNT': '1',
-                        'Pragma': 'no-cache',
-                        'Cache-Control': 'no-cache',
-                    },
-                    signal: controller.signal
-                });
+    return [];
+}
 
-                clearTimeout(timeoutId);
+/**
+ * Layer 2 Trace: Direct JSON Fetching
+ */
+async function tryFetchJson(domain, subreddit, sort, time, limit, retries) {
+    const url = `https://${domain}/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
 
-                if (response.status === 403) {
-                    console.warn(`🛑 403 Forbidden on ${domain}/r/${subreddit}. Cloud runner block?`);
-                    // Don't retry same domain on 403 in the inner loop, break to try fallback domain
-                    break;
-                }
+    for (let attempt = 0; attempt < retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-                if (response.status === 429) {
-                    const backoffTime = Math.pow(2, attempt) * 5000;
-                    console.warn(`⚠️ Rate limited on ${domain}/r/${subreddit}, waiting ${backoffTime / 1000}s...`);
-                    await wait(backoffTime);
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': attempt === 0 ? SESSION_USER_AGENT : MOBILE_UA,
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://www.google.com/',
+                    'DNT': '1'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.status === 403) {
+                console.warn(`🛑 [403] ${domain} is blocking JSON.`);
+                return []; // Exit early to try next domain/layer
+            }
+
+            if (!response.ok) {
+                if (attempt < retries - 1) {
+                    await wait(2000 * (attempt + 1));
                     continue;
                 }
-
-                if (!response.ok) {
-                    console.warn(`[${response.status}] Failed to fetch ${domain}/r/${subreddit} (attempt ${attempt + 1}/${retries})`);
-                    if (attempt < retries - 1) {
-                        await humanDelay(3000);
-                        continue;
-                    }
-                    break;
-                }
-
-                const data = await response.json();
-                if (!data?.data?.children) {
-                    console.warn(`Empty data from ${domain}/r/${subreddit}`);
-                    break;
-                }
-
-                return data.data.children
-                    .filter(child => {
-                        // Filter out stickied posts (often rules/FAQs) - Bubble Lab inspiration
-                        const p = child.data;
-                        if (!p) return false;
-                        const title = p.title || '';
-                        return !p.stickied && !title.toLowerCase().includes('[sticky]');
-                    })
-                    .map(child => {
-                        const p = child.data;
-                        return {
-                            subreddit: p.subreddit,
-                            title: p.title,
-                            body: p.selftext || '',
-                            url: p.url,
-                            score: p.score,
-                            created_utc: p.created_utc
-                        };
-                    });
-            } catch (error) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') {
-                    console.warn(`⏰ Request timeout on ${domain}/r/${subreddit} after 15s`);
-                } else {
-                    console.warn(`Error scraping ${domain}/r/${subreddit} (attempt ${attempt + 1}/${retries}):`, error.message);
-                }
-
-                if (attempt < retries - 1) {
-                    await humanDelay(3000);
-                }
+                return [];
             }
+
+            const data = await response.json();
+            if (!data?.data?.children) return [];
+
+            return data.data.children
+                .filter(child => !child.data.stickied && !(child.data.title || '').toLowerCase().includes('[sticky]'))
+                .map(child => ({
+                    subreddit: child.data.subreddit,
+                    title: child.data.title,
+                    body: child.data.selftext || '',
+                    url: child.data.url,
+                    score: child.data.score,
+                    created_utc: child.data.created_utc
+                }));
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (attempt < retries - 1) await wait(1000);
         }
     }
     return [];
+}
+
+/**
+ * Layer 3/4 Trace: RSS Fetching (Direct or Proxy)
+ * Note: time is unused for RSS feeds but kept for API parity with tryFetchJson
+ */
+async function tryFetchRss(instance, subreddit, sort, time, limit) {
+    // Redlib and Reddit use slightly different URL structures for RSS but .rss usually works
+    const url = `https://${instance}/r/${subreddit}/${sort}/.rss`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': MOBILE_UA,
+                'Accept': 'application/xml, text/xml, */*'
+            },
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        if (!response.ok) return [];
+
+        const xml = await response.text();
+        return parseRss(xml).slice(0, limit);
+
+    } catch (error) {
+        clearTimeout(timeoutId);
+        return [];
+    }
+}
+
+/**
+ * Lightweight RSS Parser to avoid adding new dependencies
+ */
+function parseRss(xml) {
+    const items = [];
+    const entries = xml.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
+
+    // Helper to unescape XML entities, including numeric and hex
+    const decodeEntities = (str) => {
+        if (!str) return '';
+        // 1. Strip CDATA
+        let clean = str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+        // 2. Decode standard entities
+        clean = clean
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+        // 3. Decode numeric entities (&#NNN;)
+        clean = clean.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+        // 4. Decode hex entities (&#xNN;)
+        clean = clean.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+        return clean;
+    };
+
+    for (const entry of entries) {
+        const titleMatch = entry.match(/<title>([\s\S]*?)<\/title>/);
+        const contentMatch = entry.match(/<content[^>]*>([\s\S]*?)<\/content>/);
+        const linkMatch = entry.match(/<link[^>]*href="([^"]*)"/);
+        const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
+        const publishedMatch = entry.match(/<published>([\s\S]*?)<\/published>/);
+
+        const title = titleMatch ? titleMatch[1] : '';
+        const content = contentMatch ? contentMatch[1] : '';
+        const link = linkMatch ? linkMatch[1] : '';
+
+        // Parse timestamp (Fall back to updated then published then now)
+        const dateStr = updatedMatch?.[1] || publishedMatch?.[1];
+        let timestamp = Date.now() / 1000;
+        if (dateStr) {
+            try {
+                timestamp = new Date(dateStr).getTime() / 1000;
+            } catch (e) {
+                // Keep default
+            }
+        }
+
+        items.push({
+            title: decodeEntities(title),
+            body: decodeEntities(content),
+            url: link,
+            subreddit: 'Reddit RSS',
+            score: 0, // RSS doesn't expose score usually
+            created_utc: timestamp
+        });
+    }
+    return items;
 }
 
 export async function runRedditFlow(targetDate = new Date()) {
@@ -423,16 +525,39 @@ async function notifyAdmin(ideas) {
 
 // Run if called directly (not imported)
 if (import.meta.url === `file://${process.argv[1]}`) {
-    console.log('Starting Reddit scraping workflow (direct execution)...');
-    runRedditFlow()
-        .then(() => {
-            console.log('✅ Reddit flow completed successfully.');
+    const isTestFetch = process.argv.includes('--test-fetch');
+
+    if (isTestFetch) {
+        console.log('🧪 Running in --test-fetch mode (Fetching only, no DB/Email side effects)...');
+        // Test with a few representative subreddits
+        const testSubs = SUBREDDITS.slice(0, 3);
+
+        (async () => {
+            for (const sub of testSubs) {
+                console.log(`\n🔍 Testing r/${sub.name} [${sub.sort}]...`);
+                const posts = await fetchSubredditJson(sub.name, sub.sort, sub.time, 2);
+                if (posts.length > 0) {
+                    console.log(`✅ Success: Found ${posts.length} posts`);
+                    posts.forEach(p => console.log(`   - [${p.subreddit}] ${p.title} (${p.url})`));
+                } else {
+                    console.error(`❌ Failed: No posts found for r/${sub.name}`);
+                }
+            }
+            console.log('\n✨ Test fetch completed.');
             process.exit(0);
-        })
-        .catch((error) => {
-            console.error('❌ Reddit flow failed:', error);
-            process.exit(1);
-        });
+        })();
+    } else {
+        console.log('Starting Reddit scraping workflow (direct execution)...');
+        runRedditFlow()
+            .then(() => {
+                console.log('✅ Reddit flow completed successfully.');
+                process.exit(0);
+            })
+            .catch((error) => {
+                console.error('❌ Reddit flow failed:', error);
+                process.exit(1);
+            });
+    }
 }
 
 /**
