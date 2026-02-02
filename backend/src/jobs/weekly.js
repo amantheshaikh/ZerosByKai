@@ -154,15 +154,30 @@ export async function calculateWinner() {
 
     if (batchError) throw batchError;
 
-    // 5. Update Idea status to 'winner'
+    // 5. Update Idea winner flag
     const { error: winnerStatusError } = await supabaseAdmin
       .from('ideas')
-      .update({ status: 'winner' })
+      .update({ is_winner: true })
       .eq('id', winner.id);
 
     if (winnerStatusError) {
       console.error(`❌ Failed to update winner status for idea ${winner.id}:`, winnerStatusError);
       throw new Error(`Critical failure: Could not set winner status for ${winner.id}`);
+    }
+
+    // 6. Archived ALL ideas from that week (including winner)
+    const allBatchIdeaIds = ideas.map(i => i.id);
+    if (allBatchIdeaIds.length > 0) {
+      const { error: archiveError } = await supabaseAdmin
+        .from('ideas')
+        .update({ status: 'archived' })
+        .in('id', allBatchIdeaIds);
+
+      if (archiveError) {
+        console.error('⚠️ Failed to archive batch ideas:', archiveError);
+      } else {
+        console.log(`📦 Archived all ${allBatchIdeaIds.length} ideas from week ${weekStart}.`);
+      }
     }
 
     // 6. Award badges to users who voted for winner

@@ -11,7 +11,7 @@ router.get('/leaderboard', async (req, res) => {
     const { data: latestIdea } = await supabaseAdmin
       .from('ideas')
       .select('week_published')
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .not('week_published', 'is', null)
       .gt('week_published', '2025-01-01')
       .order('week_published', { ascending: false })
@@ -33,7 +33,7 @@ router.get('/leaderboard', async (req, res) => {
       .from('ideas')
       .select('*, votes(count)') // Select votes count
       .eq('week_published', weekStart)
-      .in('status', ['published', 'winner']);
+      .or('status.eq.published,is_winner.eq.true');
 
     if (error) throw error;
 
@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
     const { data: ideas, error } = await supabase
       .from('ideas')
       .select('*')
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .order('week_published', { ascending: false });
 
     if (error) throw error;
@@ -86,7 +86,7 @@ router.get('/weekly', async (req, res) => {
     const { data: latestIdea, error: weekError } = await supabase
       .from('ideas')
       .select('week_published')
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .order('week_published', { ascending: false })
       .limit(1)
       .single();
@@ -103,7 +103,7 @@ router.get('/weekly', async (req, res) => {
     const { data: ideas, error: ideasError } = await supabase
       .from('ideas')
       .select('*')
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .eq('week_published', weekStart)
       .order('created_at', { ascending: true });
 
@@ -140,7 +140,7 @@ router.get('/weekly-batches', async (req, res) => {
       .from('ideas')
       .select('*')
       .in('week_published', weekStartDates)
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .order('created_at', { ascending: true });
 
     if (ideasError) throw ideasError;
@@ -166,7 +166,7 @@ router.get('/:id', async (req, res) => {
       .from('ideas')
       .select('*')
       .eq('id', id)
-      .in('status', ['published', 'winner'])
+      .or('status.eq.published,is_winner.eq.true')
       .single();
 
     if (ideaError) throw ideaError;

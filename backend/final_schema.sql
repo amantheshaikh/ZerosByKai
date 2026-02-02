@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS ideas (
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
   week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT CHECK (status IN ('backlog', 'published', 'winner')) DEFAULT 'backlog',
+  status TEXT CHECK (status IN ('backlog', 'published', 'archived')) DEFAULT 'backlog',
+  is_winner BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -63,7 +64,7 @@ CREATE TABLE IF NOT EXISTS user_badges (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
-  badge_type TEXT CHECK (badge_type IN ('kai_pick', 'bronze', 'silver', 'gold', 'diamond')),
+  badge_type TEXT CHECK (badge_type IN ('kai_pick')),
   awarded_at TIMESTAMPTZ DEFAULT NOW(),
   
   UNIQUE(user_id, idea_id)
@@ -102,7 +103,7 @@ ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Ideas
 DROP POLICY IF EXISTS "Anyone can view published ideas" ON ideas;
-CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status IN ('published', 'winner'));
+CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status = 'published' OR is_winner = true);
 
 -- Votes
 DROP POLICY IF EXISTS "Users can view own votes" ON votes;
@@ -169,16 +170,16 @@ BEGIN
   FROM user_badges
   WHERE user_id = user_uuid AND badge_type = 'kai_pick';
   
-  IF badge_count >= 11 THEN
-    RETURN 'diamond';
-  ELSIF badge_count >= 6 THEN
-    RETURN 'gold';
+  IF badge_count >= 20 THEN
+    RETURN 'unicorn_hunter';
+  ELSIF badge_count >= 12 THEN
+    RETURN 'head_intelligence';
+  ELSIF badge_count >= 7 THEN
+    RETURN 'lead_analyst';
   ELSIF badge_count >= 3 THEN
-    RETURN 'silver';
-  ELSIF badge_count >= 1 THEN
-    RETURN 'bronze';
+    RETURN 'field_agent';
   ELSE
-    RETURN 'none';
+    RETURN 'onlooker';
   END IF;
 END;
 $$ LANGUAGE plpgsql;

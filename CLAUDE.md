@@ -47,16 +47,15 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 - **Sunday 10 AM UTC:** Reddit scraping → Gemini 3 Preview → 10 ideas (status: `backlog`)
 - **Monday 9 AM UTC:** 
   1. Auto-publish backlog ideas
-  2. Calculate last week's winner (set status to `winner`)
+  2. Calculate last week's winner (set `is_winner: true` and `status: 'archived'`)
   3. Send weekly digest (Base64 encoded bodies, CRLF protected, RFC 2047 subjects)
 
-### Badges System
-- Users who vote for the winning idea earn badges
-- **Tiers:** 
-  - Bronze Finder (1-2 wins)
-  - Silver Finder (3-5 wins)
-  - Gold Finder (6-10 wins)
-  - Diamond Finder (11+ wins)
+### Mission Designations
+- **Onlooker**: 0-2 winning picks
+- **Field Agent**: 3-6 winning picks
+- **Lead Analyst**: 7-11 winning picks
+- **Head of Intelligence**: 12-19 winning picks
+- **Unicorn Hunter**: 20+ winning picks
 
 ### Email System
 - **Templates:** Separated into individual files in `backend/src/emails/templates/`
@@ -146,7 +145,7 @@ NEXT_PUBLIC_SITE_URL
 - ✅ **Hardening**: CRLF protection, RFC 2047 subject encoding, Base64 email bodies
 - ✅ **Database**: Schema standardized, RLS updated for `winner` status
 - ✅ **Maintenance**: PII masked in logs, UTC standardized dates, ADMIN_CONFIG in env
-- ✅ **Status Model**: `backlog` -> `published` -> `winner`
+- ✅ **Status Model**: `backlog` -> `published` -> `archived` (with separate `is_winner` flag)
 
 ## Documentation Hierarchy
 - **Tier 1 (Foundation):** This file - Master context

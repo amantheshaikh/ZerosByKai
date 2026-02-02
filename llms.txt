@@ -13,7 +13,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 
 - **Weekly Startup Ideas**: 10 AI-analyzed ideas delivered every Monday
 - **Community Voting**: Vote for your favorite idea each week
-- **Badge System**: Earn badges for picking winning ideas (Bronze, Silver, Gold, Diamond Finder)
+- **Badge System**: Earn badges for picking winning ideas and climb the Mission Designations
 - **Email Digest**: Weekly newsletter with ideas + last week's winner
 - **Auto-Login**: Seamless voting experience via email links
 
@@ -22,7 +22,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 1. **Sunday**: AI scrapes 17+ startup-related subreddits for real problems
 2. **AI Analysis**: Google Gemini processes ~150 posts and generates 10 validated ideas
 3. **Monday**: Ideas published, users vote, weekly digest sent
-4. **Winner**: Most-voted idea wins, voters earn badges
+4. **Winner**: Most-voted idea is marked as winner (binary flag), voters earn badges
 
 ## Technology Stack
 
@@ -91,11 +91,12 @@ ZerosByKai/
 
 ## Key Concepts
 
-### Badge Tiers
-- **Bronze Finder**: 1-2 winning picks
-- **Silver Finder**: 3-5 winning picks
-- **Gold Finder**: 6-10 winning picks
-- **Diamond Finder**: 11+ winning picks
+### Mission Designations
+- **Onlooker**: 0-2 winning picks
+- **Field Agent**: 3-6 winning picks
+- **Lead Analyst**: 7-11 winning picks
+- **Head of Intelligence**: 12-19 winning picks
+- **Unicorn Hunter**: 20+ winning picks
 
 ### Weekly Cycle
 - **Sunday 10 AM UTC**: Reddit scraping + AI analysis

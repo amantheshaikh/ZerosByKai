@@ -146,11 +146,12 @@ zerosbykai/
 - **One Vote per Week**: Users can change their vote, but only one counts per week.
 - **Authenticated Users Only**: Must sign in to vote.
 
-### Badges
-- **Bronze Finder** (1-2 wins)
-- **Silver Finder** (3-5 wins)
-- **Gold Finder** (6-10 wins)
-- **Diamond Finder** (11+ wins)
+### Mission Designations
+- **Onlooker**: 0-2 winning picks
+- **Field Agent**: 3-6 winning picks
+- **Lead Analyst**: 7-11 winning picks
+- **Head of Intelligence**: 12-19 winning picks
+- **Unicorn Hunter**: 20+ winning picks
 
 ### Weekly Cycle
 - **Sunday 10 AM UTC**: Reddit scraping → 10 ideas generated (status: `backlog`)

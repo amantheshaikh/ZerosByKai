@@ -108,7 +108,7 @@ export default function ProfilePage() {
         <div className="min-h-screen bg-yellow-50">
             <Head>
                 <title>Your Profile — Badges & Voting History | ZerosByKai</title>
-                <meta name="description" content="View your ZerosByKai profile, badge tier, voting history, and Zero Finder badges earned from picking winning startup ideas." />
+                <meta name="description" content="View your ZerosByKai profile, badge tier, voting history, and earned badges for picking winning startup ideas." />
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
             <Header variant="page" />
