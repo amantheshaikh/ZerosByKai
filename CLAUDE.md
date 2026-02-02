@@ -44,9 +44,9 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 - **Auth:** Bearer token validation via Supabase `getUser()`
 
 ### Cron Jobs
-- **Sunday 10 AM UTC:** Reddit scraping → Gemini AI → 10 ideas (status: `pending`)
+- **Sunday 10 AM UTC:** Reddit scraping → Gemini AI → 10 ideas (status: `backlog`)
 - **Monday 9 AM UTC:** 
-  1. Auto-publish pending ideas
+  1. Auto-publish backlog ideas
   2. Calculate last week's winner
   3. Send weekly digest (with auto-login tokens for authenticated users)
 
@@ -75,11 +75,11 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
    - Processes posts in batches
    - Generates 10 startup ideas
    - Retry logic ensures 10 ideas always generated
-   - Saves as `status: 'pending'`
+   - Saves as `status: 'backlog'`
 
 ### Monday (9 AM UTC)
 1. **Auto-Publish** (`jobs/weekly.js`)
-   - Moves pending ideas to published
+   - Moves backlog ideas to published
    - Creates weekly batch record
 
 2. **Calculate Winner** (`jobs/weekly.js`)
@@ -141,6 +141,9 @@ NEXT_PUBLIC_SITE_URL
 - ✅ Email templates separated into individual files
 - ✅ Reddit scraping enhanced with anti-detection
 - ✅ Gemini retry logic improved (ensures 10 ideas)
+- ✅ **Status Model**: Simplified idea status to `backlog` -> `published`
+- ✅ **Brand**: Emails updated to "Rose 700" Pink + Yellow Comic theme
+- ✅ **Metrics**: Robust thread count heuristic (2,100+) implemented
 - ✅ Admin routes removed (use Supabase dashboard)
 - ✅ File structure reorganized (workflows → jobs)
 - ✅ Comprehensive documentation added

@@ -38,7 +38,6 @@ backend/src/
 │   └── weekly.js                 # Monday: publish, winner, digest
 ├── workflows/                    # Testing/simulation scripts
 │   ├── simulate_monday_workflow.js
-│   ├── simulate_newsletter.js
 │   ├── simulate_welcome.js
 │   └── simulate_magic_link.js
 ├── emails/                       # Email templates
@@ -86,14 +85,14 @@ backend/src/
 - Collects ~150 posts
 - Processes with Gemini AI in batches
 - Generates 10 startup ideas
-- Saves as `status: 'pending'`
+- Saves as `status: 'backlog'`
 - Sends admin notification email
 
 ### Monday 9 AM UTC
 **Weekly Workflow** (`jobs/weekly.js`)
 
 1. **Auto-Publish Ideas** (`autoPublishIdeas()`)
-   - Moves pending ideas to published
+   - Moves backlog ideas to published
    - Creates weekly batch record
 
 2. **Calculate Winner** (`calculateWinner()`)
@@ -184,7 +183,7 @@ All templates use shared components from `emails/templates/shared.js`:
 ## Database Schema
 
 ### Key Tables
-- **ideas** - Startup ideas (pending/published)
+- **ideas** - Startup ideas (backlog/published)
 - **votes** - User votes (one per week)
 - **user_badges** - Badges earned by users
 - **weekly_batches** - Weekly metadata (winner, stats)

@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
   week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'published')),
+  status TEXT CHECK (status IN ('backlog', 'published')) DEFAULT 'backlog',
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Diversity tracking

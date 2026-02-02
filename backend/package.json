@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "db:migrate": "node src/db/migrate.js"
+    "scrape:local": "node src/jobs/reddit_scraper.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

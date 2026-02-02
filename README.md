@@ -73,9 +73,6 @@ node src/workflows/simulate_monday_workflow.js
 ```
 
 ### 3. Test Email Templates
-```bash
-# Weekly digest
-node src/workflows/simulate_newsletter.js
 
 # Welcome email
 node src/workflows/simulate_welcome.js
@@ -109,7 +106,7 @@ zerosbykai/
 │   │   │   └── weekly.js             # Monday: publish, winner, digest
 │   │   ├── workflows/                # Testing/simulation scripts
 │   │   │   ├── simulate_monday_workflow.js
-│   │   │   ├── simulate_newsletter.js
+
 │   │   │   ├── simulate_welcome.js
 │   │   │   └── simulate_magic_link.js
 │   │   ├── emails/                   # Email templates
@@ -156,9 +153,9 @@ zerosbykai/
 - **Diamond Finder** (11+ wins)
 
 ### Weekly Cycle
-- **Sunday 10 AM UTC**: Reddit scraping → 10 ideas generated (status: `pending`)
+- **Sunday 10 AM UTC**: Reddit scraping → 10 ideas generated (status: `backlog`)
 - **Monday 9 AM UTC**: 
-  1. Auto-publish pending ideas
+  1. Auto-publish backlog ideas
   2. Calculate last week's winner
   3. Send weekly digest emails (with auto-login tokens)
 
@@ -306,16 +303,19 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 - ✅ Refactored `auth.js` with comprehensive documentation
 
 ### New Features
+- ✅ **Brand Design**: Emails now match website aesthetic ("Rose 700" Pink + Yellow + Comic Cards)
+- ✅ **Consistent Metrics**: Implemented robust thread count heuristic (2,100+) for weekly stats
+- ✅ **Backlog Health**: Automated alerts on Fridays/Sundays if backlog < 10 ideas
 - ✅ Email token auto-login from weekly digest
 - ✅ Enhanced Reddit scraping anti-detection
-- ✅ Improved Gemini retry logic (ensures 10 ideas)
 - ✅ Newsletter-only subscription flow
 - ✅ Comprehensive auth documentation
 
-### Bug Fixes
-- ✅ Fixed duplicate welcome emails
-- ✅ Improved error handling in auth flows
-- ✅ Better session management
+### Cleanup & Fixes
+- ✅ **Security**: Removed temporary debug scripts (`diagnose_user.js`, etc.)
+- ✅ **Status Model**: Simplified idea status to `backlog` -> `published` (removed `pending`/`rejected`)
+- ✅ **Bug Fixes**: Fixed duplicate welcome emails, improved error handling
+
 
 ---
 

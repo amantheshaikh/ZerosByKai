@@ -122,11 +122,11 @@ Automatically runs via `node-cron`:
 - **Reddit Scraping** (`jobs/reddit_scraper.js`)
   - Scrapes 17+ subreddits
   - Generates 10 ideas via Gemini AI
-  - Saves as `status: 'pending'`
+  - Saves as `status: 'backlog'`
 
 ### Monday 9 AM UTC
 - **Auto-Publish Ideas** (`jobs/weekly.js` → `autoPublishIdeas()`)
-  - Moves pending ideas to published
+  - Moves backlog ideas to published
 - **Calculate Winner** (`jobs/weekly.js` → `calculateWinner()`)
   - Finds last week's most-voted idea
   - Awards badges to users who voted for it
@@ -153,7 +153,6 @@ backend/
 │   │   └── weekly.js                 # Monday: publish, winner, digest
 │   ├── workflows/                    # Testing/simulation scripts
 │   │   ├── simulate_monday_workflow.js
-│   │   ├── simulate_newsletter.js
 │   │   ├── simulate_welcome.js
 │   │   └── simulate_magic_link.js
 │   ├── emails/                       # Email templates
@@ -237,24 +236,21 @@ Use Supabase Dashboard:
 
 ---
 
-## Recent Changes (2026-02-02)
+### Recent Changes (2026-02-02)
 
 ### File Structure
 - ✅ Moved `workflows/daily_startup_ideas.js` → `jobs/reddit_scraper.js`
-- ✅ Removed `scripts/run-reddit-flow.js` (redundant wrapper)
-- ✅ Removed `routes/admin.js` (use Supabase dashboard)
+- ✅ **Cleanup**: Removed temporary simulation scripts (`simulate_newsletter.js`, `preview_email_html.js`)
+- ✅ Removed admin routes (use Supabase dashboard)
 - ✅ Separated email templates into individual files
 
 ### New Features
+- ✅ **Brand Design**: Emails now match website aesthetic ("Rose 700" Pink + Yellow + Comic Cards)
+- ✅ **Consistent Metrics**: Implemented robust thread count heuristic (2,100+) for weekly stats
+- ✅ **Backlog Health**: Automated alerts on Fridays/Sundays if backlog < 10 ideas
 - ✅ Email token auto-login (JWT-based)
 - ✅ Enhanced Reddit scraping (anti-detection)
-- ✅ Improved Gemini retry logic (ensures 10 ideas)
-- ✅ Newsletter-only subscription flow
 
-### Improvements
-- ✅ Better error handling in auth flows
-- ✅ Comprehensive code documentation
-- ✅ Cleaner project structure
 
 ---
 

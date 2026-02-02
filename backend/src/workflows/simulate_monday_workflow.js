@@ -1,4 +1,4 @@
-import { autoPublishIdeas, calculateWinner, sendWeeklyDigest } from '../jobs/weekly.js';
+import { pickAndPublishIdeas, calculateWinner, sendWeeklyDigest } from '../jobs/weekly.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,7 +12,7 @@ if (!process.env.RESEND_API_KEY) {
 /**
  * Simulate the complete Monday morning workflow
  * This runs the exact same sequence as the cron job:
- * 1. Auto-publish pending ideas for this week
+ * 1. Pick 10 ideas from backlog
  * 2. Calculate last week's winner and award badges
  * 3. Send weekly digest emails to all subscribers
  */
@@ -21,13 +21,13 @@ async function simulateMondayWorkflow() {
     console.log('='.repeat(60));
     console.log('');
 
-    // Step 1: Auto-publish pending ideas
-    console.log('📝 STEP 1: Auto-publishing pending ideas...');
+    // Step 1: Pick and Publish ideas from backlog
+    console.log('📝 STEP 1: Picking and publishing ideas from backlog...');
     try {
-        await autoPublishIdeas();
-        console.log('✅ Auto-publish completed\n');
+        await pickAndPublishIdeas();
+        console.log('✅ Publishing completed\n');
     } catch (error) {
-        console.error('❌ Error auto-publishing ideas:', error);
+        console.error('❌ Error picking/publishing ideas:', error);
         console.log('');
     }
 

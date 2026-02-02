@@ -274,10 +274,6 @@ FRONTEND_URL=https://zerosbykai.com
 node src/workflows/simulate_magic_link.js
 ```
 
-### Test newsletter subscription
-```bash
-node src/workflows/simulate_newsletter.js
-```
 
 ### Test welcome email
 ```bash

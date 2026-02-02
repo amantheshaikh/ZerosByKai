@@ -13,7 +13,7 @@ Use these scripts to test workflows and emails locally before deploying to produ
 
 ### 1. Simulate Full Monday Workflow
 **What it does:** Runs all 3 Monday cron job functions in sequence:
-1. Auto-publish pending ideas
+1. Pick 10 ideas from backlog and publish them
 2. Calculate last week's winner
 3. Send weekly digest emails
 
@@ -23,7 +23,7 @@ node src/workflows/simulate_monday_workflow.js
 ```
 
 **Expected output:**
-- Pending ideas moved to published
+- 10 ideas moved from backlog to published
 - Winner calculated and badges awarded
 - Weekly digest email sent to your email
 
@@ -33,7 +33,7 @@ node src/workflows/simulate_monday_workflow.js
 **What it does:** 
 - Scrapes Reddit for startup-related posts
 - Generates 10 ideas using Gemini AI
-- Saves ideas to database as `pending`
+- Saves ideas to database as `backlog`
 
 ```bash
 cd backend
@@ -68,27 +68,6 @@ node src/workflows/simulate_welcome.js
 
 ---
 
-### 2. Simulate Weekly Newsletter
-**What it does:** 
-- Fetches latest published ideas from database
-- Generates weekly digest email
-- Sends to your email with auto-login token
-
-```bash
-cd backend
-node src/workflows/simulate_newsletter.js
-```
-
-**Email preview:**
-- Subject: "Kai's Zeros: Week of [date]"
-- Content: 10 ideas + last week's winner + CTA
-- Auto-login: Click link to auto-sign in
-
-**Requirements:**
-- Database must have published ideas
-- You must have a user account in Supabase
-
----
 
 ### 3. Simulate Magic Link Email
 **What it does:** Sends a magic link authentication email.

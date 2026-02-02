@@ -48,6 +48,12 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Modern Mobile UA for fallback (often less likely to be blocked by CDNs)
 const MOBILE_SAFARI_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1';
 
+// Global cache for Reddit OAuth Token
+let redditTokenCache = {
+    token: null,
+    expiresAt: 0
+};
+
 // Rotating User-Agents to appear more human and diverse
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -97,13 +103,15 @@ async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit =
         console.log(`ℹ️ JSON approach failed on ${domain}, trying next...`);
     }
 
+
+
     // 3. Try Direct RSS (Often unblocked for SEO bots)
-    console.log(`📡 Falling back to Direct RSS for r/${subreddit}...`);
+    console.log(`📡 Falling back to Direct RSS for r/${subreddit} [${sort}]...`);
     const directRss = await tryFetchRss('www.reddit.com', subreddit, sort, time, limit);
     if (directRss.length > 0) return directRss;
 
     // 4. Try Redlib Proxies (Ultimate Resilience)
-    console.log(`📡 Falling back to Redlib Proxies for r/${subreddit}...`);
+    console.log(`📡 Falling back to Redlib Proxies for r/${subreddit} [${sort}]...`);
     for (const instance of REDLIB_INSTANCES) {
         const posts = await tryFetchRss(instance, subreddit, sort, time, limit);
         if (posts.length > 0) {
@@ -119,7 +127,9 @@ async function fetchSubredditJson(subreddit, sort = 'hot', time = 'day', limit =
  * Layer 2 Trace: Direct JSON Fetching
  */
 async function tryFetchJson(domain, subreddit, sort, time, limit, retries) {
-    const url = `https://${domain}/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
+
+    const baseUrl = `https://${domain}/r/${subreddit}/${sort}.json`;
+    const url = `${baseUrl}?limit=${limit}&t=${time}&raw_json=1`;
 
     for (let attempt = 0; attempt < retries; attempt++) {
         const controller = new AbortController();
@@ -157,14 +167,18 @@ async function tryFetchJson(domain, subreddit, sort, time, limit, retries) {
 
             return data.data.children
                 .filter(child => !child.data.stickied && !(child.data.title || '').toLowerCase().includes('[sticky]'))
-                .map(child => ({
-                    subreddit: child.data.subreddit,
-                    title: child.data.title,
-                    body: child.data.selftext || '',
-                    url: child.data.url,
-                    score: child.data.score,
-                    created_utc: child.data.created_utc
-                }));
+                .map(child => {
+                    const d = child.data;
+                    return {
+                        subreddit: d.subreddit,
+                        title: d.link_title || d.title, // link_title is for comments
+                        body: d.body || d.selftext || '', // body is for comments
+                        url: d.permalink ? `https://reddit.com${d.permalink}` : d.url,
+                        score: d.score,
+                        created_utc: d.created_utc,
+                        is_comment: child.kind === 't1' // t1 = Comment, t3 = Link/Post
+                    };
+                });
 
         } catch (error) {
             clearTimeout(timeoutId);
@@ -239,80 +253,102 @@ function parseRss(xml) {
         const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
         const publishedMatch = entry.match(/<published>([\s\S]*?)<\/published>/);
 
-        const title = titleMatch ? titleMatch[1] : '';
-        const content = contentMatch ? contentMatch[1] : '';
+        let rawTitle = titleMatch ? decodeEntities(titleMatch[1]) : '';
+        let content = contentMatch ? decodeEntities(contentMatch[1]) : '';
         const link = linkMatch ? linkMatch[1] : '';
 
-        // Parse timestamp (Fall back to updated then published then now)
+        // Comment feed detection and title cleanup
+        // RSS Comment titles look like "/u/user on Title" or "u_user on Title"
+        let isComment = false;
+        let threadTitle = rawTitle;
+        if (rawTitle.includes(' on ')) {
+            const parts = rawTitle.split(' on ');
+            if (parts.length > 1) {
+                // Heuristic: Check if the first part looks like a username
+                const potentialUser = parts[0].trim();
+                // Matches /u/username, u/username, u_username, /u_username
+                const userRegex = /^\/?u[\/_][A-Za-z0-9_-]+$/;
+
+                if (userRegex.test(potentialUser)) {
+                    threadTitle = parts.slice(1).join(' on ');
+                    isComment = true;
+                }
+            }
+        }
+
+        // Content cleanup: RSS often wraps content in HTML summary table
+        // We strip the tags to give Gemini cleaner text
+        const cleanContent = content
+            .replace(/&lt;!--[\s\S]*?--&gt;/g, '') // remove comments
+            .replace(/&lt;[^&>]+&gt;/g, ' ') // remove tags
+            .replace(/&amp;#[\s\S]*?;/g, ' ') // catch remaining entities
+            .replace(/\s+/g, ' ') // collapse whitespace
+            .trim()
+            .substring(0, 1000);
+
+        // Parse timestamp
         const dateStr = updatedMatch?.[1] || publishedMatch?.[1];
         let timestamp = Date.now() / 1000;
         if (dateStr) {
             try {
                 timestamp = new Date(dateStr).getTime() / 1000;
-            } catch (e) {
-                // Keep default
-            }
+            } catch (e) { }
         }
 
         items.push({
-            title: decodeEntities(title),
-            body: decodeEntities(content),
-            url: link,
             subreddit: 'Reddit RSS',
-            score: 0, // RSS doesn't expose score usually
-            created_utc: timestamp
+            title: threadTitle,
+            body: cleanContent,
+            url: link,
+            score: 0,
+            created_utc: timestamp,
+            is_comment: isComment
         });
     }
     return items;
 }
 
-export async function runRedditFlow(targetDate = new Date()) {
-    console.log(`Starting Reddit Startup Ideas Workflow for date: ${targetDate.toISOString().split('T')[0]}...`);
+export async function runRedditFlow() {
+    console.log(`Starting Reddit Backlog Scraper...`);
     let allPosts = [];
 
-    // 1. Scrape Reddit (Chunked to respect rate limits)
-    const CHUNK_SIZE = 2; // Very conservative since we're unauthenticated
+    // 1. Scrape Reddit (Posts AND Comments)
+    const CHUNK_SIZE = 2;
     for (let i = 0; i < SUBREDDITS.length; i += CHUNK_SIZE) {
         const chunk = SUBREDDITS.slice(i, i + CHUNK_SIZE);
+        console.log(`Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}...`);
 
-        // Process chunk in parallel with staggered starts
-        const results = await Promise.all(chunk.map(async (sub, idx) => {
-            // Stagger requests within chunk (0ms, 1-3s delay)
-            if (idx > 0) {
-                await humanDelay(1000 + Math.random() * 2000);
-            }
-            console.log(`Scraping r/${sub.name} [${sub.sort}]...`);
-            return fetchSubredditJson(sub.name, sub.sort, sub.time, 5);
-        }));
+        const chunkPromises = chunk.flatMap(sub => [
+            fetchSubredditJson(sub.name, sub.sort, sub.time, 15),
+            fetchSubredditJson(sub.name, 'comments', 'all', 25)
+        ]);
 
-        allPosts = [...allPosts, ...results.flat()];
+        const chunkResults = await Promise.all(chunkPromises);
+        allPosts = [...allPosts, ...chunkResults.flat()];
 
-        // Human-like delay between chunks (2-5 seconds)
-        const chunkDelay = 2000 + Math.random() * 3000;
-        console.log(`Waiting ${(chunkDelay / 1000).toFixed(1)}s before next chunk...`);
-        await wait(chunkDelay);
+        if (i + CHUNK_SIZE < SUBREDDITS.length) {
+            const delay = 2000 + Math.random() * 3000;
+            console.log(`Waiting ${delay.toFixed(1)}ms before next chunk...`);
+            await wait(delay);
+        }
     }
 
     console.log(`Total posts scraped: ${allPosts.length}`);
 
-    // Filter for substantive posts
-    const substantivePosts = allPosts.filter(p =>
-        (p.body && p.body.length > 50) ||
-        (p.title && p.title.length > 30)
+    // Filter for quality and frustration signals
+    const substantiveItems = allPosts.filter(p =>
+        (p.body && p.body.length > 40) || (p.title && p.title.length > 30)
     );
 
-    console.log(`Substantive posts: ${substantivePosts.length}`);
-    if (substantivePosts.length === 0) return;
+    console.log(`Total substantive items extracted: ${substantiveItems.length} (Posts + Comments)`);
+    if (substantiveItems.length === 0) return;
 
-    // 2. Process with Gemini Direct SDK
-    // We want 10 ideas total. We'll do 2 AI calls with different batches of data to ensure variety.
-    const shuffled = substantivePosts.sort(() => 0.5 - Math.random());
-    // Limit input size to save tokens/avoid context limits
+    // 2. Process with AI
+    const shuffled = substantiveItems.sort(() => 0.5 - Math.random());
     const maxPostsPerBatch = 30;
 
     let validatedIdeas = [];
-    const GENERATION_TARGET = 15; // Generate more to pick the best/non-duplicates
-    const FINAL_LIMIT = 10;
+    const GENERATION_TARGET = 25; // Build a healthy backlog
     const MAX_WORKFLOW_RETRIES = 3;
 
     // Fetch existing ideas to avoid repetition
@@ -355,13 +391,21 @@ export async function runRedditFlow(targetDate = new Date()) {
       3. "Price Gap": Only Enterprise exists = Indie opportunity.
       4. "Isolation": Reducing loneliness = High value.
       
-      **Input Data:**
-      ${batch.map(p => `[r/${p.subreddit}] ${p.title}: ${p.body.substring(0, 200)}...`).join('\n')}
+      **Input Data (Posts & Direct User Comments):**
+      ${batch.map(p => `[r/${p.subreddit}${p.is_comment ? '/comment' : ''}] ${p.title}: ${p.body.substring(0, 300)}...`).join('\n')}
 
       ${exclusionText}
 
       **Task:**
-      Generate ${ideasPerBatch} distinct, high-quality startup ideas based *only* on the problems found in this text.
+      Generate ${ideasPerBatch} distinct, high-quality startup ideas ("Zeros") based on the problems found in this text.
+      
+      **PRIORITY SIGNALS:**
+      Pay special attention to comments where users:
+      - Ask "Is there a solution for this yet?"
+      - Complain about specific clunky UX or high pricing of existing tools.
+      - Say "I wish [Tool A] did [Feature X]".
+      - Express frustration with "workarounds" using spreadsheets or multiple browser tabs.
+      
       The ideas MUST be different from the EXCLUSION LIST provided above.
       
       **CRITICAL CONSTRAINT:** 
@@ -436,31 +480,65 @@ export async function runRedditFlow(targetDate = new Date()) {
     }
 
     // Final check
-    if (validatedIdeas.length < FINAL_LIMIT) {
-        console.warn(`⚠️  WARNING: Only generated ${validatedIdeas.length}/${FINAL_LIMIT} ideas after ${MAX_WORKFLOW_RETRIES} workflow attempts`);
+    if (validatedIdeas.length < 5) {
+        console.warn(`⚠️  WARNING: Only generated ${validatedIdeas.length} ideas after ${MAX_WORKFLOW_RETRIES} workflow attempts`);
     }
 
-    // Final filtering stage: Ensure no repeats of existing things (Manual safety check)
+    // Final filtering stage: Ensure no repeats of existing things
     const existingTitlesSet = new Set(existingIdeas.map(t => t.toLowerCase()));
     let finalIdeas = validatedIdeas.filter(idea => {
         const fullTitle = `${idea.name}: ${idea.title}`.toLowerCase();
         return !existingTitlesSet.has(fullTitle);
     });
 
-    // Ensure we have exactly 10 or whatever we managed to get
-    finalIdeas = finalIdeas.slice(0, FINAL_LIMIT);
-    console.log(`\n📊 Final result: ${finalIdeas.length} validated uniqueness ideas.`);
+    console.log(`\n📊 Final result: ${finalIdeas.length} unique ideas added to backlog.`);
 
     // 3. Save to Database
     if (finalIdeas.length > 0) {
-        const saved = await saveIdeasToDB(finalIdeas, targetDate, allPosts.length);
+        const saved = await saveIdeasToDB(finalIdeas);
         if (saved) {
+            // Update posts_scraped for the upcoming Monday batch
+            await updateScrapedCount(allPosts.length);
             await notifyAdmin(finalIdeas);
         } else {
             console.error("❌ Failed to save ideas to DB. Skipping admin notification.");
         }
     } else {
         console.log("No ideas generated.");
+    }
+}
+
+async function updateScrapedCount(count) {
+    if (!supabaseAdmin) return;
+    try {
+        // Calculate the next Monday
+        const today = new Date();
+        const daysToMonday = (1 - today.getDay() + 7) % 7;
+        const nextMonday = new Date(today);
+        nextMonday.setDate(today.getDate() + (daysToMonday === 0 ? 0 : daysToMonday));
+        const weekStart = nextMonday.toISOString().split('T')[0];
+
+        console.log(`📊 Updating scraped count for upcoming batch (${weekStart}): +${count}`);
+
+        // Get current count to increment
+        const { data: batch } = await supabaseAdmin
+            .from('weekly_batches')
+            .select('posts_scraped')
+            .eq('week_start_date', weekStart)
+            .single();
+
+        const newCount = (batch?.posts_scraped || 0) + count;
+
+        await supabaseAdmin
+            .from('weekly_batches')
+            .upsert({
+                week_start_date: weekStart,
+                posts_scraped: newCount
+            }, {
+                onConflict: 'week_start_date'
+            });
+    } catch (e) {
+        console.error('⚠️ Could not update scraped count:', e.message);
     }
 }
 
@@ -481,30 +559,13 @@ async function getExistingIdeaTitles() {
     }
 }
 
-async function saveIdeasToDB(ideas, date, postsScraped) {
+async function saveIdeasToDB(ideas) {
     if (!supabaseAdmin) {
         console.warn('Skipping DB save: Supabase Admin client not initialized');
-        return;
-    }
-    const today = date || new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
-    const weekStart = monday.toISOString().split('T')[0];
-
-    // Upsert weekly_batches FIRST (FK target must exist before inserting ideas)
-    const { error: batchError } = await supabaseAdmin
-        .from('weekly_batches')
-        .upsert({
-            week_start_date: weekStart,
-            total_ideas: ideas.length
-        }, {
-            onConflict: 'week_start_date'
-        });
-
-    if (batchError) {
-        console.error('Error saving batch metadata:', batchError);
         return false;
     }
+
+    console.log(`💾 Saving ${ideas.length} ideas to backlog...`);
 
     for (const idea of ideas) {
         const { error } = await supabaseAdmin
@@ -517,14 +578,13 @@ async function saveIdeasToDB(ideas, date, postsScraped) {
                 target_audience: idea.target || idea.targetAudience,
                 why_it_matters: idea.why || idea.whyItMatters,
                 tags: { category: idea.category, region: idea.tag },
-                week_published: weekStart,
-                status: 'pending'
+                status: 'backlog' // New ideas go to backlog
             });
 
         if (error) console.error('Error saving idea:', error);
     }
 
-    console.log('Ideas saved to DB.');
+    console.log('✅ All ideas saved to backlog.');
     return true;
 }
 
@@ -543,8 +603,8 @@ async function notifyAdmin(ideas) {
             from: 'Kai <kai@zerosbykai.com>',
             reply_to: 'kai@zerosbykai.com',
             to: adminEmail,
-            subject: `Review Required: ${ideas.length} New Zeros Staged`,
-            html: `<h1>Weekly Zeros Report</h1><p>Scraped ~20 subreddits successfully. ${ideas.length} ideas are staged as <b>pending</b>.</p><p>Review, edit, or reject ideas before <b>Monday 9 AM UTC</b> — unreviewed ideas will auto-publish.</p>${htmlPreview}`
+            subject: `Backlog Updated: ${ideas.length} New Zeros Scraped`,
+            html: `<h1>Backlog Report</h1><p>Scraped ~20 subreddits successfully. ${ideas.length} ideas have been added to the <b>backlog</b>.</p><p>These ideas are currently unpublished. The Monday job will pull from this pool.</p>${htmlPreview}`
         });
 
         if (error) {
@@ -568,13 +628,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
         (async () => {
             for (const sub of testSubs) {
-                console.log(`\n🔍 Testing r/${sub.name} [${sub.sort}]...`);
+                console.log(`\n🔍 Testing r/${sub.name} [Posts: ${sub.sort}]...`);
                 const posts = await fetchSubredditJson(sub.name, sub.sort, sub.time, 2);
                 if (posts.length > 0) {
                     console.log(`✅ Success: Found ${posts.length} posts`);
-                    posts.forEach(p => console.log(`   - [${p.subreddit}] ${p.title} (${p.url})`));
-                } else {
-                    console.error(`❌ Failed: No posts found for r/${sub.name}`);
+                    posts.forEach(p => console.log(`   - [POST] ${(p.title || '').substring(0, 50)}...`));
+                }
+
+                console.log(`🔍 Testing r/${sub.name} [Comments]...`);
+                const comments = await fetchSubredditJson(sub.name, 'comments', 'all', 3);
+                if (comments.length > 0) {
+                    console.log(`✅ Success: Found ${comments.length} comments`);
+                    comments.forEach(c => console.log(`   - [COMMENT on ${(c.title || '').substring(0, 30)}...] ${(c.body || '').substring(0, 60)}...`));
                 }
             }
             console.log('\n✨ Test fetch completed.');
@@ -596,14 +661,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 /**
  * Fallback to official Reddit API if blocked
+ * Now uses a cached token to avoid redundant auth requests
  */
-async function fetchViaOfficialApi(subreddit, sort, time, limit) {
-    try {
-        console.log(`📡 Using official Reddit API for r/${subreddit}...`);
+async function getCachedRedditToken() {
+    const now = Date.now();
+    if (redditTokenCache.token && now < redditTokenCache.expiresAt) {
+        return redditTokenCache.token;
+    }
 
-        // 1. Get access token (Client Credentials Flow)
+    try {
+        console.log("🔑 Fetching new Reddit OAuth token...");
         const auth = Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString('base64');
-        const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
+        const response = await fetch('https://www.reddit.com/api/v1/access_token', {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${auth}`,
@@ -613,11 +682,26 @@ async function fetchViaOfficialApi(subreddit, sort, time, limit) {
             body: 'grant_type=client_credentials'
         });
 
-        if (!tokenResponse.ok) {
-            throw new Error(`Auth failed: ${tokenResponse.status}`);
-        }
+        if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
 
-        const { access_token } = await tokenResponse.json();
+        const data = await response.json();
+        redditTokenCache.token = data.access_token;
+        // Expire slightly early (e.g., 55 mins for 1h token) to be safe
+        redditTokenCache.expiresAt = now + (data.expires_in - 300) * 1000;
+
+        return redditTokenCache.token;
+    } catch (error) {
+        console.error("❌ Failed to get Reddit OAuth token:", error.message);
+        return null;
+    }
+}
+
+async function fetchViaOfficialApi(subreddit, sort, time, limit) {
+    try {
+        console.log(`📡 Using official Reddit API for r/${subreddit}...`);
+
+        const access_token = await getCachedRedditToken();
+        if (!access_token) return [];
 
         // 2. Fetch data
         const url = `https://oauth.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&t=${time}&raw_json=1`;
@@ -635,14 +719,18 @@ async function fetchViaOfficialApi(subreddit, sort, time, limit) {
         const data = await response.json();
         return data.data.children
             .filter(child => !child.data.stickied && !(child.data.title || '').toLowerCase().includes('[sticky]'))
-            .map(child => ({
-                subreddit: child.data.subreddit,
-                title: child.data.title,
-                body: child.data.selftext || '',
-                url: child.data.url,
-                score: child.data.score,
-                created_utc: child.data.created_utc
-            }));
+            .map(child => {
+                const d = child.data;
+                return {
+                    subreddit: d.subreddit,
+                    title: d.link_title || d.title,
+                    body: d.body || d.selftext || '',
+                    url: d.permalink ? `https://reddit.com${d.permalink}` : d.url,
+                    score: d.score,
+                    created_utc: d.created_utc,
+                    is_comment: !!d.body
+                };
+            });
 
     } catch (error) {
         console.error(`❌ Official API fallback failed for r/${subreddit}:`, error.message);

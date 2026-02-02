@@ -12,7 +12,8 @@ import votesRouter from './routes/votes.js';
 import authRouter from './routes/auth.js';
 
 // Jobs
-import { autoPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
+import { pickAndPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
+import { checkBacklogHealth } from './jobs/backlog_check.js';
 
 dotenv.config();
 
@@ -79,14 +80,14 @@ app.post('/api/subscribe', (req, res, next) => {
 // Cron Jobs
 // Sunday scraping moved to GitHub Actions (.github/workflows/reddit-scraper.yml)
 
-// Monday 9 AM UTC: Auto-publish, calculate winner, send weekly digest (sequential)
+// Monday 9 AM UTC: Pick ideas from backlog, calculate winner, send weekly digest (sequential)
 cron.schedule('0 9 * * 1', async () => {
-  console.log('Auto-publishing pending ideas...');
+  console.log('Picking ideas from backlog for this week...');
   try {
-    await autoPublishIdeas();
-    console.log('Auto-publish completed');
+    await pickAndPublishIdeas();
+    console.log('Publishing completed');
   } catch (error) {
-    console.error('Error auto-publishing ideas:', error);
+    console.error('Error in picking/publishing ideas:', error);
   }
 
   console.log('Running weekly winner calculation...');
@@ -103,6 +104,16 @@ cron.schedule('0 9 * * 1', async () => {
     console.log('Weekly digest sent successfully');
   } catch (error) {
     console.error('Error sending weekly digest:', error);
+  }
+});
+
+// Friday and Sunday 9 AM UTC: Check if backlog has at least 10 ideas
+cron.schedule('0 9 * * 5,0', async () => {
+  console.log('Running scheduled backlog health check...');
+  try {
+    await checkBacklogHealth();
+  } catch (error) {
+    console.error('Error in scheduled backlog health check:', error);
   }
 });
 
