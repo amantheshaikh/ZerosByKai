@@ -61,6 +61,15 @@ export async function checkBacklogHealth() {
 
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
+    // Check if we should only run on specific days (Friday=5, Sunday=0)
+    if (process.argv.includes('--scheduled')) {
+        const day = new Date().getUTCDay();
+        if (day !== 0 && day !== 5) {
+            console.log(`ℹ️  Not a scheduled check day (Day: ${day}). Skipping.`);
+            process.exit(0);
+        }
+    }
+
     checkBacklogHealth()
         .then(() => process.exit(0))
         .catch(() => process.exit(1));
