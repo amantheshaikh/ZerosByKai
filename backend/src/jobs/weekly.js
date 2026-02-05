@@ -72,22 +72,33 @@ export async function calculateWinner() {
       voteCount: voteCountMap.get(idea.id) || 0
     }));
 
-    const winner = ideaVotes.reduce((max, idea) =>
-      idea.voteCount > max.voteCount ? idea : max
-      , ideaVotes[0]);
+    const totalVotes = ideaVotes.reduce((sum, i) => sum + i.voteCount, 0);
+    const maxVotes = Math.max(...ideaVotes.map(i => i.voteCount));
 
-    console.log(`Winner identified: ${winner.name} (${winner.voteCount} votes)`);
+    let winner = null;
+    if (totalVotes > 0) {
+      // Find the idea with the most votes (first one in case of tie)
+      winner = ideaVotes.find(idea => idea.voteCount === maxVotes);
+      console.log(`Winner identified: ${winner.name} (${winner.voteCount} votes)`);
+    } else {
+      console.log(`No winner identified for week ${weekStart}: Total votes is 0.`);
+    }
 
-    // 4. Update Weekly Batch with winner and mark as calculated
+    // 4. Update Weekly Batch with results and mark as calculated
+    const updateData = {
+      week_start_date: weekStart,
+      total_ideas: ideas.length,
+      total_votes: totalVotes,
+      winner_calculated: true  // Mark as complete to prevent re-calculation
+    };
+
+    if (winner) {
+      updateData.winner_idea_id = winner.id;
+    }
+
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('weekly_batches')
-      .upsert({
-        week_start_date: weekStart,
-        winner_idea_id: winner.id,
-        total_ideas: ideas.length,
-        total_votes: ideaVotes.reduce((sum, i) => sum + i.voteCount, 0),
-        winner_calculated: true  // Mark as complete to prevent re-calculation
-      }, {
+      .upsert(updateData, {
         onConflict: 'week_start_date'
       })
       .select()
@@ -95,15 +106,18 @@ export async function calculateWinner() {
 
     if (batchError) throw batchError;
 
-    // 5. Update Idea winner flag
-    const { error: winnerStatusError } = await supabaseAdmin
-      .from('ideas')
-      .update({ is_winner: true })
-      .eq('id', winner.id);
+    // 5. Update Idea winner flag and award badges only if a winner exists
+    let winningVotersCount = 0;
+    if (winner) {
+      const { error: winnerStatusError } = await supabaseAdmin
+        .from('ideas')
+        .update({ is_winner: true })
+        .eq('id', winner.id);
 
-    if (winnerStatusError) {
-      console.error(`❌ Failed to update winner status for idea ${winner.id}:`, winnerStatusError);
-      throw new Error(`Critical failure: Could not set winner status for ${winner.id}`);
+      if (winnerStatusError) {
+        console.error(`❌ Failed to update winner status for idea ${winner.id}:`, winnerStatusError);
+        throw new Error(`Critical failure: Could not set winner status for ${winner.id}`);
+      }
     }
 
     // 6. Archived ALL ideas from that week (including winner)
@@ -121,34 +135,37 @@ export async function calculateWinner() {
       }
     }
 
-    // 6. Award badges to users who voted for winner
-    const { data: winningVoters, error: votersError } = await supabaseAdmin
-      .from('votes')
-      .select('user_id')
-      .eq('idea_id', winner.id);
+    if (winner) {
+      // 6. Award badges to users who voted for winner
+      const { data: winningVoters, error: votersError } = await supabaseAdmin
+        .from('votes')
+        .select('user_id')
+        .eq('idea_id', winner.id);
 
-    if (votersError) throw votersError;
+      if (votersError) throw votersError;
 
-    if (winningVoters && winningVoters.length > 0) {
-      const badges = winningVoters.map(v => ({
-        user_id: v.user_id,
-        idea_id: winner.id,
-        badge_type: 'kai_pick'
-      }));
+      if (winningVoters && winningVoters.length > 0) {
+        winningVotersCount = winningVoters.length;
+        const badges = winningVoters.map(v => ({
+          user_id: v.user_id,
+          idea_id: winner.id,
+          badge_type: 'kai_pick'
+        }));
 
-      const { error: badgeError } = await supabaseAdmin
-        .from('user_badges')
-        .upsert(badges, {
-          onConflict: 'user_id,idea_id',
-          ignoreDuplicates: true
-        });
+        const { error: badgeError } = await supabaseAdmin
+          .from('user_badges')
+          .upsert(badges, {
+            onConflict: 'user_id,idea_id',
+            ignoreDuplicates: true
+          });
 
-      if (badgeError) throw badgeError;
+        if (badgeError) throw badgeError;
 
-      console.log(`Awarded badges to ${winningVoters.length} users`);
+        console.log(`Awarded badges to ${winningVotersCount} users`);
+      }
     }
 
-    return { winner, batch, badgeCount: winningVoters?.length || 0 };
+    return { winner, batch, badgeCount: winningVotersCount };
   } catch (error) {
     console.error('Error calculating winner:', error);
     throw error;
@@ -227,12 +244,12 @@ export async function sendWeeklyDigest() {
       // Not pre-scheduled, so generate it now
       try {
         const aiService = new AIService(config);
-        
+
         // Add timeout protection: 5 second max for AI generation
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('AI subject generation timeout (>5s)')), 5000)
         );
-        
+
         const dynamicSubject = await Promise.race([
           aiService.generateNewsletterSubject(ideas, lastWeekBatch?.winner),
           timeoutPromise
@@ -359,7 +376,7 @@ export async function sendWeeklyDigest() {
     }
 
     console.log(`📊 Final Result: ${successCount}/${emailQueue.length} sent, ${failCount} failed.`);
-    
+
     // Alert if significant failure rate
     if (failCount > 0 && failCount > emailQueue.length * 0.1) {
       console.warn(`⚠️  WARNING: >10% failure rate (${failCount}/${emailQueue.length}). Check Brevo API.`);

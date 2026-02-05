@@ -16,7 +16,7 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 **Command**: `npm run scrape:local`
 **Logic**:
 - Fetches posts from Reddit, HackerNews, IndieHackers, X.
-- Uses Gemini AI to filter noise and generate ~15 high-quality "Zero" ideas.
+- Uses Gemini AI to filter noise and generate **up to 40** high-quality "Zero" ideas.
 - **Outcome**: New rows added to `ideas` table with `status = 'backlog'`.
 
 ## 2. Step 2: Approve Ideas (Curator)
@@ -42,7 +42,7 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 **Goal**: Ensure you don't forget Step 3.
 **Running**: Automatically on **Wed, Fri, Sun**.
 **Logic**:
-- Checks: "Is there a batch scheduled for *Next Monday* WITH 10 ideas?"
+- Checks: "Is there a batch scheduled for *Next Monday* with a **Subject Line** and 10 ideas?"
 - **If No**: Checks "Do we have enough *approved* ideas?" (Context).
 - Sends you an email reminder with the status of your Approved Queue.
 
@@ -50,13 +50,14 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 **Goal**: Deliver the email.
 **Running**: Automatically on **Monday 9 AM UTC**.
 **Logic**:
-1. **Publish**: Finds ideas scheduled for *this week* and flips status `scheduled` -> `published`.
+1. **Calculate Winner**: Looks at the *Previous Week's* batch. Counts votes. Determine winner. 
+   - Awards badges and **archives** last week's ideas.
+2. **Publish**: Finds ideas scheduled for *this week* and flips status `scheduled` -> `published`.
    - *Now they receive public visibility on the site.*
-2. **Calculate Winner**: Looks at the *Previous Week's* batch. Counts votes. Determine winner.
 3. **Send Digest**:
-   - Looks for the *Scheduled Batch*.
+   - Compiles the email with the winner and the 10 new ideas.
    - **Optimization**: Sends in batches of 50 via Brevo Transactional Batch API. (Personalized with Unsubscribe/Login tokens).
-   - If NOT found: **Stops**. Sends nothing.
+   - If NO scheduled batch is found: **Stops**. Sends nothing.
 
 ---
 

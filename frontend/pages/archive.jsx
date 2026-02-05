@@ -100,9 +100,19 @@ export default function ArchivePage() {
                                                 ))}
                                             </div>
                                             <h3 className="comic-title text-2xl mb-1 text-black">{winner.name}</h3>
-                                            <p className="comic-body font-bold text-gray-600 text-sm mb-3">{winner.title}</p>
-                                            <p className="comic-body text-sm text-gray-800 mb-3">{winner.problem}</p>
-                                            <p className="comic-body text-sm text-gray-700 italic">{winner.solution}</p>
+                                            <p className="comic-body font-bold text-gray-600 text-sm mb-4">{winner.title}</p>
+
+                                            <div className="mb-4">
+                                                <span className="block text-[10px] font-black text-gray-400 mb-1 tracking-tighter uppercase italic">The Problem</span>
+                                                <p className="comic-body text-sm text-gray-800 leading-relaxed">{winner.problem}</p>
+                                            </div>
+
+                                            <div className="mt-4">
+                                                <span className="block text-[10px] font-black text-yellow-600 mb-1 tracking-tighter uppercase italic">The Fix</span>
+                                                <p className="comic-body text-sm text-gray-700 italic border-l-4 border-yellow-200 pl-3 py-1 bg-white/50">
+                                                    {winner.solution}
+                                                </p>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="border-2 border-dashed border-gray-300 p-6 text-center mb-6">
@@ -157,8 +167,19 @@ export default function ArchivePage() {
                                                                             )}
                                                                         </div>
                                                                         <h4 className="comic-title text-lg mb-1">{opportunity.name}</h4>
-                                                                        <p className="comic-body text-xs text-gray-600 mb-2">{opportunity.title}</p>
-                                                                        <p className="comic-body text-sm text-gray-800">{opportunity.problem}</p>
+                                                                        <p className="comic-body text-xs text-gray-600 mb-3">{opportunity.title}</p>
+
+                                                                        <div className="mb-3">
+                                                                            <span className="block text-[10px] font-black text-gray-400 mb-0.5 tracking-tighter uppercase italic">The Problem</span>
+                                                                            <p className="comic-body text-xs sm:text-sm text-gray-800 leading-relaxed">{opportunity.problem}</p>
+                                                                        </div>
+
+                                                                        <div className="mt-3">
+                                                                            <span className="block text-[10px] font-black text-yellow-600 mb-0.5 tracking-tighter uppercase italic">The Fix</span>
+                                                                            <p className="comic-body text-xs sm:text-sm text-gray-700 italic border-l-4 border-yellow-200 pl-3 py-1 bg-yellow-50/50">
+                                                                                {opportunity.solution}
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>

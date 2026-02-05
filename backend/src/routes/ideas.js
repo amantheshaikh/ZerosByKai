@@ -7,34 +7,34 @@ const router = express.Router();
 // GET /api/ideas/leaderboard - Get top 3 winners from last week
 router.get('/leaderboard', async (req, res) => {
   try {
-    // 1. Find the latest week that has published ideas
-    const { data: latestIdea } = await supabaseAdmin
-      .from('ideas')
-      .select('week_published')
-      .or('status.eq.published,is_winner.eq.true')
-      .not('week_published', 'is', null)
-      .gt('week_published', '2025-01-01')
-      .lte('week_published', getLastMonday()) // Leaderboard shows PREVIOUS week
-      .order('week_published', { ascending: false })
+    // 1. Find the latest batch that has been "sent" or is current (Data-Driven)
+    const { data: latestBatch } = await supabaseAdmin
+      .from('weekly_batches')
+      .select('week_start_date')
+      .not('week_start_date', 'is', null)
+      .gt('week_start_date', '2025-01-01')
+      .lte('week_start_date', getMonday()) // Can be this week
+      .order('week_start_date', { ascending: false })
       .limit(1)
       .single();
 
-    if (!latestIdea) return res.json([]);
+    if (!latestBatch) return res.json([]);
 
-    // 2. The leaderboard should show the week BEFORE the current one
-    const currentWeek = new Date(latestIdea.week_published);
-    const lastWeekDate = new Date(currentWeek);
+    // 2. The leaderboard should show the week BEFORE the latest one
+    // (If Feb 2 is the latest active week, show Jan 26 results)
+    const latestDate = new Date(latestBatch.week_start_date);
+    const lastWeekDate = new Date(latestDate);
     lastWeekDate.setUTCDate(lastWeekDate.getUTCDate() - 7);
     const weekStart = lastWeekDate.toISOString().split('T')[0];
 
-    console.log(`Fetching leaderboard for batch preceding ${latestIdea.week_published}: ${weekStart}`);
+    console.log(`Fetching leaderboard results for week: ${weekStart}`);
 
     // 2. Fetch ideas for that week
     const { data: ideas, error } = await supabaseAdmin
       .from('ideas')
       .select('*')
       .eq('week_published', weekStart)
-      .or('status.eq.published,is_winner.eq.true');
+      .in('status', ['published', 'archived']);
 
     if (error) throw error;
 
@@ -192,7 +192,7 @@ router.get('/weekly-batches', async (req, res) => {
       .from('ideas')
       .select('*')
       .in('week_published', weekStartDates)
-      .or('status.eq.published,is_winner.eq.true')
+      // No status filter here, if it belongs to a past batch, we show it
       .order('created_at', { ascending: true });
 
     if (ideasError) throw ideasError;

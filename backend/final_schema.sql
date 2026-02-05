@@ -15,11 +15,12 @@ CREATE TABLE IF NOT EXISTS weekly_batches (
   winner_idea_id UUID,  -- FK added via ALTER TABLE below (circular dependency with ideas)
   total_ideas INTEGER DEFAULT 0,
   total_votes INTEGER DEFAULT 0,
-  posts_scraped INTEGER,
   subject_line TEXT,
   email_sent_at TIMESTAMPTZ,
   winner_calculated BOOLEAN DEFAULT FALSE,  -- Prevents race condition in calculateWinner()
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT check_winner_calculated_if_winner_id_exists 
+    CHECK (winner_idea_id IS NULL OR winner_calculated = TRUE)
 );
 
 -- Ideas Table
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
   week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT CHECK (status IN ('backlog', 'published', 'archived')) DEFAULT 'backlog',
+  status TEXT CHECK (status IN ('backlog', 'scheduled', 'published', 'archived')) DEFAULT 'backlog',
   is_winner BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -105,7 +106,7 @@ ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Ideas
 DROP POLICY IF EXISTS "Anyone can view published ideas" ON ideas;
-CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status = 'published' OR is_winner = true);
+CREATE POLICY "Anyone can view published ideas" ON ideas FOR SELECT USING (status IN ('published', 'archived') OR is_winner = true);
 
 -- Votes
 DROP POLICY IF EXISTS "Users can view own votes" ON votes;
@@ -137,8 +138,54 @@ CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE
 
 -- 6. FUNCTIONS & TRIGGERS
 
--- Handle New User (upsert into subscribers, linking user_id)
-CREATE OR REPLACE FUNCTION public.handle_new_user()
+-- Sync Total Votes in Weekly Batches
+CREATE OR REPLACE FUNCTION public.sync_weekly_batch_vote_count()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_week DATE;
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        SELECT week_published INTO target_week FROM ideas WHERE id = NEW.idea_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        SELECT week_published INTO target_week FROM ideas WHERE id = OLD.idea_id;
+    END IF;
+
+    IF target_week IS NOT NULL THEN
+        UPDATE weekly_batches
+        SET total_votes = (
+            CASE 
+                WHEN TG_OP = 'INSERT' THEN total_votes + 1
+                WHEN TG_OP = 'DELETE' THEN GREATEST(0, total_votes - 1)
+                ELSE total_votes
+            END
+        )
+        WHERE week_start_date = target_week;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_sync_weekly_batch_votes ON votes;
+CREATE TRIGGER tr_sync_weekly_batch_votes
+AFTER INSERT OR DELETE ON votes
+FOR EACH ROW EXECUTE FUNCTION public.sync_weekly_batch_vote_count();
+
+-- Automatically flip winner_calculated when winner_idea_id is set
+CREATE OR REPLACE FUNCTION public.sync_winner_calculated_flag()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.winner_idea_id IS NOT NULL THEN
+        NEW.winner_calculated := TRUE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_sync_winner_calculated ON weekly_batches;
+CREATE TRIGGER tr_sync_winner_calculated
+BEFORE INSERT OR UPDATE OF winner_idea_id ON weekly_batches
+FOR EACH ROW EXECUTE FUNCTION public.sync_winner_calculated_flag();
+
 RETURNS TRIGGER AS $$
 DECLARE
     final_name TEXT;
