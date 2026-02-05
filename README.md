@@ -194,9 +194,9 @@ See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
 
 ## 🤖 AI & Scraping
 
-### Reddit Scraping
+### Multi-source Scraping
 - **Frequency**: Sunday 10 AM UTC (via GitHub Actions)
-- **Subreddits**: 17+ startup-related subreddits
+- **Sources**: Reddit (17+ subreddits), Hacker News, Indie Hackers, X
 - **Anti-Detection**: Rotating user agents, randomized delays, exponential backoff
 - **Output**: ~300+ posts scraped from multiple platforms
 

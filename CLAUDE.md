@@ -1,7 +1,7 @@
 # ZerosByKai - AI Context (Tier 1: Foundation)
 
 ## Project Overview
-AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, analyzes with Gemini AI, delivers 10 validated ideas every Monday.
+AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hackers, and X for real problems, analyzes with Gemini AI, delivers 10 validated ideas every Monday.
 
 **Monorepo:** `frontend/` (Next.js 14, Pages Router, Vercel) + `backend/` (Node.js/Express, Fly.io)  
 **Database:** Supabase (PostgreSQL + Auth)  

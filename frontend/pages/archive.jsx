@@ -5,6 +5,7 @@ import { Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { normalizeIdea } from '@/lib/utils';
 import { fetchArchiveBatches } from '@/lib/ideas';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function ArchivePage() {
     const [batches, setBatches] = useState(null);
@@ -212,6 +213,7 @@ export default function ArchivePage() {
                     </div>
                 )}
             </div>
+            <Footer />
         </div>
     );
 }

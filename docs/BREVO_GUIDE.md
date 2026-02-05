@@ -79,13 +79,13 @@ To get real-time data back into your app (e.g., "Mark user as Bounced in Supabas
 
 For the weekly newsletter, we use **Batch Sending** to deliver emails efficiently.
 
-- **Endpoint**: `sendTransacEmail` (v3)
-- **Feature**: `messageVersions`
-- **Batch Size**: 50 emails per API call.
+- **Strategy**: Client-side Batching (Parallel Requests)
+- **Batch Size**: 50 emails per chunk.
 - **Logic**:
-  - Instead of sending 1 request per user (slow & rate-limited), we send 1 request for 50 users.
-  - Each user gets a **personalized** payload (HTML body with unique matching Unsubscribe Token).
+  - We process subscribers in chunks of 50.
+  - We use `Promise.allSettled` to send parallel requests for improved speed.
+  - Each email is fully personalized with unique Unsubscribe/Login tokens.
 
 ### Deployment Note
-Since our batch size is 50, even with 10,000 users, we only make 200 API calls. This fits well within standard rate limits.
+This approach ensures high throughput while retaining full control over personalization. Brevo handles the high concurrency well.
 

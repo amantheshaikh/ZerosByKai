@@ -140,29 +140,37 @@ CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE
 -- Handle New User (upsert into subscribers, linking user_id)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    final_name TEXT;
 BEGIN
-  -- Security fix: explicitly set search_path
-  SET LOCAL search_path = public, pg_temp;
+  -- Extract name from metadata
+  final_name := COALESCE(
+    NEW.raw_user_meta_data->>'name',
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.raw_user_meta_data->>'user_name',
+    NEW.raw_user_meta_data->>'preferred_username',
+    TRIM(CONCAT(NEW.raw_user_meta_data->>'given_name', ' ', NEW.raw_user_meta_data->>'family_name')),
+    ''
+  );
 
+  -- UPSERT into subscribers
   INSERT INTO public.subscribers (user_id, email, name)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(
-      NEW.raw_user_meta_data->>'name',
-      NEW.raw_user_meta_data->>'full_name',
-      NEW.raw_user_meta_data->>'user_name',           -- GitHub sometimes
-      NEW.raw_user_meta_data->>'preferred_username',  -- Generic OIDC
-      TRIM(CONCAT(NEW.raw_user_meta_data->>'given_name', ' ', NEW.raw_user_meta_data->>'family_name')), -- LinkedIn/OIDC split
-      ''
-    )
-  )
+  VALUES (NEW.id, NEW.email, final_name)
   ON CONFLICT (email) DO UPDATE SET
     user_id = EXCLUDED.user_id,
-    name = COALESCE(NULLIF(EXCLUDED.name, ''), subscribers.name);
+    name = CASE 
+      WHEN final_name <> '' THEN final_name 
+      ELSE subscribers.name 
+    END;
+
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Prevent Auth failure if subscriber sync fails
+    RAISE WARNING 'handle_new_user trigger failed for user %: %', NEW.id, SQLERRM;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created

@@ -127,7 +127,7 @@ fly logs
 Automatically runs via `node-cron`:
 
 ### Sunday 10 AM UTC
-- **Multi-source Scraping** (`jobs/reddit_scraper.js`)
+- **Multi-source Scraping** (`jobs/scrapers/run_scrapers.js`) (via GitHub Actions)
   - Scrapes 20+ sources (Reddit, HN, IH, X)
   - Generates 10 ideas via Gemini AI
   - Saves as `status: 'backlog'`
@@ -213,6 +213,12 @@ Use Supabase Dashboard:
 ```bash
 # Run SQL script in Supabase SQL Editor
 # See: src/scripts/delete-user-by-email.sql
+```
+
+### Resetting All Users (Dev Only)
+```bash
+# Run migrations/reset_all_users.sql in Supabase SQL Editor
+# WARNING: Deletes ALL users/subs. Preserves votes (via SET NULL).
 ```
 
 ---

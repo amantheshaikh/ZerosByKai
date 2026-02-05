@@ -9,7 +9,7 @@ This document documents the technology stack and file tree structure for ZerosBy
 - **Express** - Web framework
 - **Supabase** - Database and Authentication (magic link, Google OAuth, email tokens)
 - **Google Gemini** - AI analysis (`gemini-3-flash-preview`, fallback: `gemini-3-pro-preview`)
-- **Amazon SES** - Email delivery service (hardened multipart/alternative)
+- **Brevo** - Email delivery service (Transactional + Batch)
 - **node-cron** - Cron job scheduling
 - **Fly.io** - Deployment platform
 
@@ -34,7 +34,10 @@ ZerosByKai/
 ├── backend/                            # Backend application
 │   ├── README.md                       # Backend setup guide
 │   ├── final_schema.sql                # Definitive schema
-│   ├── migration_v2.sql                # Production alignment script
+│   ├── migrations/                     # Database migrations
+│   │   ├── fix_auth_trigger.sql        # Fix for auth user creation trigger
+│   │   ├── reset_all_users.sql         # Utilities to reset user base
+│   │   └── sync_production_v2.sql      # Schema synchronization
 │   ├── src/                            # Source code
 │   │   ├── server.js                   # Main entry point + cron jobs
 │   │   ├── config/
@@ -44,8 +47,10 @@ ZerosByKai/
 │   │   │   ├── ideas.js                # Ideas CRUD & leaderboard
 │   │   │   └── votes.js                # Voting, badges, results
 │   │   ├── jobs/                       # Production cron jobs
-│   │   │   ├── reddit_scraper.js       # Sunday: Reddit → Gemini 3 Preview → 10 ideas
-│   │   │   └── weekly.js               # Monday: publish, winner, digest (SES)
+│   │   │   ├── scrapers/               # Multi-source scrapers
+│   │   │   │   └── run_scrapers.js     # Master orchestration script
+│   │   │   ├── backlog_check.js        # Health check job
+│   │   │   └── weekly.js               # Monday: publish, winner, digest (Brevo)
 │   │   ├── emails/                     # Email templates
 │   │   │   ├── templates.js            # Re-exports all templates
 │   │   │   └── templates/
@@ -55,7 +60,7 @@ ZerosByKai/
 │   │   │       └── magic-link.js       # Magic link email
 │   │   ├── utils/
 │   │   │   ├── emailToken.js           # JWT utilities
-│   │   │   ├── emailService.js         # SES Hardened service
+│   │   │   ├── emailService.js         # Brevo email service wrapper
 │   │   │   ├── helpers.js              # PII Masking & Config
 │   │   │   └── dateUtils.js            # UTC Date utilities
 │   │   └── scripts/
@@ -213,7 +218,11 @@ cd frontend
 vercel --prod
 ```
 
-## Recent Changes (Feb 2, 2026)
+## Recent Changes
+- ✅ **Email System**: Fully migrated to Brevo (Transactional + Batch API).
+- ✅ **Multi-Source**: Added HackerNews, IndieHackers, and X scraping.
+- ✅ **Database**: Added `migrations/` directory for tracked schema changes.
+- ✅ **Auth**: Enhanced `auth.js` with improved triggers and documentation.
 - ✅ Moved `workflows/daily_startup_ideas.js` → `jobs/reddit_scraper.js`
 - ✅ Removed `routes/admin.js` (use Supabase dashboard)
 - ✅ Separated email templates into individual files

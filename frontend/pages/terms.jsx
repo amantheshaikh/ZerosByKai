@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function Terms() {
     return (
@@ -106,14 +107,7 @@ export default function Terms() {
 
             </main>
 
-            <footer className="bg-gray-900 text-white py-8 text-center comic-body text-sm">
-                <p>&copy; {new Date().getFullYear()} ZerosByKai. All rights reserved.</p>
-                <div className="mt-4 space-x-6">
-                    <Link href="/privacy" className="hover:text-yellow-400 underline">Privacy</Link>
-                    <Link href="/story" className="hover:text-yellow-400 underline">Story</Link>
-                    <Link href="/" className="hover:text-yellow-400 underline">Home</Link>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth, apiFetch } from '@/lib/auth';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const TIERS = [
     {
@@ -256,6 +257,7 @@ export default function ProfilePage() {
                     )}
                 </div>
             </div>
+            <Footer />
         </div>
     );
 }

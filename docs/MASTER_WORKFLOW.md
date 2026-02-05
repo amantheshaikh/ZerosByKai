@@ -11,7 +11,7 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 
 ---
 
-## 1. Step 1: Generate Ideas (The Scraper)
+## 1. Step 1: Generate Ideas (Multi-source Scraper)
 **Goal**: Populate the database with fresh raw ideas.
 **Command**: `npm run scrape:local`
 **Logic**:
