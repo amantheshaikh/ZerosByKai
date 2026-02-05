@@ -48,3 +48,58 @@ export async function syncContact(user, attributes = {}) {
         return false;
     }
 }
+
+/**
+ * Marks a contact as blocklisted (unsubscribed) in Brevo.
+ * 
+ * @param {string} email 
+ * @returns {Promise<boolean>}
+ */
+export async function blocklistContact(email) {
+    if (!email || typeof email !== 'string' || !email.trim()) {
+        throw new Error('blocklistContact: missing required email');
+    }
+
+    try {
+        await contactsApi.updateContact(email, { emailBlacklisted: true });
+        console.log(`🚫 Blocklisted contact in Brevo: ${maskEmail(email)}`);
+        return true;
+    } catch (error) {
+        // 404 means the contact doesn't exist in Brevo, which is fine since they're unsubscribing
+        if (error?.response?.status === 404 || error?.status === 404) {
+            console.log(`ℹ️  Contact ${maskEmail(email)} not found in Brevo, no need to blocklist.`);
+            return true;
+        }
+
+        const errorBody = error?.response?.body || error?.body || error.message;
+        console.error('⚠️ Failed to blocklist contact in Brevo:', JSON.stringify(errorBody, null, 2));
+        return false;
+    }
+}
+
+/**
+ * Deletes a contact from Brevo.
+ * 
+ * @param {string} email 
+ * @returns {Promise<boolean>}
+ */
+export async function deleteContact(email) {
+    if (!email || typeof email !== 'string' || !email.trim()) {
+        throw new Error('deleteContact: missing required email');
+    }
+
+    try {
+        await contactsApi.deleteContact(email);
+        console.log(`🗑️ Deleted contact from Brevo: ${maskEmail(email)}`);
+        return true;
+    } catch (error) {
+        // 404 is fine, means already deleted
+        if (error?.response?.status === 404 || error?.status === 404) {
+            console.log(`ℹ️ Contact ${maskEmail(email)} already deleted or not found in Brevo.`);
+            return true;
+        }
+        const errorBody = error?.response?.body || error?.body || error.message;
+        console.error('⚠️ Failed to delete contact from Brevo:', JSON.stringify(errorBody, null, 2));
+        return false;
+    }
+}

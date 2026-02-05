@@ -7,7 +7,7 @@ import { verifyEmailToken } from '../utils/emailToken.js';
 import { sendEmail } from '../utils/emailService.js';
 import rateLimit from 'express-rate-limit';
 import { generateEmailToken } from '../utils/emailToken.js';
-import { syncContact } from '../services/brevoService.js';
+import { syncContact, blocklistContact, deleteContact } from '../services/brevoService.js';
 
 const router = express.Router();
 
@@ -449,8 +449,94 @@ router.get('/unsubscribe', async (req, res) => {
       if (insertError) throw insertError;
     }
 
+    // 3. Blocklist in Brevo (fire-and-forget)
+    blocklistContact(email).catch(err => {
+      console.error(`❌ Failed to blocklist contact for ${email} in Brevo:`, err.message);
+    });
+
     res.json({ message: 'Unsubscribed successfully' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/auth/user - Delete current user account and sync with Brevo
+router.delete('/user', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const userEmail = user.email;
+
+    // 1. Delete from Brevo (fire-and-forget)
+    deleteContact(userEmail).catch(err => {
+      console.error(`❌ Failed to delete contact for ${userEmail} from Brevo:`, err.message);
+    });
+
+    // 2. Delete from subscribers table (preserves RLS if any, but we use admin to be sure)
+    await supabaseAdmin
+      .from('subscribers')
+      .delete()
+      .eq('user_id', user.id);
+
+    // 3. Delete from auth.users (requires Admin API)
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+    if (deleteError) throw deleteError;
+
+    console.log(`🗑️ User deleted: ${userEmail}`);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Account deletion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/auth/admin/user - Admin delete user (requires service key)
+router.delete('/admin/user', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const authHeader = req.headers.authorization;
+
+    // Strict admin check: require Supabase Service Key in header
+    if (authHeader !== `Bearer ${config.supabase.serviceKey}`) {
+      return res.status(401).json({ error: 'Unauthorized: Admin access required' });
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // 1. Delete from Brevo
+    await deleteContact(email);
+
+    // 2. Get user by email to delete from Supabase
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw listError;
+
+    const user = users.find(u => u.email === email);
+    if (user) {
+      // Delete from subscribers
+      await supabaseAdmin.from('subscribers').delete().eq('user_id', user.id);
+      // Delete from auth
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+      if (deleteError) throw deleteError;
+    } else {
+      // Just in case they are only in subscribers
+      await supabaseAdmin.from('subscribers').delete().eq('email', email);
+    }
+
+    console.log(`🗑️ Admin deleted user: ${email}`);
+    res.json({ message: `User ${email} deleted successfully from all systems` });
+  } catch (error) {
+    console.error('Admin user deletion error:', error);
     res.status(500).json({ error: error.message });
   }
 });
