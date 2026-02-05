@@ -1,4 +1,5 @@
 import { contactsApi } from "../config/brevo.js";
+import { config } from "../config/env.js";
 import { maskEmail } from "../utils/helpers.js";
 
 /**
@@ -42,7 +43,8 @@ export async function syncContact(user, attributes = {}) {
         return true;
     } catch (error) {
         // Log but don't crash main flow
-        console.error('⚠️ Failed to sync contact to Brevo:', error?.body || error.message);
+        const errorBody = error?.response?.body || error?.body || error.message;
+        console.error('⚠️ Failed to sync contact to Brevo:', JSON.stringify(errorBody, null, 2));
         return false;
     }
 }
