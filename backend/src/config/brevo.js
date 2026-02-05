@@ -3,10 +3,9 @@ import { config } from './env.js';
 
 // Configure defaults
 // Configure API key
-// Fail-fast validation
+// Fail-soft validation
 if (!config.brevo.apiKey || !config.brevo.apiKey.trim()) {
-    console.error('❌ FATAL ERROR: BREVO_API_KEY is missing or empty in environment variables.');
-    process.exit(1);
+    console.error('⚠️  WARNING: BREVO_API_KEY is missing. Email features will be disabled.');
 }
 
 // Configure API key

@@ -58,23 +58,30 @@ export const config = {
     },
 };
 
-// Simple validation
-const requiredEnv = [
+// Basic validation
+const criticalEnv = [
     { key: 'SUPABASE_URL', val: config.supabase.url },
     { key: 'SUPABASE_SERVICE_KEY', val: config.supabase.serviceKey },
-    { key: 'GEMINI_API_KEY', val: config.gemini.apiKey },
-    { key: 'BREVO_API_KEY', val: config.brevo.apiKey },
     { key: 'JWT_SECRET', val: config.jwtSecret },
     { key: 'EMAIL_TOKEN_SECRET', val: config.emailTokenSecret }
 ];
 
-const missing = requiredEnv.filter(e => !e.val).map(e => e.key);
-if (missing.length > 0) {
-    const msg = `❌ Missing required environment variables: ${missing.join(', ')}`;
-    // Always log the missing variables for developer awareness
+const secondaryEnv = [
+    { key: 'GEMINI_API_KEY', val: config.gemini.apiKey },
+    { key: 'BREVO_API_KEY', val: config.brevo.apiKey }
+];
+
+const missingCritical = criticalEnv.filter(e => !e.val).map(e => e.key);
+const missingSecondary = secondaryEnv.filter(e => !e.val).map(e => e.key);
+
+if (missingCritical.length > 0) {
+    const msg = `❌ FATAL: Missing CRITICAL environment variables: ${missingCritical.join(', ')}`;
     console.error(msg);
-    // Fail fast in production to avoid running with insecure defaults
     if (process.env.NODE_ENV === 'production') {
         throw new Error(msg);
     }
+}
+
+if (missingSecondary.length > 0) {
+    console.error(`⚠️  WARNING: Missing secondary environment variables: ${missingSecondary.join(', ')}. Some features will be disabled.`);
 }
