@@ -606,11 +606,11 @@ const ZerosByKaiLanding = () => {
                         <div className="comic-panel bg-white p-5 sm:p-6 lg:p-8 transform rotate-1 comic-shadow">
                             <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-rose-700">STOP BRAINSTORMING. START LISTENING.</h3>
                             <p className="comic-body text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 text-black">
-                                The best businesses aren't invented; they're <span className="font-bold bg-yellow-200 px-1 text-black">discovered</span>.
+                                The best businesses aren&apos;t invented; they&apos;re <span className="font-bold bg-yellow-200 px-1 text-black">discovered</span>.
                                 Hidden in 4.2M weekly conversations are thousands of people begging for solutions.
                             </p>
                             <p className="comic-body text-sm sm:text-base lg:text-lg text-black">
-                                Your "Uber for Dogs" idea? No one asked for it.<br />
+                                Your &quot;Uber for Dogs&quot; idea? No one asked for it.<br />
                                 The problem Kai found yesterday? <span className="font-bold bg-black text-white px-1 mx-1">500 people are already searching for it.</span>
                             </p>
                         </div>

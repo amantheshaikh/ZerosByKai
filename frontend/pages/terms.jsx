@@ -42,7 +42,7 @@ export default function Terms() {
                         <div className="comic-panel p-4 bg-orange-50 border-orange-200">
                             <h3 className="comic-title text-lg text-orange-800 mb-1">REDDIT COMMUNITIES</h3>
                             <p className="comic-body text-xs text-black">
-                                Monitoring 20+ high-signal subreddits for pain points, validation requests, and "shutdown" notices.
+                                Monitoring 20+ high-signal subreddits for pain points, validation requests, and &quot;shutdown&quot; notices.
                             </p>
                         </div>
                         <div className="comic-panel p-4 bg-orange-50 border-orange-200">
@@ -54,7 +54,7 @@ export default function Terms() {
                         <div className="comic-panel p-4 bg-black text-white">
                             <h3 className="comic-title text-lg text-white mb-1">X / TWITTER</h3>
                             <p className="comic-body text-xs text-gray-300">
-                                Tracking viral complaints, "I wish this existed" tweets, and founder conversations.
+                                Tracking viral complaints, &quot;I wish this existed&quot; tweets, and founder conversations.
                             </p>
                         </div>
                         <div className="comic-panel p-4 bg-blue-50 border-blue-200">
