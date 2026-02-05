@@ -107,7 +107,58 @@ export function AuthProvider({ children }) {
 
   // Refs to prevent duplicate operations
   const isInitialized = useRef(false);
-  const postLoginProcessed = useRef(new Set());
+  const postLoginProcessed = useRef(new Map()); // Changed from Set to Map for thread-safe dedup
+  const refreshTimerRef = useRef(null);
+
+  /**
+   * Schedule session refresh before JWT expiry
+   * Refreshes 5 minutes before expiration to prevent sudden logouts
+   */
+  const scheduleSessionRefresh = useCallback((session) => {
+    // Clear any existing timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    if (!session?.expires_at) {
+      return;
+    }
+
+    const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+    const refreshBefore = 5 * 60 * 1000; // Refresh 5 minutes before expiry
+
+    // If already expired or expires soon, refresh immediately
+    if (timeUntilExpiry <= refreshBefore) {
+      console.log('🔄 Session expiring soon, refreshing immediately...');
+      supabase.auth.refreshSession().catch(err => {
+        console.error('❌ Failed to refresh session:', err.message);
+      });
+      return;
+    }
+
+    // Schedule refresh for (expiry - 5 minutes)
+    const refreshAt = timeUntilExpiry - refreshBefore;
+    console.log(`⏰ Session refresh scheduled in ${Math.floor(refreshAt / 1000)}s`);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      try {
+        console.log('🔄 Auto-refreshing session...');
+        const { error } = await supabase.auth.refreshSession();
+
+        if (error) {
+          console.error('❌ Failed to auto-refresh session:', error.message);
+          // User will be logged out on next action requiring auth
+          return;
+        }
+
+        console.log('✅ Session auto-refreshed successfully');
+      } catch (error) {
+        console.error('❌ Session refresh error:', error.message);
+      }
+    }, refreshAt);
+  }, [supabase]);
 
   /**
    * Check for email token in URL and auto-login
@@ -164,7 +215,8 @@ export function AuthProvider({ children }) {
    * 2. Send welcome email for new users
    * 3. Mark user as welcomed
    * 
-   * Uses session-based deduplication to prevent duplicate calls
+   * Uses Promise-based deduplication to prevent concurrent duplicate calls
+   * Thread-safe: concurrent logins for same user will wait for first to complete
    */
   const handlePostLogin = useCallback(async (session) => {
     if (!session?.user?.id || !session?.access_token) {
@@ -174,29 +226,45 @@ export function AuthProvider({ children }) {
 
     const userId = session.user.id;
 
-    // Prevent duplicate post-login calls for the same user
+    // Check if we're already processing this user
     if (postLoginProcessed.current.has(userId)) {
-      console.log('ℹ️ Post-login already processed for this user');
+      // Wait for the existing promise to complete
+      try {
+        await postLoginProcessed.current.get(userId);
+        console.log('ℹ️ Post-login already completed for this user');
+      } catch (err) {
+        console.warn('⚠️ Previous post-login failed, retrying...');
+      }
       return;
     }
 
-    try {
-      console.log('🔄 Running post-login hook...');
+    // Create and store the promise before starting async work
+    const promise = (async () => {
+      try {
+        console.log('🔄 Running post-login hook...');
 
-      const data = await apiFetch('/api/auth/post-login', {
-        method: 'POST'
-      }, session);
+        const data = await apiFetch('/api/auth/post-login', {
+          method: 'POST'
+        }, session);
 
-      postLoginProcessed.current.add(userId);
-
-      if (data?.isNewUser) {
-        console.log('✅ Welcome email sent to new user');
-      } else {
-        console.log('✅ Returning user authenticated');
+        if (data?.isNewUser) {
+          console.log('✅ Welcome email sent to new user');
+        } else {
+          console.log('✅ Returning user authenticated');
+        }
+      } catch (err) {
+        console.error('❌ Post-login hook failed:', err.message);
+        // Non-critical - don't block user experience
+        throw err;
       }
-    } catch (err) {
-      console.error('❌ Post-login hook failed:', err.message);
-      // Non-critical - don't block user experience
+    })();
+
+    postLoginProcessed.current.set(userId, promise);
+
+    try {
+      await promise;
+    } catch {
+      // Error already logged above
     }
   }, []);
 
@@ -290,6 +358,11 @@ export function AuthProvider({ children }) {
         setUser(newSession?.user ?? null);
         setIsLoading(false);
 
+        // Schedule session refresh before expiry
+        if (newSession?.expires_at) {
+          scheduleSessionRefresh(newSession);
+        }
+
         // Handle sign-in events (magic link, OAuth, email token, token refresh)
         if (event === 'SIGNED_IN' && newSession?.access_token) {
           await handlePostLogin(newSession);
@@ -298,11 +371,19 @@ export function AuthProvider({ children }) {
         // Handle token refresh (silent, no post-login needed)
         if (event === 'TOKEN_REFRESHED') {
           console.log('🔄 Token refreshed');
+          // Reschedule refresh for the new token expiry
+          if (newSession?.expires_at) {
+            scheduleSessionRefresh(newSession);
+          }
         }
 
         // Handle sign-out events
         if (event === 'SIGNED_OUT') {
           handleSignOut();
+          // Clear refresh timer on sign-out
+          if (refreshTimerRef.current) {
+            clearTimeout(refreshTimerRef.current);
+          }
         }
 
         // Handle user updates (profile changes, etc.)
@@ -315,8 +396,12 @@ export function AuthProvider({ children }) {
     return () => {
       subscription.unsubscribe();
       isInitialized.current = false;
+      // Clean up refresh timer on unmount
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
     };
-  }, [supabase, checkEmailToken, handlePostLogin, handleSignOut]);
+  }, [supabase, checkEmailToken, handlePostLogin, handleSignOut, scheduleSessionRefresh]);
 
   /**
    * Sign out user
@@ -348,12 +433,15 @@ export function AuthProvider({ children }) {
     }
   }, [supabase, handleSignOut]);
 
+
+
   /**
-   * Sign in with Google OAuth
-   * Redirects to Google for authentication
+   * Sign in with OAuth Provider
+   * Redirects to provider for authentication
+   * @param {string} provider - 'google' | 'facebook' | 'github' | 'linkedin'
    * @throws {Error} OAuth initialization error
    */
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithProvider = useCallback(async (provider) => {
     try {
       const origin = getRedirectUrl();
 
@@ -361,26 +449,35 @@ export function AuthProvider({ children }) {
         throw new Error('Redirect URL not configured');
       }
 
+      // Provider-specific options
+      const options = {
+        redirectTo: `${origin}/auth/callback`,
+      };
+
+      if (provider === 'google') {
+        options.queryParams = {
+          access_type: 'offline',
+          prompt: 'consent',
+        };
+      }
+
+      // Specific scopes can be added here if needed in the future
+      // if (provider === 'github') options.scopes = 'read:user user:email';
+
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        },
+        provider,
+        options,
       });
 
       if (error) {
-        console.error('❌ Google OAuth error:', error.message);
+        console.error(`❌ ${provider} OAuth error:`, error.message);
         throw error;
       }
 
-      console.log('🔄 Redirecting to Google...');
+      console.log(`🔄 Redirecting to ${provider}...`);
     } catch (error) {
-      console.error('❌ Google sign-in failed:', error.message);
-      setError('Failed to sign in with Google. Please try again.');
+      console.error(`${provider} sign-in failed:`, error.message);
+      setError(`Failed to sign in with ${provider}. Please try again.`);
       throw error;
     }
   }, [supabase]);
@@ -497,7 +594,7 @@ export function AuthProvider({ children }) {
 
     // Auth methods
     signOut,
-    signInWithGoogle,
+    signInWithProvider, // Generic OAuth method
     sendMagicLink,
     subscribeNewsletter,
     clearError,

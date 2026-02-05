@@ -7,16 +7,20 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "scrape:local": "node src/jobs/reddit_scraper.js",
+    "scrape:local": "node src/jobs/scrapers/run_scrapers.js",
     "backlog:check": "node src/jobs/backlog_check.js",
     "backlog:check:scheduled": "node src/jobs/backlog_check.js --scheduled",
     "monday:weekly": "node src/jobs/weekly.js",
-    "monday:weekly:scheduled": "node src/jobs/weekly.js --scheduled"
+    "monday:weekly:scheduled": "node src/jobs/weekly.js --scheduled",
+    "schedule": "node src/jobs/schedule_newsletter.js"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.980.0",
+    "@getbrevo/brevo": "^3.0.1",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.39.0",
+    "algoliasearch": "^5.47.0",
+    "apify-client": "^2.22.0",
+    "cheerio": "^1.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

@@ -8,10 +8,10 @@ export default function Terms() {
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
                 <title>Terms & Guidelines — Startup Ideas Curation Policy | ZerosByKai</title>
-                <meta name="description" content="ZerosByKai terms and guidelines. Learn how we curate validated startup ideas from Reddit, our anti-hallucination pledge, and our 0% equity policy on business ideas you build." />
-                <meta name="keywords" content="ZerosByKai terms, startup ideas policy, Reddit curation guidelines, business ideas terms of service" />
+                <meta name="description" content="ZerosByKai terms and guidelines. Learn how we curate validated startup ideas from the internet's open communities, our anti-hallucination pledge, and our 0% equity policy on business ideas you build." />
+                <meta name="keywords" content="ZerosByKai terms, startup ideas policy, curation guidelines, business ideas terms of service" />
                 <meta property="og:title" content="Terms & Guidelines | ZerosByKai" />
-                <meta property="og:description" content="How we curate startup ideas from Reddit. Anti-hallucination pledge and 0% equity policy." />
+                <meta property="og:description" content="How we curate startup ideas from the internet's noise. Anti-hallucination pledge and 0% equity policy." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/terms" />
                 <meta name="twitter:title" content="Terms & Guidelines | ZerosByKai" />
@@ -34,28 +34,40 @@ export default function Terms() {
                     <div className="absolute -top-4 -left-4 bg-yellow-400 border-4 border-black px-4 py-2 comic-title transform -rotate-1">
                         THE SOURCES
                     </div>
-                    <h2 className="comic-title text-2xl mb-6 text-black">MASTER LIST OF SUBREDDITS</h2>
+                    <h2 className="comic-title text-2xl mb-6 text-black">DATA SOURCES</h2>
                     <p className="comic-body text-gray-800 mb-6 font-bold">
                         We don&apos;t just browse random corners of the internet. We have deep monitoring on these high-signal communities:
                     </p>
-                    <div className="flex flex-wrap gap-3">
-                        {[
-                            "r/Business_Ideas", "r/SaaS", "r/webdev", "r/SideProject",
-                            "r/smallbusiness", "r/roastmystartup", "r/GrowthHacking",
-                            "r/indiehackers", "r/startups", "r/nocode", "r/vibecoding",
-                            "r/Entrepreneur", "r/InternetIsBeautiful", "r/startup",
-                            "r/ProductHunters", "r/StartUpIndia", "r/Startup_Ideas",
-                            "r/edtech", "r/HealthTech", "r/fintech", "r/smallbusinessindia"
-                        ].map((sub, i) => (
-                            <span key={i} className="comic-body text-sm font-bold px-3 py-1 bg-gray-100 border-2 border-black text-black hover:bg-yellow-200 transition-colors cursor-default">
-                                {sub}
-                            </span>
-                        ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="comic-panel p-4 bg-orange-50 border-orange-200">
+                            <h3 className="comic-title text-lg text-orange-800 mb-1">REDDIT COMMUNITIES</h3>
+                            <p className="comic-body text-xs text-black">
+                                Monitoring 20+ high-signal subreddits for pain points, validation requests, and "shutdown" notices.
+                            </p>
+                        </div>
+                        <div className="comic-panel p-4 bg-orange-50 border-orange-200">
+                            <h3 className="comic-title text-lg text-orange-800 mb-1">HACKER NEWS</h3>
+                            <p className="comic-body text-xs text-black">
+                                Analyzing frontpage discussions, Show HN launches, and technical debates for emerging trends.
+                            </p>
+                        </div>
+                        <div className="comic-panel p-4 bg-black text-white">
+                            <h3 className="comic-title text-lg text-white mb-1">X / TWITTER</h3>
+                            <p className="comic-body text-xs text-gray-300">
+                                Tracking viral complaints, "I wish this existed" tweets, and founder conversations.
+                            </p>
+                        </div>
+                        <div className="comic-panel p-4 bg-blue-50 border-blue-200">
+                            <h3 className="comic-title text-lg text-blue-900 mb-1">INDIE HACKERS</h3>
+                            <p className="comic-body text-xs text-black">
+                                Scanning forums for bootstrapper struggles, post-mortems, and revenue milestones.
+                            </p>
+                        </div>
                     </div>
                     <div className="mt-6 flex gap-4 items-center">
                         <div className="text-3xl">⚖️</div>
                         <p className="comic-body text-black font-bold">
-                            This content represents our analysis and is <strong>not endorsed by Reddit</strong> or the original posters.
+                            This content represents our analysis and is <strong>not endorsed by any platform</strong> (Reddit, X, etc) or the original posters.
                         </p>
                     </div>
                 </div>

@@ -18,10 +18,8 @@ SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_KEY=xxx
 
-# Email (Amazon SES)
-AWS_ACCESS_KEY_ID=xxx
-AWS_SECRET_ACCESS_KEY=xxx
-AWS_REGION=ap-southeast-2
+# Email (Brevo)
+BREVO_API_KEY=xkeysib-...
 
 # AI
 GEMINI_API_KEY=xxx
@@ -76,9 +74,7 @@ fly launch
 fly secrets set SUPABASE_URL="your_url"
 fly secrets set SUPABASE_ANON_KEY="your_key"
 fly secrets set SUPABASE_SERVICE_KEY="your_service_key"
-fly secrets set AWS_ACCESS_KEY_ID="xxx"
-fly secrets set AWS_SECRET_ACCESS_KEY="xxx"
-fly secrets set AWS_REGION="ap-southeast-2"
+fly secrets set BREVO_API_KEY="xkeysib-..."
 fly secrets set GEMINI_API_KEY="your_gemini_key"
 fly secrets set JWT_SECRET="your_jwt_secret"
 fly secrets set FRONTEND_URL="https://zerosbykai.com"
@@ -131,20 +127,21 @@ fly logs
 Automatically runs via `node-cron`:
 
 ### Sunday 10 AM UTC
-- **Reddit Scraping** (`jobs/reddit_scraper.js`)
-  - Scrapes 17+ subreddits
+- **Multi-source Scraping** (`jobs/reddit_scraper.js`)
+  - Scrapes 20+ sources (Reddit, HN, IH, X)
   - Generates 10 ideas via Gemini AI
   - Saves as `status: 'backlog'`
 
+### Wed/Fri/Sun 9 AM UTC
+- **Schedule Health Check** (`jobs/backlog_check.js`)
+  - Verifies if next week's newsletter is scheduled.
+  - Alerts Admin if actionable work is needed.
+
 ### Monday 9 AM UTC
-- **Auto-Publish Ideas** (`jobs/weekly.js` → `autoPublishIdeas()`)
-  - Moves backlog ideas to published
-- **Calculate Winner** (`jobs/weekly.js` → `calculateWinner()`)
-  - Finds last week's most-voted idea
-  - Awards badges to users who voted for it
-- **Send Weekly Digest** (`jobs/weekly.js` → `sendWeeklyDigest()`)
-  - Sends emails to all subscribers
-  - Includes auto-login tokens for authenticated users
+- **Auto-Publish & Send** (`jobs/weekly.js`)
+  - Flips `scheduled` ideas -> `published`.
+  - Calculates last week's winner.
+  - Sends weekly digest via Brevo Batch API (50/req).
 
 ---
 
@@ -162,8 +159,12 @@ backend/
 │   │   └── auth.js                   # Auth endpoints
 │   ├── jobs/                         # Production cron jobs
 │   │   ├── reddit_scraper.js         # Sunday: Reddit scraping
-│   │   └── weekly.js                 # Monday: publish, winner, digest
-│   ├── workflows/                    # Not used (Cleanup performed)
+│   │   ├── weekly.js                 # Monday: publish, winner, digest
+│   │   └── backlog_check.js          # Wed/Fri/Sun: Health check
+│   ├── services/                     # Business Logic
+│   │   ├── aiService.js              # AI Logic
+│   │   ├── brevoService.js           # CRM Logic
+│   │   └── newsletterService.js      # Scheduling Logic
 │   ├── emails/                       # Email templates
 │   │   ├── templates.js              # Re-exports all templates
 │   │   └── templates/
@@ -174,7 +175,8 @@ backend/
 │   ├── utils/                        # Utilities
 │   │   └── emailToken.js             # JWT token generation/verification
 │       └── delete-user-by-email.sql  # User deletion script
-│       └── migration_v2.sql          # Final schema alignment script
+│       └── migration_v2.sql          # Schema alignment script
+│       └── update_status_enum.sql    # Status enum migration (scheduled)
 ├── fly.toml                          # Fly.io deployment config
 └── package.json
 ```
@@ -219,9 +221,7 @@ Use Supabase Dashboard:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `AWS_ACCESS_KEY_ID` | AWS Access Key | ✅ |
-| `AWS_SECRET_ACCESS_KEY` | AWS Secret Key | ✅ |
-| `AWS_REGION` | AWS Region (e.g., ap-southeast-2) | ✅ |
+| `BREVO_API_KEY` | Brevo API key (v3) | ✅ |
 | `GEMINI_API_KEY` | Google Gemini API key | ✅ |
 | `JWT_SECRET` | Secret for email token signing | ✅ |
 | `FRONTEND_URL` | Frontend URL for CORS | ✅ |
@@ -249,9 +249,8 @@ Use Supabase Dashboard:
 - Check Supabase keys are correct
 
 ### Emails not sending
-- Verify AWS credentials are set correctly in Fly secrets
-- Check AWS SES Console (Sydney region) for status
-- Ensure your identities (sender and recipient in Sandbox) are verified
+- Verify `BREVO_API_KEY` is set correctly in Fly secrets
+- Check Brevo Dashboard for logs
 
 ### Reddit scraping fails
 - Check `GEMINI_API_KEY` is valid
@@ -270,7 +269,7 @@ Use Supabase Dashboard:
 - **Frontend**: https://zerosbykai.com
 - **API**: https://zerosbykai-api-prod.fly.dev
 - **Supabase Dashboard**: https://supabase.com/dashboard
-- **AWS SES Console**: https://console.aws.amazon.com/ses/home
+- **Brevo Dashboard**: https://app.brevo.com
 - **Fly.io Dashboard**: https://fly.io/dashboard
 
 ---

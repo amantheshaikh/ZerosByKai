@@ -1,10 +1,10 @@
 # ZerosByKai - AI-Powered Startup Ideas Platform
 
-> Weekly validated startup ideas scraped from Reddit, analyzed by AI, delivered every Monday.
+> Weekly validated startup ideas scraped from the internet's noise, analyzed by AI, delivered every Monday.
 
 ## Overview
 
-ZerosByKai is a platform that helps entrepreneurs find validated startup opportunities by analyzing real problems discussed on Reddit. Every week, we deliver 10 curated startup ideas based on actual pain points people are experiencing.
+ZerosByKai is a platform that helps entrepreneurs find validated startup opportunities by analyzing real problems discussed online. Every week, we deliver 10 curated startup ideas based on actual pain points people are experiencing.
 
 **Website**: https://zerosbykai.com
 **Tagline**: "Finding the right 0 in a world of easy 0-to-1 building"
@@ -13,13 +13,13 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 
 - **Weekly Startup Ideas**: 10 AI-analyzed ideas delivered every Monday
 - **Community Voting**: Vote for your favorite idea each week
-- **Badge System**: Earn badges for picking winning ideas (Bronze, Silver, Gold, Diamond Finder)
+- **Badge System**: Earn badges for picking winning ideas and climb the Mission Designations
 - **Email Digest**: Weekly newsletter with ideas + last week's winner
 - **Auto-Login**: Seamless voting experience via email links
 
 ## How It Works
 
-1. **Sunday**: AI scrapes 17+ startup-related subreddits for real problems
+1. **Sunday**: AI scrapes 20+ sources for real problems
 2. **AI Analysis**: Google Gemini processes ~150 posts and generates 10 validated ideas
 3. **Monday**: Ideas published, users vote, weekly digest sent
 4. **Winner**: Most-voted idea wins, voters earn badges
@@ -36,7 +36,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - Node.js + Express
 - Supabase (PostgreSQL + Auth)
 - Google Gemini AI
-- Resend (Email)
+- Brevo (Email)
 - Deployed on Fly.io
 
 ### Authentication
@@ -91,11 +91,12 @@ ZerosByKai/
 
 ## Key Concepts
 
-### Badge Tiers
-- **Bronze Finder**: 1-2 winning picks
-- **Silver Finder**: 3-5 winning picks
-- **Gold Finder**: 6-10 winning picks
-- **Diamond Finder**: 11+ winning picks
+### Mission Designations
+- **Onlooker**: 0-2 winning picks
+- **Field Agent**: 3-6 winning picks
+- **Lead Analyst**: 7-11 winning picks
+- **Head of Intelligence**: 12-19 winning picks
+- **Unicorn Hunter**: 20+ winning picks
 
 ### Weekly Cycle
 - **Sunday 10 AM UTC**: Reddit scraping + AI analysis
@@ -113,7 +114,7 @@ Authenticated users receive weekly digest emails with JWT tokens in URLs, enabli
 
 ## Unique Value Proposition
 
-Instead of brainstorming ideas in a vacuum, ZerosByKai surfaces real problems that real people are actively complaining about on Reddit. This provides built-in validation and market demand signals.
+Instead of brainstorming ideas in a vacuum, ZerosByKai surfaces real problems that real people are actively complaining about across the internet. This provides built-in validation and market demand signals.
 
 ## Contact
 

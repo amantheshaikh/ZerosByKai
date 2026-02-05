@@ -1,11 +1,13 @@
 import express from 'express';
 import { config } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { generateWelcomeEmail, generateMagicLinkEmail } from '../emails/templates.js';
+import { generateWelcomeEmail } from '../emails/templates/welcome.js';
+import { generateMagicLinkEmail } from '../emails/templates/magic-link.js';
 import { verifyEmailToken } from '../utils/emailToken.js';
 import { sendEmail } from '../utils/emailService.js';
 import rateLimit from 'express-rate-limit';
 import { generateEmailToken } from '../utils/emailToken.js';
+import { syncContact } from '../services/brevoService.js';
 
 const router = express.Router();
 
@@ -14,6 +16,16 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: config.nodeEnv === 'production' ? 15 : 100, // 15 requests per 15 minutes in prod, 100 in dev
   message: { error: 'Too many authentication requests, please try again later.' }
+});
+
+// Stricter limiter for one-time tokens (brute-force protection)
+const tokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.nodeEnv === 'production' ? 5 : 20, // fewer attempts allowed
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many token verification attempts. Please request a new link.' }
 });
 
 // POST /api/auth/check - Check if user exists and has name
@@ -83,14 +95,22 @@ router.post('/subscribe', authLimiter, async (req, res) => {
 
     if (error) throw error;
 
-    // Send welcome email (fire-and-forget, don't block the response)
+    // Send welcome email (fire-and-forget)
     try {
-      const token = generateEmailToken(email, email); // Secure token for unsubscribe
+      // 1. Sync Contact to Brevo
+      syncContact({ email, name }).catch(err => {
+        console.error(`❌ Failed to sync contact for ${email}:`, err.message);
+      });
+
+      // 2. Send Email
+      const token = generateEmailToken(email, email);
       const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
+
       const { success, error: emailError, data } = await sendEmail({
         to: email,
         subject: "Welcome to ZerosByKai",
         html: welcomeHtml,
+        tags: ['welcome-email'],
         headers: {
           'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -136,29 +156,34 @@ router.post('/signup', authLimiter, async (req, res) => {
 
     if (error) throw error;
 
-    // Check if this is an existing user (for frontend messaging)
+    // Check if this is an existing user and get name
     let isExisting = false;
+    let dbName = null;
+
     if (data?.properties?.action_link && data.user?.id) {
       const { data: subscriber } = await supabaseAdmin
         .from('subscribers')
-        .select('welcomed')
+        .select('welcomed, name')
         .eq('user_id', data.user.id)
         .single();
 
       isExisting = subscriber?.welcomed === true;
+      dbName = subscriber?.name;
     }
 
-    // Send email using SES
+    // Send email
     try {
       const magicLinkHtml = generateMagicLinkEmail({
         email,
-        actionLink: data.properties.action_link
+        actionLink: data.properties.action_link,
+        name: name || dbName || '' // Prefer input name, fall back to DB, then empty
       });
 
       const { success, error: emailError, data: emailData } = await sendEmail({
         to: email,
         subject: "Your Login Link",
-        html: magicLinkHtml
+        html: magicLinkHtml,
+        tags: ['magic-link']
       });
 
       if (!success) {
@@ -231,12 +256,18 @@ router.post('/post-login', async (req, res) => {
     const userEmail = user.email;
 
     try {
+      // Sync confirmed user to Brevo
+      syncContact({ email: userEmail, name: userName }).catch(err => {
+        console.error(`❌ Failed to sync contact for ${userEmail}:`, err.message);
+      });
+
       const token = generateEmailToken(user.id, userEmail);
       const welcomeHtml = generateWelcomeEmail({ name: userName, email: userEmail });
       const { success, error: emailError, data } = await sendEmail({
         to: userEmail,
         subject: "Welcome to ZerosByKai",
         html: welcomeHtml,
+        tags: ['welcome-email'],
         headers: {
           'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(userEmail)}&token=${token}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -293,12 +324,17 @@ router.post('/verify', async (req, res) => {
 });
 
 // POST /api/auth/verify-email-token - Verify email link token and create session
-router.post('/verify-email-token', async (req, res) => {
+router.post('/verify-email-token', tokenLimiter, async (req, res) => {
   try {
     const { token } = req.body;
 
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Basic token format validation to reject obviously invalid attempts early
+    if (typeof token !== 'string' || token.length < 20 || token.length > 2000) {
+      return res.status(400).json({ error: 'Invalid token format' });
     }
 
     // Verify and decode the email token

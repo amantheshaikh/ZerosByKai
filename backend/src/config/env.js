@@ -21,25 +21,25 @@ export const config = {
         serviceKey: process.env.SUPABASE_SERVICE_KEY,
     },
 
-    // Email (AWS SES)
-    aws: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1',
+    // Email (Brevo)
+    brevo: {
+        apiKey: process.env.BREVO_API_KEY,
+        listId: parseInt(process.env.BREVO_LIST_ID || '2', 10),
     },
 
     // AI (Gemini)
     gemini: {
         apiKey: process.env.GEMINI_API_KEY,
         models: {
-            primary: 'gemini-3-flash-preview',
-            fallback: 'gemini-3-pro-preview',
+            primary: 'gemini-2.0-flash',
+            fallback: 'gemini-flash-latest',
+            fallbackBackup: 'gemini-pro-latest',
         },
     },
 
     // Auth & Security
-    jwtSecret: process.env.JWT_SECRET || 'fallback-secret-change-in-production',
-    emailTokenSecret: process.env.EMAIL_TOKEN_SECRET || process.env.JWT_SECRET,
+    jwtSecret: process.env.JWT_SECRET,
+    emailTokenSecret: process.env.EMAIL_TOKEN_SECRET,
 
     // Admin Config
     admin: {
@@ -53,12 +53,28 @@ export const config = {
         clientId: process.env.REDDIT_CLIENT_ID,
         clientSecret: process.env.REDDIT_CLIENT_SECRET,
     },
+    apify: {
+        token: process.env.APIFY_API_TOKEN,
+    },
 };
 
 // Simple validation
-if (!config.supabase.url || !config.supabase.serviceKey) {
-    console.error('❌ Missing critical Supabase configuration');
-}
-if (!config.gemini.apiKey) {
-    console.error('❌ Missing GEMINI_API_KEY');
+const requiredEnv = [
+    { key: 'SUPABASE_URL', val: config.supabase.url },
+    { key: 'SUPABASE_SERVICE_KEY', val: config.supabase.serviceKey },
+    { key: 'GEMINI_API_KEY', val: config.gemini.apiKey },
+    { key: 'BREVO_API_KEY', val: config.brevo.apiKey },
+    { key: 'JWT_SECRET', val: config.jwtSecret },
+    { key: 'EMAIL_TOKEN_SECRET', val: config.emailTokenSecret }
+];
+
+const missing = requiredEnv.filter(e => !e.val).map(e => e.key);
+if (missing.length > 0) {
+    const msg = `❌ Missing required environment variables: ${missing.join(', ')}`;
+    // Always log the missing variables for developer awareness
+    console.error(msg);
+    // Fail fast in production to avoid running with insecure defaults
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(msg);
+    }
 }

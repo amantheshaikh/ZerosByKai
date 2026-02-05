@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { Zap, Brain, Rocket, Target, Sparkles, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth';
-import { useSubscribe } from '@/hooks/useSubscribe';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -38,8 +37,8 @@ const STATS = [
 ];
 
 const STEPS = [
-    { n: 1, title: 'SCRAPES THE CHAOS', body: '20+ subreddits. Thousands of threads. Millions of complaints, wishes, and rants analyzed every week.' },
-    { n: 2, title: 'FINDS THE PATTERNS', body: 'AI clusters the pain points. "500 people angry about the same thing" = validated opportunity.' },
+    { n: 1, title: 'SCRAPES THE CHAOS', body: 'Reddit. Hacker News. X. Indie Hackers. Millions of complaints, wishes, and rants analyzed every week.' },
+    { n: 2, title: 'FINDS THE PATTERNS', body: 'AI clusters the pain points. "500 people angry about the same thing" = validated idea.' },
     { n: 3, title: 'DELIVERS THE ZEROS', body: '10 curated startup ideas every Monday. Not random ideas. Validated pain points waiting to be solved.' },
 ];
 
@@ -125,22 +124,31 @@ const ListItem = ({ icon, iconClass, children, className = "", gap = "gap-2" }) 
 );
 
 export default function KaiStory() {
-    const { user } = useAuth();
+    const { user, subscribeNewsletter } = useAuth();
     const [email, setEmail] = useState('');
-    const { subscribe, status: subscribeStatus, error: subscribeError } = useSubscribe();
+    const [subscribeStatus, setSubscribeStatus] = useState('idle');
+    const [subscribeError, setSubscribeError] = useState(null);
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        const success = await subscribe({ email });
-        if (success) setEmail('');
+        setSubscribeStatus('loading');
+        setSubscribeError(null);
+        try {
+            await subscribeNewsletter(email);
+            setSubscribeStatus('success');
+            setEmail('');
+        } catch (err) {
+            setSubscribeError(err.message || 'Subscription failed');
+            setSubscribeStatus('error');
+        }
     };
 
     return (
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
-                <title>The Story of Kai — How We Find Validated Startup Ideas from Reddit | ZerosByKai</title>
-                <meta name="description" content="The origin story of Kai. In a world where building became trivial, finding the RIGHT startup idea became the real challenge. How Kai analyzes Reddit threads to discover validated business opportunities for entrepreneurs and indie hackers." />
-                <meta name="keywords" content="startup idea story, how to find startup ideas, Reddit business ideas, validated startup opportunities, AI idea validation, indie hacker ideas" />
+                <title>The Story of Kai — How We Find Validated Startup Ideas | ZerosByKai</title>
+                <meta name="description" content="The origin story of Kai. In a world where building became trivial, finding the RIGHT startup idea became the real challenge. How Kai analyzes the internet's noise to discover validated business opportunities for entrepreneurs and indie hackers." />
+                <meta name="keywords" content="startup idea story, how to find startup ideas, validated startup opportunities, AI idea validation, indie hacker ideas" />
                 <link rel="canonical" href="https://zerosbykai.com/story" />
                 <meta property="og:title" content="The Story of Kai | ZerosByKai" />
                 <meta property="og:description" content="When building became easy, knowing what to build became the goldmine. The origin story of Kai." />
@@ -161,8 +169,9 @@ export default function KaiStory() {
                         <div className="inline-block bg-rose-700 text-white px-6 py-2 comic-title text-sm sm:text-lg mb-6 transform rotate-1 border-2 border-yellow-400">
                             ⚡ THE ORIGIN STORY ⚡
                         </div>
-                        <h1 className="comic-title text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-yellow-400 mb-6 leading-none drop-shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
-                            THE STORY<br />OF <span className="text-white">KAI</span>
+                        <h1 className="comic-title text-4xl sm:text-7xl md:text-8xl lg:text-9xl text-yellow-400 mb-6 leading-none drop-shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+                            THE STORY<br />
+                            OF <span className="text-white">KAI</span>
                         </h1>
                         <div className="comic-panel inline-block p-4 sm:p-6 bg-yellow-400 transform -rotate-1 mt-4 border-4 border-white">
                             <p className="comic-body text-base sm:text-xl lg:text-2xl text-black font-bold">
@@ -273,7 +282,7 @@ export default function KaiStory() {
                             </div>
                             <SpeechBubble type="shout" className="bg-yellow-400 border-rose-500 text-center transform rotate-1">
                                 <p className="text-rose-900 comic-title text-lg sm:text-xl">
-                                    &quot;UBER FOR DOGS&quot; • &quot;TINDER FOR PLANTS&quot; • &quot;REDDIT FOR BOTS&quot;
+                                    &quot;UBER FOR DOGS&quot; • &quot;TINDER FOR PLANTS&quot; • &quot;INSTAGRAM FOR BOTS&quot;
                                     <br /><span className="text-black font-bold">ALL DEAD. ALL FORGOTTEN.</span>
                                 </p>
                             </SpeechBubble>
@@ -302,8 +311,8 @@ export default function KaiStory() {
 
                                 <div className="p-6 bg-white border-4 border-blue-600 rounded-lg">
                                     <p className="comic-body text-base sm:text-lg text-gray-800 leading-relaxed">
-                                        Hidden in plain sight. Buried in <span className="text-yellow-600 font-bold">Reddit threads</span>.
-                                        Scattered across forums. Real humans, screaming about real problems.
+                                        Hidden in plain sight. Buried in <span className="text-yellow-600 font-bold">forums and feeds</span>.
+                                        Scattered across threads. Real humans, screaming about real problems.
                                         <br /><br />
                                         <span className="text-gray-900 font-bold">&quot;I would PAY for this...&quot;</span><br />
                                         <span className="text-gray-900 font-bold">&quot;Why doesn&apos;t this exist?&quot;</span><br />
@@ -331,7 +340,7 @@ export default function KaiStory() {
                             <div className="inline-block bg-black text-yellow-400 px-8 py-3 comic-title text-xl sm:text-3xl mb-4 transform rotate-1 border-4 border-yellow-400">
                                 ⚡ CHAPTER 3 ⚡
                             </div>
-                            <h2 className="comic-title text-4xl sm:text-6xl lg:text-8xl text-black drop-shadow-[4px_4px_0_rgba(255,255,255,0.5)]">
+                            <h2 className="comic-title text-4xl sm:text-6xl lg:text-8xl text-black drop-shadow-[2px_2px_0_rgba(255,255,255,0.5)]">
                                 ENTER <span className="text-rose-700">KAI</span>
                             </h2>
                         </Reveal>
@@ -381,7 +390,7 @@ export default function KaiStory() {
                 <section className="py-12 sm:py-16 px-6 bg-gray-900 border-t-8 border-b-8 border-yellow-400 relative z-10">
                     <div className="max-w-4xl mx-auto text-center">
                         <Reveal>
-                            <p className="comic-title text-3xl sm:text-4xl lg:text-5xl text-yellow-400 leading-tight mb-6">
+                            <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-yellow-400 leading-tight mb-6 px-4">
                                 &quot;THE BOTTLENECK HAS SHIFTED.&quot;
                             </p>
                             <p className="comic-body text-lg sm:text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto">
@@ -445,7 +454,7 @@ export default function KaiStory() {
                                         <div className="inline-block">
                                             <Sparkles className="w-12 h-12 text-yellow-400 mb-6 mx-auto lg:mx-0" />
                                         </div>
-                                        <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-white leading-tight mb-6">
+                                        <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-white leading-[1.1] mb-6">
                                             THE STORY CONTINUES...<br /><span className="text-yellow-400">WITH YOU.</span>
                                         </p>
                                         <p className="comic-body text-lg text-rose-100 mb-8 max-w-xl mx-auto lg:mx-0">

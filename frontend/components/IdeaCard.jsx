@@ -1,76 +1,130 @@
+// No icons needed for static view
+const ensureTrailingPeriod = (text) => {
+    if (!text) return '';
+    const trimmed = text.trim();
+    if (/[.?!…\u2026]$/u.test(trimmed)) return trimmed;
+    return `${trimmed}.`;
+};
+
 export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdeaId, onVote }) {
     return (
         <div
-            className={`comic-panel bg-white hover:scale-[1.01] transition-all cursor-pointer comic-shadow flex flex-col h-full relative group ${isUserPick ? 'ring-4 ring-yellow-400' : ''}`}
+            className={`w-full relative group mb-6 transition-all ${isUserPick ? 'z-20' : 'z-10'}`}
             style={{ animationDelay: `${index * 0.1}s` }}
         >
-            {/* YOUR PICK badge */}
-            {isUserPick && (
-                <div className="absolute -top-4 -left-4 bg-yellow-400 border-4 border-black px-4 py-1 comic-title transform -rotate-3 z-20 shadow-md text-sm text-black">
-                    ✓ YOUR PICK
-                </div>
-            )}
+            {/* Main Panel */}
+            <div className={`comic-panel bg-white comic-shadow relative overflow-hidden transition-all duration-300 ${isUserPick ? 'ring-4 ring-yellow-400' : ''}`}>
 
-            {/* Top Badge */}
-            <div className="absolute -top-3 sm:-top-4 -right-3 sm:-right-4 bg-yellow-400 border-2 sm:border-4 border-black px-3 sm:px-4 py-1 comic-title text-sm sm:text-base transform rotate-3 z-10 shadow-md group-hover:rotate-6 transition-transform">
-                IDEA #{index + 1}
-            </div>
-
-            <div className="p-5 sm:p-6 lg:p-8 flex-grow">
-                {/* Header */}
-                <div className="mb-4 sm:mb-6 border-b-4 border-gray-100 pb-4 sm:pb-6">
-                    <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                        {(idea.tagsList || []).map((t, i) => (
-                            <span key={i} className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold border-2 border-black rounded-none shadow-[2px_2px_0px_rgba(0,0,0,1)] ${i % 2 === 0 ? 'bg-blue-50' : 'bg-purple-50'}`}>
-                                {t}
-                            </span>
-                        ))}
-                    </div>
-                    <h3 className="comic-title text-2xl sm:text-3xl mb-2 leading-none">{idea.name}</h3>
-                    <h4 className="comic-body font-bold text-gray-600 text-xs sm:text-sm bg-gray-100 inline-block px-2 py-1">{idea.title}</h4>
-                </div>
-
-                {/* Content Grid */}
-                <div className="space-y-4 sm:space-y-5">
-                    {/* Problem */}
-                    <div className="bg-rose-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                        <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Problem</div>
-                        <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.problem}</p>
-                    </div>
-
-                    {/* Solution */}
-                    <div className="bg-green-50 p-3 sm:p-4 border-2 border-black rounded-none relative">
-                        <div className="absolute -top-3 left-3 sm:left-4 bg-black text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">The Fix</div>
-                        <p className="comic-body text-xs sm:text-sm leading-relaxed text-gray-900">{idea.solution}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                            <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Target Audience</div>
-                            <p className="comic-body text-xs font-bold text-gray-900">{idea.target}</p>
+                {/* Content Section */}
+                <div className="p-3 sm:p-4 pb-2">
+                    {/* Header: Horizontal Index + Info */}
+                    <div className="flex items-start gap-4 mb-3">
+                        {/* Index Number */}
+                        <div className="w-10 h-10 bg-black text-yellow-400 flex items-center justify-center comic-title text-xl border-2 border-black rotate-[-2deg] flex-shrink-0 mt-0.5">
+                            #{index + 1}
                         </div>
-                        <div>
-                            <div className="comic-body text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase mb-1">Market Potential</div>
-                            <p className="comic-body text-xs font-bold text-rose-700">{idea.why_it_matters || idea.why}</p>
+
+                        {/* Name & One-liner */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                                <h3 className="comic-title text-2xl leading-tight text-gray-900 italic tracking-tight uppercase pr-2">
+                                    {idea.name}
+                                </h3>
+                                {isUserPick && (
+                                    <div className="bg-yellow-400 border-2 border-black px-2 py-0.5 comic-title text-[9px] transform -rotate-1 whitespace-nowrap">
+                                        ✓ YOUR PICK
+                                    </div>
+                                )}
+                            </div>
+                            <p className="comic-body text-[10px] sm:text-[11px] font-bold text-gray-600 uppercase tracking-[0.12em] leading-tight">
+                                {idea.title}
+                            </p>
                         </div>
                     </div>
+
+                    {/* Problem Card */}
+                    <div className="mb-4">
+                        <DetailSection
+                            title="THE PROBLEM"
+                            content={idea.problem}
+                            bgColor="bg-[#FFF1F2]"
+                        />
+                    </div>
+
+                    {/* Fix Card */}
+                    <div className="mb-4">
+                        <DetailSection
+                            title="THE FIX"
+                            content={idea.solution}
+                            bgColor="bg-[#F0FDF4]"
+                        />
+                    </div>
+
+                    {/* Target & Market */}
+                    <div className="flex flex-col gap-3 px-1 mb-4">
+                        <div>
+                            <h4 className="comic-body text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1 opacity-60">
+                                MARKET POTENTIAL
+                            </h4>
+                            <p className="comic-body text-xs sm:text-[13px] font-bold text-rose-700 leading-snug">
+                                {ensureTrailingPeriod(idea.why_it_matters || idea.why)}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="comic-body text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1 opacity-60">
+                                TARGET AUDIENCE
+                            </h4>
+                            <p className="comic-body text-xs sm:text-[13px] font-bold text-black leading-snug">
+                                {ensureTrailingPeriod(idea.target)}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Action Bar - Static Footer */}
+                    <div className="flex items-center justify-between gap-4 py-2 border-t-2 border-gray-100 border-dashed">
+                        {/* Tags - Multi-row Wrap */}
+                        <div className="flex flex-wrap gap-2 items-center flex-1">
+                            {(idea.tagsList || []).slice(0, 4).map((t, i) => (
+                                <span
+                                    key={i}
+                                    className={`px-2 py-0.5 comic-body font-bold text-[10px] border-2 border-black comic-shadow-sm transition-transform hover:-translate-y-0.5 ${i === 0 ? 'bg-cyan-300' : i === 1 ? 'bg-yellow-300' : i === 2 ? 'bg-rose-300' : 'bg-green-300'
+                                        }`}
+                                >
+                                    {t.toUpperCase()}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Vote Button */}
+                        <div className="flex-shrink-0">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onVote(idea.id);
+                                }}
+                                disabled={votingIdeaId === idea.id}
+                                className={`px-4 py-1.5 comic-title text-xs sm:text-sm border-2 border-black comic-shadow-sm transition-transform active:translate-y-1 italic ${btnProps?.style ?? ''}`}
+                            >
+                                {votingIdeaId === idea.id ? 'VOTE...' : (btnProps?.label || 'VOTE FOR THIS')}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    );
+}
 
-            {/* Vote Button - At Bottom */}
-            <div className="p-4 bg-gray-50 border-t-4 border-black mt-auto">
-                <button
-                    onClick={() => onVote(idea.id)}
-                    disabled={votingIdeaId === idea.id}
-                    className="w-full relative group"
-                >
-                    <div className={`w-full py-3 transition-colors border-2 border-transparent ${btnProps.style} ${votingIdeaId === idea.id ? 'opacity-50' : ''}`}>
-                        <span className="comic-title text-xl tracking-wider">
-                            {votingIdeaId === idea.id ? 'VOTING...' : btnProps.label}
-                        </span>
-                    </div>
-                </button>
+function DetailSection({ title, content, bgColor }) {
+    return (
+        <div className={`p-3 border-2 border-black rounded-none relative h-full ${bgColor}`}>
+            <div className={`absolute -top-2.5 left-3 bg-black text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm`}>
+                {title}
             </div>
+            <p className="comic-body text-[12px] sm:text-[13px] leading-relaxed text-gray-900 pt-0.5">
+                {content}
+            </p>
         </div>
     );
 }

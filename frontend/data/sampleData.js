@@ -9,7 +9,7 @@ export const faqSchema = {
             "name": "What is ZerosByKai?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "ZerosByKai is a free weekly startup ideas newsletter. Every Monday, Kai curates 10 validated business opportunities by analyzing thousands of Reddit threads to find real pain points people are willing to pay to solve."
+                "text": "ZerosByKai is a free weekly startup ideas newsletter. Every Monday, Kai curates 10 validated business opportunities by analyzing thousands of internet conversations to find real pain points people are willing to pay to solve."
             }
         },
         {
@@ -17,7 +17,7 @@ export const faqSchema = {
             "name": "How does ZerosByKai find startup ideas?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Kai uses AI to analyze 20+ subreddits and thousands of Reddit threads weekly, looking for complaint clusters and validated pain points. These are turned into actionable startup opportunities with problem statements, solution ideas, target audiences, and market potential."
+                "text": "Kai uses AI to analyze 20+ sources and thousands of conversations weekly, looking for complaint clusters and validated pain points. These are turned into actionable startup opportunities with problem statements, solution ideas, target audiences, and market potential."
             }
         },
         {
@@ -41,7 +41,7 @@ export const faqSchema = {
             "name": "Who is ZerosByKai for?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "ZerosByKai is for entrepreneurs, indie hackers, solopreneurs, builders, and investors looking for validated startup ideas and business opportunities backed by real market demand from Reddit communities."
+                "text": "ZerosByKai is for entrepreneurs, indie hackers, solopreneurs, builders, and investors looking for validated startup ideas and business opportunities backed by real market demand from online communities."
             }
         }
     ]

@@ -22,7 +22,14 @@ const AuthCallback = () => {
             const hash = window.location.hash;
             if (hash.includes('error_description')) {
                 const params = new URLSearchParams(hash.replace('#', ''));
-                setErrorMessage(params.get('error_description') || 'Authentication failed');
+                const rawError = params.get('error_description');
+
+                // Handle duplicate account linking error specifically
+                if (rawError && rawError.includes('Multiple accounts with the same email')) {
+                    setErrorMessage('Account exists! Please sign in with Google or Email first to link your GitHub account.');
+                } else {
+                    setErrorMessage(rawError || 'Authentication failed');
+                }
                 setError(true);
             }
         }

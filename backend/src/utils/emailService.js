@@ -1,74 +1,89 @@
-import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
-import { sesClient } from "../config/ses.js";
+import { brevoClient } from '../config/brevo.js';
+import { config } from '../config/env.js';
 
 /**
- * Universal email sender that uses Amazon SES.
- * Supports custom headers (like List-Unsubscribe) using SendRawEmailCommand.
+ * Sends a single transactional email via Brevo.
+ * 
+ * @param {Object} params
+ * @param {string} params.to - Recipient email
+ * @param {string} params.subject - Email subject
+ * @param {string} params.html - HTML content
+ * @param {string} [params.text] - Optional plain text version
+ * @param {string[]} [params.tags] - Optional tags for tracking
+ * @param {Object} [params.headers] - Optional custom headers
+ * @returns {Promise<{success: boolean, data?: any, error?: any}>}
  */
-export async function sendEmail({ to, subject, html, text, from = 'Kai <kai@zerosbykai.com>', replyTo = 'kai@zerosbykai.com', headers = {} }) {
+export async function sendEmail({ to, subject, html, text, tags, headers }) {
     try {
-        // 1. RFC 2047 Encode Subject (for safe non-ASCII handling)
-        const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
-
-        // 2. Construct Raw Email Headers
-        const boundary = `----=_Part_${Math.random().toString(36).substring(2)}`;
-        let rawEmail = [
-            `From: ${from}`,
-            `To: ${to}`,
-            `Reply-To: ${replyTo}`,
-            `Subject: ${encodedSubject}`,
-            `MIME-Version: 1.0`,
-            `Content-Type: multipart/alternative; boundary="${boundary}"`,
-        ];
-
-        // 3. Sanitize and Add Custom Headers (CRLF Injection Protection)
-        const headerKeyRegex = /^[a-zA-Z0-9-]+$/;
-        Object.entries(headers).forEach(([key, value]) => {
-            if (headerKeyRegex.test(key)) {
-                // Remove any CR/LF characters from the value
-                const sanitizedValue = String(value).replace(/[\r\n]/g, '');
-                rawEmail.push(`${key}: ${sanitizedValue}`);
-            } else {
-                console.warn(`⚠️ Skipping invalid email header key: ${key}`);
-            }
-        });
-
-        rawEmail.push(""); // Header-Body separator
-
-        // 4. Add Plain Text Part (Base64 Encoded for UTF-8 safety)
-        if (text) {
-            rawEmail.push(`--${boundary}`);
-            rawEmail.push(`Content-Type: text/plain; charset=UTF-8`);
-            rawEmail.push(`Content-Transfer-Encoding: base64`);
-            rawEmail.push("");
-            rawEmail.push(Buffer.from(text, 'utf8').toString('base64'));
-            rawEmail.push("");
-        }
-
-        // 5. Add HTML Part (Base64 Encoded for UTF-8 safety)
-        if (html) {
-            rawEmail.push(`--${boundary}`);
-            rawEmail.push(`Content-Type: text/html; charset=UTF-8`);
-            rawEmail.push(`Content-Transfer-Encoding: base64`);
-            rawEmail.push("");
-            rawEmail.push(Buffer.from(html, 'utf8').toString('base64'));
-            rawEmail.push("");
-        }
-
-        rawEmail.push(`--${boundary}--`);
-
-        const rawMessage = rawEmail.join("\r\n");
-
-        const command = new SendRawEmailCommand({
-            RawMessage: {
-                Data: Buffer.from(rawMessage),
+        const sendSmtpEmail = {
+            to: [{ email: to }],
+            sender: {
+                name: config.admin.name || 'ZerosByKai',
+                email: config.admin.email || 'hello@zerosbykai.com'
             },
-        });
+            subject,
+            htmlContent: html,
+            ...(text && { textContent: text }),
+            ...(tags && { tags }),
+            ...(headers && { headers })
+        };
 
-        const response = await sesClient.send(command);
-        return { success: true, data: response };
+        const data = await brevoClient.sendTransacEmail(sendSmtpEmail);
+        return { success: true, data };
     } catch (error) {
-        console.error(`Error sending email to ${to}:`, error);
-        return { success: false, error };
+        console.error(`❌ Brevo sendEmail error for ${to}:`, error.body || error.message);
+        return { success: false, error: error.body || error.message };
+    }
+}
+
+/**
+ * Sends a batch of personalized emails.
+ * Note: While Brevo has a batch API, this implementation sends them 
+ * effectively by processing the chunk to meet application needs.
+ * 
+ * @param {Array} chunk - Array of { to, subject, html, text }
+ * @param {Object} options - Shared options like tags, headers
+ * @returns {Promise<{success: boolean, error?: any}>}
+ */
+export async function sendBatchEmails(chunk, options = {}) {
+    try {
+        // For high volume, we use the Brevo batch endpoint logic
+        // We construct a single request for the chunk of 50
+        const batchEmails = chunk.map(email => ({
+            to: [{ email: email.to }],
+            sender: {
+                name: config.admin.name || 'ZerosByKai',
+                email: config.admin.email || 'hello@zerosbykai.com'
+            },
+            subject: email.subject,
+            htmlContent: email.html,
+            textContent: email.text,
+            ...(options.tags && { tags: options.tags }),
+            ...(options.headers && { headers: options.headers })
+        }));
+
+        // sendTransacEmail can take multiple if configured, 
+        // but Brevo's "batch" usually means sending to multiple recipients of the SAME email 
+        // OR using the SMTP Relay.
+        // For distinct personalized content per recipient in a single API call, 
+        // we should iterate or use their specific batching if supported by the SDK version.
+
+        // Most reliable way for personalized content in the current SDK setup:
+        const results = await Promise.allSettled(
+            chunk.map(email => sendEmail({ ...email, ...options }))
+        );
+
+        const failures = results.filter(r => r.status === 'rejected' || !r.value.success);
+
+        if (failures.length > 0) {
+            console.warn(`⚠️ Batch had ${failures.length} failures out of ${chunk.length}`);
+        }
+
+        return {
+            success: failures.length < chunk.length // Success if at least one sent, or be stricter?
+        };
+    } catch (error) {
+        console.error('❌ Brevo sendBatchEmails error:', error.message);
+        return { success: false, error: error.message };
     }
 }

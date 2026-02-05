@@ -28,7 +28,7 @@ const organizationSchema = {
     "name": "ZerosByKai",
     "url": "https://zerosbykai.com",
     "logo": "https://zerosbykai.com/favicon.ico",
-    "description": "AI-powered startup idea curation platform. Validated business opportunities scraped from Reddit threads, delivered weekly.",
+    "description": "AI-powered startup idea curation platform. Validated business opportunities mined from the internet's noise, delivered weekly.",
     "sameAs": [],
     "contactPoint": {
         "@type": "ContactPoint",
@@ -42,7 +42,7 @@ const websiteSchema = {
     "@type": "WebSite",
     "name": "ZerosByKai",
     "url": "https://zerosbykai.com",
-    "description": "Find validated startup ideas from Reddit. 10 curated business opportunities every Monday.",
+    "description": "Find validated startup ideas from the digital chaos. 10 curated business opportunities every Monday.",
     "potentialAction": {
         "@type": "SearchAction",
         "target": "https://zerosbykai.com/archive?q={search_term_string}",

@@ -15,8 +15,8 @@ import authRouter from './routes/auth.js';
 import { config } from './config/env.js';
 
 // Jobs
-import { pickAndPublishIdeas, calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
-import { checkBacklogHealth } from './jobs/backlog_check.js';
+import { calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
+import { checkScheduleHealth } from './jobs/backlog_check.js';
 
 const app = express();
 const PORT = config.port;
@@ -27,6 +27,48 @@ app.set('trust proxy', 1);
 // Security & Performance Middleware
 app.use(helmet());
 app.use(compression());
+
+// Structured Logging Middleware
+// Logs request/response with timing, status, and method/path
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+
+  // Skip logging for health checks to reduce noise
+  if (req.path === '/health') {
+    return next();
+  }
+
+  // Capture the original send function
+  const originalSend = res.send;
+
+  // Override send to log response
+  res.send = function(data) {
+    const duration = Date.now() - startTime;
+    const statusCode = res.statusCode;
+
+    // Log structured request/response
+    const logLevel = statusCode >= 400 ? 'error' : 'info';
+    const timestamp = new Date().toISOString();
+
+    console.log(JSON.stringify({
+      timestamp,
+      level: logLevel,
+      requestId,
+      method: req.method,
+      path: req.path,
+      query: req.query && Object.keys(req.query).length > 0 ? req.query : undefined,
+      status: statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip
+    }));
+
+    // Call original send function
+    return originalSend.call(this, data);
+  };
+
+  next();
+});
 
 // Rate Limiting (Relaxed in non-production)
 const limiter = rateLimit({
@@ -79,24 +121,25 @@ app.post('/api/subscribe', (req, res, next) => {
 });
 
 // Cron Jobs
-// Sunday scraping moved to GitHub Actions (.github/workflows/reddit-scraper.yml)
+// Sunday scraping is run manually to populate backlog
 
-// Monday 9 AM UTC: Pick ideas from backlog, calculate winner, send weekly digest (sequential)
+// Monday 9 AM UTC: Calculate winner, send weekly digest (sequential)
 cron.schedule('0 9 * * 1', async () => {
-  console.log('Picking ideas from backlog for this week...');
-  try {
-    await pickAndPublishIdeas();
-    console.log('Publishing completed');
-  } catch (error) {
-    console.error('Error in picking/publishing ideas:', error);
-  }
-
+  console.log('Running weekly Monday workflow...');
   console.log('Running weekly winner calculation...');
   try {
-    await calculateWinner();
+    const winnerResult = await calculateWinner();
     console.log('Winner calculated successfully');
+
+    // If winner calculation returned falsy (unexpected), abort sending digest
+    if (!winnerResult) {
+      console.error('Aborting weekly digest: winner calculation returned no result');
+      return;
+    }
   } catch (error) {
     console.error('Error calculating winner:', error);
+    // Abort the digest send to avoid sending incomplete or incorrect data
+    return;
   }
 
   console.log('Sending weekly digest...');
@@ -108,11 +151,11 @@ cron.schedule('0 9 * * 1', async () => {
   }
 });
 
-// Friday and Sunday 9 AM UTC: Check if backlog has at least 10 ideas
-cron.schedule('0 9 * * 5,0', async () => {
+// Wed, Fri, and Sunday 9 AM UTC: Check Schedule Health
+cron.schedule('0 9 * * 0,3,5', async () => {
   console.log('Running scheduled backlog health check...');
   try {
-    await checkBacklogHealth();
+    await checkScheduleHealth();
   } catch (error) {
     console.error('Error in scheduled backlog health check:', error);
   }

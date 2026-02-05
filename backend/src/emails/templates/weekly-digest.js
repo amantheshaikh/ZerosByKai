@@ -98,6 +98,7 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
 
     <!-- Summary -->
     <div style="background: #fafafa; border-left: 3px solid #000; padding: 16px; margin-bottom: 32px;">
+      <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">Hi {{name}},</p>
       <p style="margin: 0; font-size: 14px; line-height: 1.6;">
         <strong>This week's analysis:</strong> ${threadCount.toLocaleString()} threads scraped. 
         ${ideas.length} opportunities identified. No AI fluff. Real problems. Real opportunities.

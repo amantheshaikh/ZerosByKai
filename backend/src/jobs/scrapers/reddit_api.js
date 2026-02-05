@@ -38,6 +38,11 @@ async function getAuthToken(config) {
         return redditTokenCache.token;
     }
 
+    if (!config?.reddit?.clientId || !config?.reddit?.clientSecret) {
+        console.error('❌ Missing Reddit API credentials in config');
+        return null;
+    }
+
     try {
         const auth = Buffer.from(`${config.reddit.clientId}:${config.reddit.clientSecret}`).toString('base64');
         const response = await fetch('https://www.reddit.com/api/v1/access_token', {
@@ -50,13 +55,17 @@ async function getAuthToken(config) {
             body: 'grant_type=client_credentials'
         });
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+            console.error(`❌ Reddit Auth Failed: ${response.status} ${response.statusText}`);
+            return null;
+        }
 
         const data = await response.json();
         redditTokenCache.token = data.access_token;
         redditTokenCache.expiresAt = now + (data.expires_in - 300) * 1000;
         return redditTokenCache.token;
     } catch (error) {
+        console.error('❌ Reddit Auth Error:', error.message);
         return null;
     }
 }
@@ -79,7 +88,12 @@ async function fetchOfficial(subreddit, sort, time, limit, config) {
 
         if (!response.ok) return [];
         const data = await response.json();
-        return (data.data.children || []).map(c => normalizePost(c.data, c.kind));
+
+        if (!data?.data?.children || !Array.isArray(data.data.children)) {
+            return [];
+        }
+
+        return data.data.children.map(c => normalizePost(c.data, c.kind));
     } catch (e) {
         return [];
     }
@@ -98,7 +112,8 @@ async function fetchJson(subreddit, sort, time, limit) {
             });
             if (response.ok) {
                 const data = await response.json();
-                return (data.data.children || []).map(c => normalizePost(c.data, c.kind));
+                const children = data?.data?.children || [];
+                return children.map(c => normalizePost(c.data, c.kind));
             }
         } catch (e) { }
     }
@@ -150,7 +165,7 @@ function parseRss(xml) {
         items.push({
             subreddit: 'Reddit RSS',
             title: title || 'Reddit Post',
-            body: content.replace(/&lt;[^&>]+&gt;/g, ' ').substring(0, 1000),
+            body: content.replace(/<[^>]+>/g, ' ').substring(0, 1000),
             url: link,
             score: 0,
             created_utc: Date.now() / 1000,
@@ -165,7 +180,7 @@ function parseRss(xml) {
  */
 export async function fetchSubreddit(subreddit, sort = 'hot', time = 'day', limit = 10, config) {
     // 1. Official API
-    if (config.reddit.clientId && config.reddit.clientSecret) {
+    if (config?.reddit?.clientId && config?.reddit?.clientSecret) {
         const official = await fetchOfficial(subreddit, sort, time, limit, config);
         if (official.length > 0) return official;
     }

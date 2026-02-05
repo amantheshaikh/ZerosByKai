@@ -5,7 +5,7 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 
 **Monorepo:** `frontend/` (Next.js 14, Pages Router, Vercel) + `backend/` (Node.js/Express, Fly.io)  
 **Database:** Supabase (PostgreSQL + Auth)  
-**Email:** Resend - **AI:** Google Gemini (Gemini 3 Preview for main jobs)
+**Email:** Brevo (Transactional + Contacts) - **AI:** Google Gemini (Gemini 3 Preview for main jobs)
   
 
 ## Quick Reference
@@ -43,12 +43,14 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
   - `supabaseAdmin` (service key for admin operations)
 - **Auth:** Bearer token validation via Supabase `getUser()`
 
-### Cron Jobs
-- **Sunday 10 AM UTC:** Reddit scraping → Gemini 3 Preview → 10 ideas (status: `backlog`)
-- **Monday 9 AM UTC:** 
-  1. Auto-publish backlog ideas
-  2. Calculate last week's winner (set `is_winner: true` and `status: 'archived'`)
-  3. Send weekly digest (Base64 encoded bodies, CRLF protected, RFC 2047 subjects)
+### Automation & Jobs
+- **Manual Scraping:** Multi-source scraping → Gemini AI → `backlog` ideas (run locally/manually)
+- **Manual Approval:** Admin reviews `backlog` → marks as `approved` in Supabase
+- **Manual Scheduling:** Select 10 oldest approved ideas → Lock for next week (`npm run schedule`)
+- **Wed/Fri/Sun 9 AM UTC:** Schedule Health check (`backlog_check.js`) - Alerts if next week is not scheduled
+- **Monday 9 AM UTC (Automated):** 
+    1. Calculate last week's winner
+    2. Send *scheduled* digest (Brevo) to all subscribers
 
 ### Mission Designations
 - **Onlooker**: 0-2 winning picks
@@ -64,31 +66,30 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 
 ## Weekly Workflow
 
-### Sunday (10 AM UTC)
-1. **Reddit Scraping** (`jobs/reddit_scraper.js`)
-   - Scrapes 17+ startup-related subreddits
-   - Anti-detection measures (rotating user agents, delays)
-   - Collects ~150 posts
+### 1. Generate (Any Day)
+- **Command:** `npm run scrape:local`
+- **Action:** Scrapes Reddit/HN/IH, uses Gemini to generate ideas.
+- **Result:** Populates `ideas` table with status `backlog`.
 
-2. **AI Analysis** (Gemini 3 Preview)
-   - Processes posts in batches
-   - Generates 10 startup ideas with up to 5 flexible tags
-   - Uses `gemini-3-flash-preview` as primary, `gemini-3-pro-preview` as fallback
-   - Saves as `status: 'backlog'`
+### 2. Approve (Any Day)
+- **Action:** Admin reviews `ideas` table in Supabase.
+- **Result:** Changes status of good ideas from `backlog` to `approved`.
 
-### Monday (9 AM UTC)
-1. **Auto-Publish** (`jobs/weekly.js`)
-   - Moves backlog ideas to published
-   - Creates weekly batch record
+### 3. Schedule (Before Monday)
+- **Command:** `npm run schedule -- --weeks 1`
+- **Action:** Picks 10 *oldest approved* ideas. Locks them for next Monday. Generates AI Subject Line.
+- **Result:** Uses `newsletterService.js`. Ideas set to `scheduled` (Hidden). Batch Created.
 
-2. **Calculate Winner** (`jobs/weekly.js`)
-   - Finds last week's most-voted idea
-   - Awards badges to users who voted for it
+### 4. Health Check (Wed/Fri/Sun)
+- **Action:** Checks if next Monday is scheduled.
+- **Result:** Sends email reminder if actionable work is needed.
 
-3. **Send Digest** (`jobs/weekly.js`)
-   - Sends weekly email to all subscribers
-   - Includes auto-login tokens for authenticated users
-   - Shows last week's winner
+### 5. Execute (Monday 9 AM UTC)
+- **Action:** `jobs/weekly.js` runs.
+- **Result:** 
+    1. Flips ideas from `scheduled` -> `published` (Visible).
+    2. Calculates previous winner. 
+    3. Sends email digest (Batched 50/req).
 
 ## File Organization
 
@@ -99,8 +100,9 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 - **`workflows/`** - Testing/simulation scripts
 - **`emails/templates/`** - Email templates (weekly-digest, welcome, magic-link)
 - **`emails/templates/shared.js`** - Shared email components
-- **`utils/`** - Utilities (emailToken.js for JWT)
-- **`config/`** - Supabase client configuration
+- **`services/`** - Core capabilities (brevoService, aiService, newsletterService)
+- **`jobs/scrapers/`** - Scraper logic & Reddit API helper
+- **`utils/`** - General utilities (emailToken.js, emailService.js)
 
 ### Frontend (`frontend/`)
 - **`pages/`** - Next.js pages (index, profile, story, etc.)
@@ -113,7 +115,7 @@ AI-powered weekly startup ideas platform. Scrapes Reddit for real problems, anal
 ### Backend
 ```bash
 SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
-RESEND_API_KEY
+BREVO_API_KEY
 GEMINI_API_KEY
 JWT_SECRET
 FRONTEND_URL
@@ -136,16 +138,13 @@ NEXT_PUBLIC_SITE_URL
 4. **Testing:** Run simulation scripts if email/workflow changes
 5. **Deployment:** Update environment variables if needed
 
-## Recent Major Changes (Feb 2, 2026)
-- ✅ Email token auto-login implemented
-- ✅ Email templates separated into individual files
-- ✅ Reddit scraping enhanced with anti-detection
-- ✅ Gemini 3 Preview models integrated (Flash/Pro)
-- ✅ **Tagging Refactor**: Flexible array-based tags (max 5) replacing region/category
-- ✅ **Hardening**: CRLF protection, RFC 2047 subject encoding, Base64 email bodies
-- ✅ **Database**: Schema standardized, RLS updated for `winner` status
-- ✅ **Maintenance**: PII masked in logs, UTC standardized dates, ADMIN_CONFIG in env
-- ✅ **Status Model**: `backlog` -> `published` -> `archived` (with separate `is_winner` flag)
+## Recent Major Changes (Feb 4, 2026)
+- ✅ **Architecture**: Extracted planning logic to `src/services/newsletterService.js`.
+- ✅ **State Machine**: `backlog` -> `approved` -> `scheduled` (hidden) -> `published` (live).
+- ✅ **Security**: Explicit "Publish" step on Monday 9 AM prevents content leaks.
+- ✅ **Efficiency**: Brevo Batch API (50 emails/req) for high-volume delivery.
+- ✅ **Migration**: Updated DB schema to support `scheduled` status.
+- ✅ **Reliability**: Separated "Planning" (Service) from "Execution" (Job).
 
 ## Documentation Hierarchy
 - **Tier 1 (Foundation):** This file - Master context

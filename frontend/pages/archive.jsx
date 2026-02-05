@@ -10,6 +10,8 @@ export default function ArchivePage() {
     const [batches, setBatches] = useState(null);
     const [loading, setLoading] = useState(true);
     const [expandedWeeks, setExpandedWeeks] = useState({});
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const toggleWeek = (batchId) => {
         setExpandedWeeks(prev => ({
@@ -19,19 +21,23 @@ export default function ArchivePage() {
     };
 
     useEffect(() => {
-        fetchArchiveBatches()
-            .then(setBatches)
+        setLoading(true);
+        fetchArchiveBatches(currentPage, 20)
+            .then(({ batches, pagination }) => {
+                setBatches(batches);
+                setTotalPages(pagination.pages);
+            })
             .finally(() => setLoading(false));
-    }, []);
+    }, [currentPage]);
 
     return (
         <div className="min-h-screen bg-yellow-50">
             <Head>
-                <title>Startup Ideas Archive — Browse All Past Ideas | ZerosByKai</title>
-                <meta name="description" content="Browse the complete archive of startup ideas from ZerosByKai. See every validated business opportunity, past winners, and explore hundreds of startup ideas curated from Reddit." />
-                <meta name="keywords" content="startup ideas archive, past business ideas, all startup ideas, validated business opportunities, weekly startup winners, complete archive" />
+                <title>Startup Ideas & Opportunities Archive | ZerosByKai</title>
+                <meta name="description" content="Browse the complete archive of startup ideas and opportunities from ZerosByKai. See every validated business project, past winners, and explore hundreds of opportunities curated from millions of conversations." />
+                <meta name="keywords" content="startup ideas archive, past business ideas, startup opportunities, validated business opportunities, weekly startup winners, complete archive" />
                 <meta property="og:title" content="Complete Startup Ideas Archive | ZerosByKai" />
-                <meta property="og:description" content="Explore the complete archive of validated startup ideas and business opportunities curated from Reddit. See winners and all past ideas." />
+                <meta property="og:description" content="Explore the complete archive of validated startup ideas and opportunities curated from millions of conversations. See winners and all past ideas." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/archive" />
                 <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
@@ -42,9 +48,9 @@ export default function ArchivePage() {
             <Header variant="page" />
 
             <div className="max-w-4xl mx-auto px-6 pt-32 pb-12">
-                <div className="mb-12">
-                    <h1 className="comic-title text-5xl text-gray-900 mb-2">ARCHIVE</h1>
-                    <p className="comic-body text-gray-600 text-lg">Browse all past startup ideas. See what won and explore every opportunity.</p>
+                <div className="mb-8 sm:mb-12">
+                    <h1 className="comic-title text-4xl sm:text-5xl text-gray-900 mb-2">ARCHIVE</h1>
+                    <p className="comic-body text-gray-600 text-base sm:text-lg">Browse all past startup ideas. See what won and explore every opportunity.</p>
                 </div>
 
                 {loading ? (
@@ -68,13 +74,13 @@ export default function ArchivePage() {
                             });
 
                             return (
-                                <div key={batch.id} className="comic-panel bg-white p-8 comic-shadow">
+                                <div key={batch.id} className="comic-panel bg-white p-4 sm:p-8 comic-shadow">
                                     <div className="flex items-center gap-3 mb-6">
                                         <Award className="w-8 h-8 text-yellow-500" />
                                         <div className="flex-1">
                                             <h2 className="comic-title text-2xl text-gray-900">WEEK OF {weekLabel.toUpperCase()}</h2>
                                             <p className="comic-body text-xs text-gray-500">
-                                                {ideas.length} ideas • {batch.total_votes || 0} total votes
+                                                {batch.ideas?.length || 0} ideas • {batch.total_votes || 0} total votes
                                             </p>
                                         </div>
                                     </div>
@@ -111,7 +117,7 @@ export default function ArchivePage() {
                                                 className="w-full flex items-center justify-between p-4 border-2 border-black bg-gray-50 hover:bg-gray-100 transition-colors"
                                             >
                                                 <span className="comic-title text-sm">
-                                                    {isExpanded ? 'HIDE' : 'SHOW'} ALL {ideas.length} IDEAS FROM THIS WEEK
+                                                    {isExpanded ? 'HIDE' : 'SHOW'} ALL {batch.ideas?.length || 0} IDEAS FROM THIS WEEK
                                                 </span>
                                                 {isExpanded ? (
                                                     <ChevronUp className="w-5 h-5" />
@@ -122,11 +128,11 @@ export default function ArchivePage() {
 
                                             {isExpanded && (
                                                 <div className="mt-4 space-y-4 border-2 border-gray-200 p-4">
-                                                    {ideas.map((idea, idx) => {
-                                                        const isWinner = winner && idea.id === winner.id;
+                                                    {batch.ideas?.map((opportunity, idx) => {
+                                                        const isWinner = winner && opportunity.id === winner.id;
                                                         return (
                                                             <div
-                                                                key={idea.id}
+                                                                key={opportunity.id}
                                                                 className={`p-4 border-2 ${isWinner
                                                                     ? 'border-yellow-400 bg-yellow-50'
                                                                     : 'border-gray-300 bg-white'
@@ -138,7 +144,7 @@ export default function ArchivePage() {
                                                                     </div>
                                                                     <div className="flex-1">
                                                                         <div className="flex flex-wrap gap-2 mb-2">
-                                                                            {idea.tagsList.map((t, idx) => (
+                                                                            {opportunity.tagsList.map((t, idx) => (
                                                                                 <span key={idx} className={`px-2 py-0.5 text-[10px] font-bold border border-black ${idx % 2 === 0 ? 'bg-blue-50' : 'bg-purple-50'}`}>
                                                                                     {t}
                                                                                 </span>
@@ -149,9 +155,9 @@ export default function ArchivePage() {
                                                                                 </span>
                                                                             )}
                                                                         </div>
-                                                                        <h4 className="comic-title text-lg mb-1">{idea.name}</h4>
-                                                                        <p className="comic-body text-xs text-gray-600 mb-2">{idea.title}</p>
-                                                                        <p className="comic-body text-sm text-gray-800">{idea.problem}</p>
+                                                                        <h4 className="comic-title text-lg mb-1">{opportunity.name}</h4>
+                                                                        <p className="comic-body text-xs text-gray-600 mb-2">{opportunity.title}</p>
+                                                                        <p className="comic-body text-sm text-gray-800">{opportunity.problem}</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -164,6 +170,31 @@ export default function ArchivePage() {
                                 </div>
                             );
                         })}
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-4 mt-12 pt-8 border-t-2 border-gray-300">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border-2 border-black bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed comic-title text-sm transition-colors"
+                                >
+                                    ← PREVIOUS
+                                </button>
+
+                                <span className="comic-body text-sm text-gray-700">
+                                    Page <span className="comic-title text-lg">{currentPage}</span> of <span className="comic-title text-lg">{totalPages}</span>
+                                </span>
+
+                                <button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage >= totalPages}
+                                    className="px-4 py-2 border-2 border-black bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed comic-title text-sm transition-colors"
+                                >
+                                    NEXT →
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="comic-panel bg-white p-12 comic-shadow text-center">

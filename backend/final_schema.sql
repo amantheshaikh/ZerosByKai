@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS weekly_batches (
   total_ideas INTEGER DEFAULT 0,
   total_votes INTEGER DEFAULT 0,
   posts_scraped INTEGER,
+  subject_line TEXT,
   email_sent_at TIMESTAMPTZ,
+  winner_calculated BOOLEAN DEFAULT FALSE,  -- Prevents race condition in calculateWinner()
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -53,7 +55,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS votes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   voted_at TIMESTAMPTZ DEFAULT NOW(),
 
   UNIQUE(idea_id, user_id)
@@ -62,7 +64,7 @@ CREATE TABLE IF NOT EXISTS votes (
 -- User Badges Table
 CREATE TABLE IF NOT EXISTS user_badges (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
   badge_type TEXT CHECK (badge_type IN ('kai_pick')),
   awarded_at TIMESTAMPTZ DEFAULT NOW(),
@@ -73,7 +75,7 @@ CREATE TABLE IF NOT EXISTS user_badges (
 -- Subscribers Table (unified: newsletter-only + authenticated users)
 CREATE TABLE IF NOT EXISTS subscribers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
   email TEXT NOT NULL UNIQUE,
   name TEXT,
   welcomed BOOLEAN DEFAULT FALSE,
@@ -146,7 +148,14 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', '')
+    COALESCE(
+      NEW.raw_user_meta_data->>'name',
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.raw_user_meta_data->>'user_name',           -- GitHub sometimes
+      NEW.raw_user_meta_data->>'preferred_username',  -- Generic OIDC
+      TRIM(CONCAT(NEW.raw_user_meta_data->>'given_name', ' ', NEW.raw_user_meta_data->>'family_name')), -- LinkedIn/OIDC split
+      ''
+    )
   )
   ON CONFLICT (email) DO UPDATE SET
     user_id = EXCLUDED.user_id,

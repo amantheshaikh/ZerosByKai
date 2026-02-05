@@ -1,6 +1,6 @@
 import express from 'express';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { getLastMonday } from '../utils/dateUtils.js';
+import { getMonday, getLastMonday } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -14,6 +14,7 @@ router.get('/leaderboard', async (req, res) => {
       .or('status.eq.published,is_winner.eq.true')
       .not('week_published', 'is', null)
       .gt('week_published', '2025-01-01')
+      .lte('week_published', getLastMonday()) // Leaderboard shows PREVIOUS week
       .order('week_published', { ascending: false })
       .limit(1)
       .single();
@@ -28,31 +29,53 @@ router.get('/leaderboard', async (req, res) => {
 
     console.log(`Fetching leaderboard for batch preceding ${latestIdea.week_published}: ${weekStart}`);
 
-    // 2. Fetch ideas for that week with vote counts
+    // 2. Fetch ideas for that week
     const { data: ideas, error } = await supabaseAdmin
       .from('ideas')
-      .select('*, votes(count)') // Select votes count
+      .select('*')
       .eq('week_published', weekStart)
       .or('status.eq.published,is_winner.eq.true');
 
     if (error) throw error;
 
-    // 3. Sort by vote count (desc) and take top 3
-    const ideasWithVotes = await Promise.all(ideas.map(async (idea) => {
-      const { count } = await supabaseAdmin
-        .from('votes')
-        .select('*', { count: 'exact', head: true })
-        .eq('idea_id', idea.id);
-      return { ...idea, votes: count || 0 };
+    // If no ideas, return empty
+    if (!ideas || ideas.length === 0) return res.json([]);
+
+    // 3. Fetch all votes for these ideas in a single query to avoid N+1
+    const ideaIds = ideas.map(i => i.id);
+    const { data: votesRows, error: votesError } = await supabaseAdmin
+      .from('votes')
+      .select('idea_id')
+      .in('idea_id', ideaIds);
+
+    if (votesError) throw votesError;
+
+    const voteCountMap = {};
+    (votesRows || []).forEach(v => {
+      voteCountMap[v.idea_id] = (voteCountMap[v.idea_id] || 0) + 1;
+    });
+
+    const ideasWithVotes = ideas.map(idea => ({
+      ...idea,
+      votes: voteCountMap[idea.id] || 0
     }));
 
     const sorted = ideasWithVotes.sort((a, b) => b.votes - a.votes).slice(0, 3);
 
     // Add category/rank
-    const ranked = sorted.map((idea, index) => ({
-      ...idea,
-      category: idea.tags?.category || 'Startup',
-    }));
+    const ranked = sorted.map((idea, index) => {
+      let category = 'Startup';
+      if (idea.tags) {
+        if (Array.isArray(idea.tags)) {
+          // New format: ["Tag1", "Tag2"] -> Tag2 is usually the category
+          category = idea.tags[1] || idea.tags[0] || 'Startup';
+        } else {
+          // Legacy format: { category: "Tag" }
+          category = idea.tags.category || 'Startup';
+        }
+      }
+      return { ...idea, category };
+    });
 
     res.json(ranked);
 
@@ -69,6 +92,7 @@ router.get('/', async (req, res) => {
       .from('ideas')
       .select('*')
       .or('status.eq.published,is_winner.eq.true')
+      .lte('week_published', getMonday())
       .order('week_published', { ascending: false });
 
     if (error) throw error;
@@ -87,6 +111,7 @@ router.get('/weekly', async (req, res) => {
       .from('ideas')
       .select('week_published')
       .or('status.eq.published,is_winner.eq.true')
+      .lte('week_published', getMonday())
       .order('week_published', { ascending: false })
       .limit(1)
       .single();
@@ -115,9 +140,28 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-// GET /api/ideas/weekly-batches - Get all past weekly batches with winners and all ideas
+// GET /api/ideas/weekly-batches - Get past weekly batches with pagination
+// Query params: page (default: 1), limit (default: 20)
 router.get('/weekly-batches', async (req, res) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20)); // Max 100 per page
+
+    // First, get total count
+    const { count, error: countError } = await supabase
+      .from('weekly_batches')
+      .select('*', { count: 'exact', head: true })
+      .not('week_start_date', 'is', null)
+      .not('email_sent_at', 'is', null)
+      .gt('week_start_date', '2025-01-01');
+
+    if (countError) throw countError;
+
+    const total = count || 0;
+    const pages = Math.ceil(total / limit);
+    const offset = (page - 1) * limit;
+
+    // Fetch paginated batches
     const { data: batches, error } = await supabase
       .from('weekly_batches')
       .select(`
@@ -125,13 +169,21 @@ router.get('/weekly-batches', async (req, res) => {
         winner:ideas!fk_weekly_batches_winner_idea (*)
       `)
       .not('week_start_date', 'is', null)
+      .not('email_sent_at', 'is', null)
       .gt('week_start_date', '2025-01-01')
-      .order('week_start_date', { ascending: false });
+      .order('week_start_date', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
     if (!batches || batches.length === 0) {
-      return res.json({ batches: [] });
+      return res.json({
+        batches: [],
+        page,
+        limit,
+        total,
+        pages
+      });
     }
 
     // Optimized: Avoid N+1 query by fetching all ideas for these weeks in one go
@@ -148,10 +200,16 @@ router.get('/weekly-batches', async (req, res) => {
     // Map ideas back to their respective batches
     const batchesWithIdeas = batches.map(batch => ({
       ...batch,
-      ideas: allIdeas?.filter(idea => idea.week_published === batch.week_start_date) || []
+      ideas: allIdeas?.filter(opp => opp.week_published === batch.week_start_date) || []
     }));
 
-    res.json({ batches: batchesWithIdeas });
+    res.json({
+      batches: batchesWithIdeas,
+      page,
+      limit,
+      total,
+      pages
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -7,7 +7,7 @@
 ## 🎯 Project Overview
 
 **ZerosByKai** is a weekly startup ideas platform.
-- **Concept**: Kai (Analyst persona) scrapes Reddit for "real problems" people complain about.
+- **Concept**: Kai (Analyst persona) scrapes the internet for \"real problems\" people complain about.
 - **Value**: "Finding the right 0" in a world of easy 0-to-1 building.
 - **User Flow**: Browse 10 ideas → Pick 1 winner → Earn badges if your pick wins.
 
@@ -27,7 +27,7 @@
      SUPABASE_URL="https://xxx.supabase.co" \
      SUPABASE_ANON_KEY="xxx" \
      SUPABASE_SERVICE_KEY="xxx" \
-     RESEND_API_KEY="re_xxx" \
+     BREVO_API_KEY="xkeysib-..." \
      GEMINI_API_KEY="xxx" \
      JWT_SECRET="xxx" \
      FRONTEND_URL="https://zerosbykai.com" \
@@ -60,10 +60,10 @@
 
 ## 🧪 Testing & Verification
 
-### 1. Test Reddit Scraping Workflow
+### 1. Run All Scrapers (Backlog Fill)
 ```bash
 cd backend
-node src/jobs/reddit_scraper.js
+node src/jobs/scrapers/run_scrapers.js # Runs Reddit, HN, IH, X
 ```
 
 ### 2. Test Monday Workflow (End-to-End)
@@ -102,7 +102,8 @@ zerosbykai/
 │   │   │   ├── votes.js              # Voting endpoints
 │   │   │   └── auth.js               # Auth endpoints
 │   │   ├── jobs/                     # Production cron jobs
-│   │   │   ├── reddit_scraper.js     # Sunday: Reddit scraping
+│   │   │   ├── scrapers/             # Scrapers (Reddit, HN, IH, X)
+│   │   │   │   └── run_scrapers.js   # Master orchestration script
 │   │   │   └── weekly.js             # Monday: publish, winner, digest
 │   │   ├── workflows/                # Testing/simulation scripts
 │   │   │   ├── simulate_monday_workflow.js
@@ -110,7 +111,6 @@ zerosbykai/
 │   │   │   ├── simulate_welcome.js
 │   │   │   └── simulate_magic_link.js
 │   │   ├── emails/                   # Email templates
-│   │   │   ├── templates.js          # Re-exports all templates
 │   │   │   └── templates/
 │   │   │       ├── shared.js         # Shared components
 │   │   │       ├── weekly-digest.js  # Weekly digest email
@@ -176,7 +176,7 @@ See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
 
 ## 📧 Email System
 
-### Email Provider: Resend
+### Email Provider: Brevo (formerly Sendinblue)
 - **From**: `kai@zerosbykai.com`
 - **Reply-To**: `kai@zerosbykai.com`
 
@@ -198,7 +198,7 @@ See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
 - **Frequency**: Sunday 10 AM UTC (via GitHub Actions)
 - **Subreddits**: 17+ startup-related subreddits
 - **Anti-Detection**: Rotating user agents, randomized delays, exponential backoff
-- **Output**: ~150 posts scraped
+- **Output**: ~300+ posts scraped from multiple platforms
 
 ### AI Idea Generation (Google Gemini)
 - **Model**: `gemini-3-flash-preview` (with `gemini-2.5-flash` fallback)
@@ -232,7 +232,7 @@ SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_KEY=xxx
 
 # Email
-RESEND_API_KEY=re_xxx
+BREVO_API_KEY=xkeysib-...
 
 # AI
 GEMINI_API_KEY=xxx
@@ -278,9 +278,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 - Check port 3001 is not in use
 
 ### Emails not sending
-- Verify `RESEND_API_KEY` is set
-- Check Resend dashboard for logs
-- Ensure `kai@zerosbykai.com` is verified in Resend
+- Verify `BREVO_API_KEY` is set
+- Check Brevo dashboard for logs (Webhooks will handle bounces)
+- Ensure `kai@zerosbykai.com` is verified in Brevo
 
 ### Reddit scraping fails
 - Check `GEMINI_API_KEY` is valid
@@ -294,7 +294,14 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-02)
+## 📝 Recent Changes (2026-02-03)
+
+### System Audit & Hardening
+- ✅ **Complete Logic Verification**: Validated 100% of Winner, Badge, and Leaderboard logic.
+- ✅ **Frontend/Backend Parity**: Confirmed Auth & API environments match perfectly (`localhost` vs `prod`).
+- ✅ **Tag System Finalized**: Flexible array tags fully implemented; legacy JSON tags- **Sync**: Unified `tags` array on ideas.
+- ✅ **Multi-source Strategy**: Expanded scraping to include Hacker News, Indie Hackers, and X (Twitter) along with Reddit.
+- ✅ **Cleanup**: Removed inefficient scripts (`check_db_badges.js`) and deprecated migrations.
 
 ### Code Organization
 - ✅ Moved `daily_startup_ideas.js` → `jobs/reddit_scraper.js`
@@ -320,4 +327,4 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-03

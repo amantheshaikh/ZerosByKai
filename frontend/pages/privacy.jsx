@@ -36,7 +36,7 @@ export default function Privacy() {
                                 We don&apos;t sell your data to shady brokers. We don&apos;t track your every move.
                             </p>
                             <p className="font-bold bg-yellow-200 inline-block px-1 text-black">
-                                We are too busy analyzing Reddit threads to spy on you.
+                                We are too busy analyzing the internet&apos;s noise to spy on you.
                             </p>
                         </section>
 

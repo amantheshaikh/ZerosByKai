@@ -3,7 +3,6 @@ import Head from 'next/head';
 import Image from 'next/image';
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
 import { useAuth, apiFetch, getApiUrl } from '@/lib/auth';
-import { useSubscribe } from '@/hooks/useSubscribe';
 import Header from '@/components/Header';
 import Leaderboard from '@/components/Leaderboard';
 import IdeaCard from '@/components/IdeaCard';
@@ -26,10 +25,10 @@ import {
 } from '@/lib/ideas';
 
 const ZerosByKaiLanding = () => {
-    const { user, session, isLoading: authLoading, openAuthModal } = useAuth();
+    const { user, session, isLoading: authLoading, openAuthModal, subscribeNewsletter } = useAuth();
     const [email, setEmail] = useState('');
-
-    const { subscribe, status: subscribeStatus, error: subscribeError } = useSubscribe();
+    const [subscribeStatus, setSubscribeStatus] = useState('idle');
+    const [subscribeError, setSubscribeError] = useState(null);
 
     // Real ideas state
     const [ideas, setIdeas] = useState(null);
@@ -57,14 +56,20 @@ const ZerosByKaiLanding = () => {
         getUserVote(session).then(setUserVote);
     }, [session]);
 
-    const displayIdeas = ideas || sampleIdeas;
+    const displayIdeas = ideas || sampleIdeas.map(normalizeIdea);
     const isRealData = ideas !== null;
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        const success = await subscribe({ email });
-        if (success) {
+        setSubscribeStatus('loading');
+        setSubscribeError(null);
+        try {
+            await subscribeNewsletter(email);
+            setSubscribeStatus('success');
             setEmail('');
+        } catch (err) {
+            setSubscribeError(err.message || 'Subscription failed');
+            setSubscribeStatus('error');
         }
     };
 
@@ -125,16 +130,16 @@ const ZerosByKaiLanding = () => {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
             />
             <Head>
-                <title>ZerosByKai | 10 Startup Ideas from Reddit Weekly</title>
-                <meta name="description" content="Find your next validated startup idea. Kai curates 10 real business opportunities every Monday from thousands of Reddit threads. Free weekly startup ideas newsletter for entrepreneurs, indie hackers, and builders. No AI slop — just real pain points waiting to be built." />
-                <meta name="keywords" content="startup ideas, validated business ideas, Reddit startup ideas, side project ideas, business opportunities, startup idea newsletter, indie hacker ideas, SaaS ideas, entrepreneur tools, startup validation, find startup ideas" />
-                <meta property="og:title" content="ZerosByKai | Validated Startup Ideas from Reddit" />
-                <meta property="og:description" content="10 validated startup ideas every Monday, curated from thousands of Reddit threads. Free business opportunity newsletter for founders and indie hackers." />
+                <title>ZerosByKai | 10 Validated Startup Ideas Weekly</title>
+                <meta name="description" content="Find your next validated startup idea. Kai curates 10 real business opportunities every Monday from the internet's chaos. Free weekly startup ideas newsletter for entrepreneurs, indie hackers, and builders. No AI slop — just real pain points waiting to be built." />
+                <meta name="keywords" content="startup ideas, validated business ideas, internet startup ideas, side project ideas, business opportunities, startup idea newsletter, indie hacker ideas, SaaS ideas, entrepreneur tools, startup validation, find startup ideas" />
+                <meta property="og:title" content="ZerosByKai | Validated Startup Ideas from the Chaos" />
+                <meta property="og:description" content="10 validated startup ideas every Monday, curated from millions of online conversations. Free business opportunity newsletter for founders and indie hackers." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/" />
                 <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
-                <meta name="twitter:title" content="ZerosByKai | Validated Startup Ideas from Reddit" />
-                <meta name="twitter:description" content="10 validated startup ideas every Monday from Reddit. Free for entrepreneurs, indie hackers & builders." />
+                <meta name="twitter:title" content="ZerosByKai | Validated Startup Ideas from the Chaos" />
+                <meta name="twitter:description" content="10 validated startup ideas every Monday from the internet's noise. Free for entrepreneurs, indie hackers & builders." />
                 <meta name="twitter:image" content="https://zerosbykai.com/kai-hero.jpg" />
                 <link rel="canonical" href="https://zerosbykai.com/" />
             </Head>
@@ -169,7 +174,7 @@ const ZerosByKaiLanding = () => {
 
                             <p className="text-base sm:text-lg lg:text-xl text-gray-900 comic-body max-w-xl leading-relaxed">
                                 <span className="font-bold">Zeros are startup ideas </span>that aren&apos;t AI-generated slop. Every week, Kai digs through
-                                <span className="font-bold"> thousands of Reddit threads</span> to surface <span className="font-bold">real problems </span>
+                                <span className="font-bold"> millions of internet conversations</span> to surface <span className="font-bold">real problems </span>
                                 people won&apos;t shut up about. <span className="font-bold">Real opportunities.</span> No BS. No trend-chasing.
                                 Just validated pain points waiting to be built.
                             </p>
@@ -200,7 +205,7 @@ const ZerosByKaiLanding = () => {
                                 <div className="comic-panel comic-shadow p-2 bg-gradient-to-br from-yellow-200 to-yellow-100 rotate-2 z-10 relative">
                                     <Image
                                         src="/kai-hero.jpg"
-                                        alt="Kai - AI-powered startup idea curator finding validated business opportunities from Reddit"
+                                        alt="Kai - AI-powered startup idea curator finding validated business opportunities from the internet's noise"
                                         width={682}
                                         height={1024}
                                         className="w-full h-auto border-2 sm:border-4 border-black"
@@ -218,16 +223,16 @@ const ZerosByKaiLanding = () => {
                                         <p className="comic-title text-[10px] sm:text-xs leading-tight text-center text-white">
                                             🏆 WORLD&apos;S MOST<br />
                                             <span className="text-yellow-300">OBSESSIVE</span><br />
-                                            REDDIT ANALYST
+                                            PROBLEM HUNTER
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Bonus Card: Stats - Top Right, more subtle */}
                                 <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-6 z-20 transform rotate-6 hidden sm:block">
-                                    <div className="bg-white border-2 border-black px-2 py-1 shadow-md">
+                                    <div className="bg-white border-2 border-black px-2 py-1 shadow-md transform rotate-3">
                                         <p className="comic-body text-[8px] sm:text-[10px] font-bold text-gray-700">
-                                            📊 2,347+ threads/week
+                                            🏅 EMPLOYEE OF THE MONTH<br />(EVERY MONTH)
                                         </p>
                                     </div>
                                 </div>
@@ -237,9 +242,22 @@ const ZerosByKaiLanding = () => {
                 </div>
             </section>
 
+            {/* Live Signal Ticker - The Sources */}
+            <div className="bg-black py-3 border-y-4 border-black overflow-hidden relative">
+                <div className="flex gap-8 items-center justify-center text-yellow-400 opacity-90">
+                    <span className="comic-title text-sm sm:text-base tracking-widest whitespace-nowrap">⚡ LIVE SIGNAL FEEDS:</span>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-x-12 comic-body text-[10px] sm:text-sm font-bold text-white tracking-wider uppercase justify-center">
+                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
+                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
+                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
+                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Subscription Form Section - Horizontal Layout */}
             {!user && (
-                <section className="relative bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 border-t-4 border-black">
+                <section id="join-section" className="relative bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 border-t-4 border-black">
                     <div className="absolute inset-0 halftone"></div>
                     <div className="relative max-w-5xl mx-auto px-6 py-8">
                         <div className="comic-panel p-8 bg-white comic-shadow">
@@ -256,19 +274,19 @@ const ZerosByKaiLanding = () => {
                                 </div>
                             ) : (
                                 <div>
-                                    <form onSubmit={handleSubscribe} className="flex gap-3 mb-4">
+                                    <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 mb-4">
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="your@email.com"
-                                            className="flex-1 px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
+                                            className="w-full sm:flex-1 px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black text-center sm:text-left"
                                             required
                                         />
                                         <button
                                             type="submit"
                                             disabled={subscribeStatus === 'loading'}
-                                            className="px-8 py-3 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 whitespace-nowrap"
+                                            className="w-full sm:w-auto px-8 py-3 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 whitespace-nowrap"
                                         >
                                             {subscribeStatus === 'loading' ? 'SUBSCRIBING...' : 'SUBSCRIBE FREE'}
                                         </button>
@@ -300,11 +318,11 @@ const ZerosByKaiLanding = () => {
             )}
 
 
-            <section id="ideas-section" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-yellow-50">
+            <section id="ideas-section" className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-yellow-50">
                 <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-10 sm:mb-16">
+                    <div className="text-center mb-6 sm:mb-10">
                         <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
-                            FRESH FROM REDDIT
+                            FRESH FROM THE CHAOS
                         </div>
                         <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
                         <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
@@ -313,7 +331,7 @@ const ZerosByKaiLanding = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 mb-12 sm:mb-16 max-w-6xl mx-auto">
+                    <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                         {displayIdeas.map((idea, index) => (
                             <IdeaCard
                                 key={idea.id}
@@ -372,24 +390,24 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* Leaderboard - Last Week's Winners */}
-            <Leaderboard winners={leaderboard || sampleWinners} />
+            <Leaderboard winners={leaderboard || sampleWinners.map(normalizeIdea)} />
 
 
 
             {/* How It Works Section */}
-            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white">
+            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-white">
                 <div className="max-w-6xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-10 sm:mb-16 text-black">HOW IT WORKS</h2>
+                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-6 sm:mb-10 text-black">HOW IT WORKS</h2>
 
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                         {/* Step 1 */}
                         <div className="text-center group hover:-translate-y-2 transition-transform duration-300">
                             <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
-                                <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from Reddit threads" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                                <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from internet noise" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                             </div>
                             <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">1. GET THE STASH</h3>
                             <p className="comic-body text-sm sm:text-base text-gray-700">
-                                Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from thousands of Reddit threads.
+                                Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from the noise of the internet.
                                 No fluff. No AI hallucinations. Just real problems people are screaming about.
                             </p>
                         </div>
@@ -422,10 +440,10 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* Designation Tiers Section */}
-            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gray-900 text-white">
+            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-gray-900 text-white">
                 <div className="max-w-6xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-3 sm:mb-4 text-yellow-400">MISSION DESIGNATIONS</h2>
-                    <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-8 sm:mb-12">
+                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-2 sm:mb-3 text-yellow-400">MISSION DESIGNATIONS</h2>
+                    <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-6 sm:mb-8">
                         Stop lurking. Start building your record. Prove you can spot the signal.
                     </p>
 
@@ -461,13 +479,13 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* Why Kai Section - Newspaper Clippings Style */}
-            <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 relative overflow-hidden">
+            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 relative overflow-hidden">
                 {/* Halftone pattern overlay */}
                 <div className="absolute inset-0 halftone"></div>
 
                 <div className="relative max-w-6xl mx-auto">
                     {/* Section Header */}
-                    <div className="text-center mb-10 sm:mb-16">
+                    <div className="text-center mb-6 sm:mb-10">
                         <div className="inline-block bg-black text-yellow-400 px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform rotate-1 border-2 border-yellow-400">
                             ⚡ WHY BUILDERS TRUST KAI
                         </div>
@@ -516,7 +534,7 @@ const ZerosByKaiLanding = () => {
                                 </h3>
                                 <div className="border-l-4 border-purple-600 pl-4 mb-4">
                                     <p className="comic-body text-sm text-gray-800">
-                                        But finding validated problems is brutal. <span className="font-bold bg-purple-100 px-1">Reddit has gold buried</span> in thousands of angry rants—if you know where to look.
+                                        But finding validated problems is brutal. <span className="font-bold bg-purple-100 px-1">The internet has gold buried</span> in millions of angry rants—if you know where to look.
                                     </p>
                                 </div>
                                 <div className="border-t-2 border-dashed border-gray-300 pt-4">
@@ -567,7 +585,7 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* Startup Ideas / SEO Section */}
-            <section className="bg-black py-12 sm:py-16 lg:py-20 px-4 sm:px-6 relative overflow-hidden border-t-4 border-b-4 border-black">
+            <section className="bg-black py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden border-t-4 border-b-4 border-black">
                 {/* Diagonal striping pattern */}
                 <div className="absolute inset-0 opacity-10"
                     style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 10px, transparent 10px, transparent 20px)' }}>
@@ -582,35 +600,35 @@ const ZerosByKaiLanding = () => {
 
                     <h2 className="comic-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 leading-none drop-shadow-[4px_4px_0_rgba(180,83,9,1)]">
                         LOOKING FOR YOUR NEXT<br />
-                        <span className="text-yellow-400">MILLION DOLLAR IDEA?</span>
+                        <span className="text-yellow-400 text-2xl sm:text-4xl md:text-5xl lg:text-6xl">MILLION DOLLAR IDEA?</span>
                     </h2>
-
                     <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center text-left">
                         <div className="comic-panel bg-white p-5 sm:p-6 lg:p-8 transform rotate-1 comic-shadow">
-                            <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-rose-700">THIS IS NOT A STARTUP IDEA GENERATOR.</h3>
+                            <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-rose-700">STOP BRAINSTORMING. START LISTENING.</h3>
                             <p className="comic-body text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 text-black">
-                                Stop scrolling for random <span className="font-bold bg-yellow-200 px-1 text-black">business ideas</span>.
-                                Ideas are cheap. &quot;Uber for Dogs&quot; is not a business plan.
+                                The best businesses aren't invented; they're <span className="font-bold bg-yellow-200 px-1 text-black">discovered</span>.
+                                Hidden in 4.2M weekly conversations are thousands of people begging for solutions.
                             </p>
                             <p className="comic-body text-sm sm:text-base lg:text-lg text-black">
-                                You don&apos;t need a random idea generator spouting nonsense. You need
-                                <span className="font-bold bg-black text-white px-1 mx-1">validated pain points</span>
-                                from real humans who are begging for a solution.
+                                Your "Uber for Dogs" idea? No one asked for it.<br />
+                                The problem Kai found yesterday? <span className="font-bold bg-black text-white px-1 mx-1">500 people are already searching for it.</span>
                             </p>
                         </div>
 
                         <div className="comic-panel bg-yellow-400 p-5 sm:p-6 lg:p-8 transform -rotate-1 comic-shadow">
-                            <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-black">THE TRUTH ABOUT UNICORNS 🦄</h3>
+                            <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-black">WE DON&apos;T CREATE IDEAS. WE INTERCEPT THEM.</h3>
                             <p className="comic-body text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 text-black">
-                                The next <span className="font-bold text-black">big startup idea</span> isn&apos;t in a brainstorm session.
-                                It&apos;s hidden in a Reddit thread where 500 people are angry about the same thing.
+                                We don&apos;t sit in a room brainstorming &quot;cool apps&quot;. We unleash Kai to hunt for <span className="font-bold text-black border-b-2 border-black">commercial intent signals</span>.
                             </p>
-                            <p className="comic-body text-sm sm:text-base lg:text-lg text-black">
-                                We don&apos;t give you &quot;clever concepts&quot;. We give you:
-                                <br />
-                                <span className="font-bold block mt-2 text-black">
-                                    &quot;I have $500 ready to pay for this software but it doesn&apos;t exist.&quot;
-                                </span>
+
+                            <div className="bg-black p-3 sm:p-4 font-mono text-xs sm:text-sm text-green-400 mb-2 rounded shadow-inner border-2 border-white/20">
+                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;I would pay for...&quot;</p>
+                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;Why doesn&apos;t this exist...&quot;</p>
+                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;If [company] added this...&quot;</p>
+                                <p className="mt-2 text-yellow-400 font-bold animate-pulse">&gt; SIGNAL DETECTED: &quot;I&apos;d pay $50/mo right now for a tool that automates [X]&quot;</p>
+                            </div>
+                            <p className="comic-body text-xs text-black font-bold text-right">
+                                That&apos;s not an idea. That&apos;s a lead.
                             </p>
                         </div>
                     </div>
@@ -625,7 +643,7 @@ const ZerosByKaiLanding = () => {
 
             {/* Final CTA */}
             {!user && (
-                <section className="bg-gradient-to-br from-yellow-400 to-amber-400 py-12 sm:py-16 lg:py-20 px-4 sm:px-6 relative overflow-hidden">
+                <section className="bg-gradient-to-br from-yellow-400 to-amber-400 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden">
                     <div className="absolute inset-0 halftone"></div>
                     <div className="relative max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -648,7 +666,7 @@ const ZerosByKaiLanding = () => {
                                     className="comic-body text-lg sm:text-xl lg:text-2xl max-w-xl mx-auto lg:mx-0 text-black"
                                 >
                                     <span className="font-bold">10 validated opportunities</span> land in your inbox every Monday.
-                                    No AI slop. No fake problems. Just real pain points from <span className="font-bold">thousands of Reddit threads.</span>
+                                    No AI slop. No fake problems. Just real pain points from <span className="font-bold">the internet&apos;s digital town squares.</span>
                                 </motion.p>
 
                                 {/* Social proof badges */}

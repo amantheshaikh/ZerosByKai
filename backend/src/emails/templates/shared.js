@@ -1,24 +1,37 @@
 // Shared email styles and components
 
+/**
+ * Basic HTML escaping to prevent injection when inserting user names
+ */
+export function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export const emailStyles = {
-    fonts: `
+  fonts: `
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
   `,
 
-    body: `margin: 0; padding: 0; font-family: 'Courier Prime', monospace; background: #ffffff;`,
+  body: `margin: 0; padding: 0; font-family: 'Courier Prime', monospace; background: #ffffff;`,
 
-    container: `max-width: 600px; margin: 0 auto; padding: 40px 20px;`,
+  container: `max-width: 600px; margin: 0 auto; padding: 40px 20px;`,
 
-    header: `background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;`,
+  header: `background: #FCD933; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; margin-bottom: 32px;`,
 
-    button: `display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;`,
+  button: `display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;`,
 
-    divider: `border: none; border-top: 1px solid #000; margin: 32px 0;`
+  divider: `border: none; border-top: 1px solid #000; margin: 32px 0;`
 };
 
 export function generateEmailHeader({ title, subtitle }) {
-    return `
+  return `
     <div style="${emailStyles.header}">
       <div style="margin-bottom: 8px;">
         <a href="https://www.zerosbykai.com" style="display: inline-block; text-decoration: none;">
@@ -34,7 +47,7 @@ export function generateEmailHeader({ title, subtitle }) {
 }
 
 export function generateEmailFooter({ unsubscribeLink }) {
-    return `
+  return `
     <hr style="${emailStyles.divider}">
     <div style="padding-top: 24px; font-size: 13px; color: #666;">
       <p style="margin-bottom: 16px;">
@@ -52,7 +65,7 @@ export function generateEmailFooter({ unsubscribeLink }) {
 }
 
 export function generateEmailWrapper({ title, preheader, content }) {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -74,3 +87,5 @@ export function generateEmailWrapper({ title, preheader, content }) {
 </html>
   `;
 }
+
+

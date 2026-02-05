@@ -1,12 +1,15 @@
-import { generateEmailWrapper, generateEmailHeader, emailStyles } from './shared.js';
+import { generateEmailWrapper, generateEmailHeader, emailStyles, escapeHtml } from './shared.js';
 
-export function generateMagicLinkEmail({ email, actionLink }) {
-    const content = `
+export function generateMagicLinkEmail({ email: _email, actionLink, name }) {
+  const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi there,';
+
+  const content = `
     ${generateEmailHeader({ title: 'Login Link' })}
 
     <!-- Main Content -->
     <div style="margin-bottom: 32px;">
       <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 16px;">Your Magic Link</h2>
+      <p style="font-size: 16px; margin-bottom: 12px; font-weight: 700;">${greeting}</p>
       <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 24px;">
         Click the button below to log in. This link will expire in 24 hours.
       </p>
@@ -35,9 +38,9 @@ export function generateMagicLinkEmail({ email, actionLink }) {
     </div>
   `;
 
-    return generateEmailWrapper({
-        title: 'Login to ZerosByKai',
-        preheader: 'Here is your magic link to log in to ZerosByKai.',
-        content
-    });
+  return generateEmailWrapper({
+    title: 'Login to ZerosByKai',
+    preheader: 'Here is your magic link to log in to ZerosByKai.',
+    content
+  });
 }

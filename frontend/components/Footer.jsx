@@ -8,7 +8,7 @@ export default function Footer() {
                     <div>
                         <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-yellow-400">ZEROSBYKAI</h3>
                         <p className="comic-body text-sm sm:text-base text-gray-400">
-                            Startup opportunities from Reddit, curated by Kai every Monday.
+                            Startup opportunities mined from the chaos, curated by Kai every Monday.
                         </p>
                     </div>
                     <div>
@@ -16,7 +16,7 @@ export default function Footer() {
                         <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
                             <li><a href="#ideas-section" className="hover:text-yellow-400">This Week&apos;s Ideas</a></li>
                             <li><Link href="/archive" className="hover:text-yellow-400">Archive</Link></li>
-                            <li><Link href="/story" className="hover:text-yellow-400">About Kai</Link></li>
+                            <li><Link href="/story" className="hover:text-yellow-400">Kai&apos;s story</Link></li>
                         </ul>
                     </div>
                     <div>

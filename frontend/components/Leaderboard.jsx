@@ -20,11 +20,11 @@ const Leaderboard = ({ winners }) => {
     };
 
     return (
-        <section className="bg-gradient-to-r from-rose-700 to-rose-600 py-24 px-6 relative overflow-visible">
+        <section className="bg-gradient-to-r from-rose-700 to-rose-600 py-12 px-6 relative overflow-visible">
             <div className="absolute inset-0 halftone opacity-20 pointer-events-none"></div>
 
             <div className="relative max-w-6xl mx-auto">
-                <div className="flex items-center gap-4 mb-20 justify-center">
+                <div className="flex items-center gap-4 mb-10 justify-center">
                     <Trophy className="w-12 h-12 text-yellow-300 transform -rotate-12" />
                     <h2 className="comic-title text-4xl md:text-5xl text-white tracking-wide drop-shadow-md text-center">
                         LAST WEEK&apos;S WINNERS
@@ -38,7 +38,7 @@ const Leaderboard = ({ winners }) => {
 
                         if (index === 1) { // 1st Place (Center)
                             color = "bg-yellow-400";
-                            cardHeight = 480;
+                            cardHeight = 420;
                             orderClass = "order-1 md:order-2";
                             scaleClass = "";
                             marginTop = "mt-0";
@@ -46,18 +46,18 @@ const Leaderboard = ({ winners }) => {
                             badge = "🥇 1st PLACE";
                         } else if (index === 0) { // 2nd Place (Left)
                             color = "bg-gray-300";
-                            cardHeight = 400;
+                            cardHeight = 340;
                             orderClass = "order-2 md:order-1";
                             scaleClass = "md:scale-95";
-                            marginTop = "md:mt-20"; // 80px offset to create podium effect
+                            marginTop = "md:mt-12"; // offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-gray-600 mb-2" />;
                             badge = "🥈 2nd PLACE";
                         } else { // 3rd Place (Right)
                             color = "bg-orange-300";
-                            cardHeight = 400;
+                            cardHeight = 340;
                             orderClass = "order-3 md:order-3";
                             scaleClass = "md:scale-95";
-                            marginTop = "md:mt-20"; // 80px offset to create podium effect
+                            marginTop = "md:mt-12"; // offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-orange-700 mb-2" />;
                             badge = "🥉 3rd PLACE";
                         }
@@ -90,7 +90,7 @@ const Leaderboard = ({ winners }) => {
                                 >
                                     {/* --- FRONT SIDE --- */}
                                     <div
-                                        className="flex flex-col comic-panel p-6 bg-white shadow-2xl"
+                                        className="flex flex-col comic-panel p-4 bg-white shadow-2xl"
                                         style={{
                                             position: 'absolute',
                                             top: 0,
@@ -107,12 +107,12 @@ const Leaderboard = ({ winners }) => {
                                         </div>
 
                                         {/* Content */}
-                                        <div className="mt-8 flex-1 text-center flex flex-col items-center">
-                                            <div className={`p-3 rounded-full border-2 border-black ${color.replace('300', '100').replace('400', '200')} mb-3`}>
+                                        <div className="mt-6 flex-1 text-center flex flex-col items-center">
+                                            <div className={`p-2 rounded-full border-2 border-black ${color.replace('300', '100').replace('400', '200')} mb-2`}>
                                                 {icon}
                                             </div>
 
-                                            <div className="inline-block px-2 py-1 bg-gray-100 border border-gray-300 text-[10px] font-bold uppercase tracking-wider mb-2">
+                                            <div className="inline-block px-2 py-0.5 bg-gray-100 border border-gray-300 text-[9px] font-bold uppercase tracking-wider mb-2">
                                                 {winner.tagsList?.[0] || '🌍 Global'}
                                             </div>
 
@@ -126,15 +126,15 @@ const Leaderboard = ({ winners }) => {
                                                 </p>
                                             )}
 
-                                            <div className="mt-auto border-t-2 border-dashed border-gray-300 pt-4 w-full">
-                                                <div className="comic-title text-3xl text-rose-700">
+                                            <div className="mt-auto border-t-2 border-dashed border-gray-300 pt-3 w-full">
+                                                <div className="comic-title text-2xl text-rose-700">
                                                     {winner.votes}
                                                 </div>
-                                                <div className="comic-body text-xs font-bold text-gray-500 uppercase">
+                                                <div className="comic-body text-[10px] font-bold text-gray-500 uppercase">
                                                     VOTES
                                                 </div>
-                                                <div className="mt-3 text-xs text-gray-400 flex items-center justify-center gap-1">
-                                                    <RotateCw className="w-3 h-3" /> Tap to flip
+                                                <div className="mt-2 text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                                                    <RotateCw className="w-2.5 h-2.5" /> Tap to flip
                                                 </div>
                                             </div>
                                         </div>
@@ -142,7 +142,7 @@ const Leaderboard = ({ winners }) => {
 
                                     {/* --- BACK SIDE --- */}
                                     <div
-                                        className="comic-panel p-6 bg-white shadow-2xl flex flex-col"
+                                        className="comic-panel p-4 bg-white shadow-2xl flex flex-col"
                                         style={{
                                             position: 'absolute',
                                             top: 0,
