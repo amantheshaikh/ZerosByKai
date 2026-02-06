@@ -19,40 +19,64 @@ async function registerWebhooks() {
 
     try {
         // 1. Check for existing webhooks to avoid duplicates
-        const { body: existingWebhooks } = await webhooksApi.getWebhooks();
-        const webhooks = existingWebhooks.webhooks || [];
+        let webhooks = [];
+        try {
+            const { body: existingWebhooks } = await webhooksApi.getWebhooks();
+            console.log("Existing Webhooks Found.");
+            webhooks = existingWebhooks.webhooks || [];
+        } catch (e) {
+            // Brevo returns 400 "Webhook record does not exist" if none found
+            const errorStatus = e?.response?.status;
+            const errorCode = e?.response?.data?.code || e?.response?.body?.code;
+            if (errorStatus === 400 && errorCode === 'document_not_found') {
+                console.log("ℹ️ No existing webhooks found (clean slate).");
+            } else {
+                throw e; // Real error
+            }
+        }
 
         const marketingExists = webhooks.find(w => w.url === fullUrl && w.type === 'marketing');
         const transactionalExists = webhooks.find(w => w.url === fullUrl && w.type === 'transactional');
 
         // 2. Create Marketing Webhook (for contact_deleted and marketing unsubscribe)
+        // 2. Marketing Webhook
+        const marketingEvents = ["contactDeleted", "unsubscribed"];
         if (!marketingExists) {
             await webhooksApi.createWebhook({
                 url: fullUrl,
-                events: ["contact_deleted", "unsubscribe"],
+                events: marketingEvents,
                 type: "marketing"
             });
             console.log("✅ Marketing Webhook created successfully!");
         } else {
-            console.log("ℹ️ Marketing Webhook already exists.");
+            await webhooksApi.updateWebhook(marketingExists.id, {
+                events: marketingEvents
+            });
+            console.log("✅ Marketing Webhook updated successfully!");
         }
 
-        // 3. Create Transactional Webhook (for transactional 'unsubscribed' event)
+        // 3. Transactional Webhook
+        const transactionalEvents = ["unsubscribed"]; // Transactional uses 'unsubscribed'
         if (!transactionalExists) {
             await webhooksApi.createWebhook({
                 url: fullUrl,
-                events: ["unsubscribed"],
+                events: transactionalEvents,
                 type: "transactional"
             });
             console.log("✅ Transactional Webhook created successfully!");
-        } else {
-            console.log("ℹ️ Transactional Webhook already exists.");
         }
 
         console.log("\n✨ Webhook registration complete!");
     } catch (error) {
-        const errorBody = error?.response?.body || error?.body || error.message;
-        console.error("❌ Failed to register webhooks:", JSON.stringify(errorBody, null, 2));
+        console.error("❌ Failed to register webhooks:");
+        if (error.response) {
+            console.error("Status:", error.response.status);
+            console.error("Keys:", Object.keys(error.response));
+            console.error("Data:", JSON.stringify(error.response.data, null, 2));
+            console.error("Body:", JSON.stringify(error.response.body, null, 2));
+        } else {
+            console.error("Message:", error.message);
+        }
     }
 }
 

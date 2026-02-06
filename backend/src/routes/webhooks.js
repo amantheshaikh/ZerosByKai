@@ -31,7 +31,7 @@ router.post('/brevo', async (req, res) => {
         console.log(`📡 Brevo Webhook Received: ["${event}"] for ${email}`);
 
         // Handle Contact Deletion
-        if (event === 'contact_deleted') {
+        if (event === 'contact_deleted' || event === 'contactDeleted') {
             const { data: subscriber } = await supabaseAdmin
                 .from('subscribers')
                 .select('user_id')
