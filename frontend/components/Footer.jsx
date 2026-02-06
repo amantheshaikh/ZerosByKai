@@ -6,7 +6,7 @@ export default function Footer() {
             <div className="max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
                     <div>
-                        <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-yellow-400">ZEROSBYKAI</h3>
+                        <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-yellow-400">ZEROS BY KAI</h3>
                         <p className="comic-body text-sm sm:text-base text-gray-400">
                             Startup opportunities mined from the chaos, curated by Kai every Monday.
                         </p>

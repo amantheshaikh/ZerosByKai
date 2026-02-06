@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Award, Trophy, Medal, RotateCw } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const Leaderboard = ({ winners }) => {
     // Track which card is flipped (by index)
@@ -24,17 +25,35 @@ const Leaderboard = ({ winners }) => {
             <div className="absolute inset-0 halftone opacity-20 pointer-events-none"></div>
 
             <div className="relative max-w-6xl mx-auto">
-                <div className="flex items-center gap-4 mb-10 justify-center">
+                <motion.div
+                    className="flex items-center gap-4 mb-10 justify-center"
+                    initial={{ opacity: 0, y: -20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                >
                     <Trophy className="w-12 h-12 text-yellow-300 transform -rotate-12" />
                     <h2 className="comic-title text-4xl md:text-5xl text-white tracking-wide drop-shadow-md text-center">
                         LAST WEEK&apos;S WINNERS
                     </h2>
                     <Trophy className="w-12 h-12 text-yellow-300 transform rotate-12" />
-                </div>
+                </motion.div>
 
-                <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-start">
+                <motion.div
+                    className="grid md:grid-cols-3 gap-6 lg:gap-8 items-start"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: {
+                            transition: {
+                                staggerChildren: 0.15
+                            }
+                        }
+                    }}
+                >
                     {podiumOrder.map((winner, index) => {
-                        let color, icon, cardHeight, orderClass, badge, scaleClass, marginTop;
+                        let color, icon, cardHeight, orderClass, badge, scaleClass, marginTop, variant;
 
                         if (index === 1) { // 1st Place (Center)
                             color = "bg-yellow-400";
@@ -44,6 +63,10 @@ const Leaderboard = ({ winners }) => {
                             marginTop = "mt-0";
                             icon = <Award className="w-16 h-16 text-yellow-600 mb-2" />;
                             badge = "🥇 1st PLACE";
+                            variant = {
+                                hidden: { opacity: 0, scale: 0.8, y: 40 },
+                                visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", damping: 15 } }
+                            };
                         } else if (index === 0) { // 2nd Place (Left)
                             color = "bg-gray-300";
                             cardHeight = 340;
@@ -52,6 +75,10 @@ const Leaderboard = ({ winners }) => {
                             marginTop = "md:mt-12"; // offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-gray-600 mb-2" />;
                             badge = "🥈 2nd PLACE";
+                            variant = {
+                                hidden: { opacity: 0, x: -30, y: 20 },
+                                visible: { opacity: 1, x: 0, y: 0 }
+                            };
                         } else { // 3rd Place (Right)
                             color = "bg-orange-300";
                             cardHeight = 340;
@@ -60,18 +87,40 @@ const Leaderboard = ({ winners }) => {
                             marginTop = "md:mt-12"; // offset to create podium effect
                             icon = <Medal className="w-12 h-12 text-orange-700 mb-2" />;
                             badge = "🥉 3rd PLACE";
+                            variant = {
+                                hidden: { opacity: 0, x: 30, y: 20 },
+                                visible: { opacity: 1, x: 0, y: 0 }
+                            };
                         }
 
                         const isFlipped = flippedIndex === index;
 
+                        // Mobile-specific variant: slide up instead of sideways when stacked
+                        const mobileVariant = {
+                            hidden: { opacity: 0, y: 30 },
+                            visible: { opacity: 1, y: 0 }
+                        };
+
+                        const finalVariant = index === 1 ? variant : {
+                            ...variant,
+                            hidden: {
+                                ...variant.hidden,
+                                // On small screens (less than 768px), override x with 0 and use y
+                                x: typeof window !== 'undefined' && window.innerWidth < 768 ? 0 : variant.hidden.x,
+                                y: typeof window !== 'undefined' && window.innerWidth < 768 ? 30 : variant.hidden.y
+                            }
+                        };
+
                         return (
-                            <div
+                            <motion.div
                                 key={index}
                                 className={`${orderClass} ${scaleClass} ${marginTop}`}
                                 style={{
                                     perspective: '1000px',
                                     height: `${cardHeight}px`
                                 }}
+                                variants={finalVariant}
+                                whileTap={{ scale: 0.98 }}
                             >
                                 {/* Card Container - this is the element that flips */}
                                 <div
@@ -183,10 +232,10 @@ const Leaderboard = ({ winners }) => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
         </section>
     );

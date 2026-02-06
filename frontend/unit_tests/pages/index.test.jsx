@@ -20,6 +20,7 @@ vi.mock('@/lib/ideas', () => ({
 
 vi.mock('@/lib/utils', () => ({
     normalizeIdea: vi.fn((i) => i),
+    cn: (...inputs) => inputs.filter(Boolean).join(' '),
 }));
 
 // Mock framer-motion to avoid animation issues in tests
@@ -29,8 +30,16 @@ vi.mock('framer-motion', () => ({
         h1: ({ children, ...props }) => <h1 {...props}>{children}</h1>,
         h2: ({ children, whileInView, viewport, ...props }) => <h2 {...props}>{children}</h2>,
         p: ({ children, whileInView, viewport, ...props }) => <p {...props}>{children}</p>,
+        span: ({ children, ...props }) => <span {...props}>{children}</span>,
     },
     AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+// Mock IntersectionObserver
+global.IntersectionObserver = vi.fn(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
 }));
 
 // Mock Header, Leaderboard, IdeaCard, Footer to simplify top-level testing
@@ -50,6 +59,15 @@ vi.mock('@/components/IdeaCard', () => ({
 }));
 vi.mock('@/components/Footer', () => ({
     default: () => <footer data-testid="mock-footer">Footer</footer>,
+}));
+vi.mock('@/components/Particles', () => ({
+    default: () => <div data-testid="mock-particles">Particles</div>,
+}));
+vi.mock('@/components/RotatingText', () => ({
+    default: ({ texts }) => <div data-testid="mock-rotating-text">{texts ? texts[0] : ''}</div>,
+}));
+vi.mock('@/components/ui/typing-animation', () => ({
+    TypingAnimation: ({ words }) => <div data-testid="mock-typing-animation">{words ? words.join(', ') : ''}</div>,
 }));
 
 describe('ZerosByKaiLanding', () => {
@@ -81,7 +99,7 @@ describe('ZerosByKaiLanding', () => {
 
         await waitFor(() => {
             expect(screen.getAllByText(/FIND THE/i)[0]).toBeInTheDocument();
-            expect(screen.getAllByText(/RIGHT ZERO/i)[0]).toBeInTheDocument();
+            expect(screen.getAllByText(/RIGHT/i)[0]).toBeInTheDocument();
         });
 
         // Ensure we wait for initial data load to avoid act() leakage
@@ -96,7 +114,8 @@ describe('ZerosByKaiLanding', () => {
 
         await waitFor(() => {
             expect(fetchCurrentWeekIdeas).toHaveBeenCalled();
-            expect(screen.getAllByTestId('mock-idea-card')).toHaveLength(2);
+            // IdeaCarousel renders 3 cards (left, center, right) for the 3D effect
+            expect(screen.getAllByTestId('mock-idea-card')).toHaveLength(3);
         });
     });
 
@@ -187,6 +206,6 @@ describe('ZerosByKaiLanding', () => {
         });
 
         // Ensure we check the ID type correctly (received as number)
-        expect(castVote).toHaveBeenCalledWith(1, mockSession);
+        expect(castVote).toHaveBeenCalledWith(10, mockSession);
     });
 });

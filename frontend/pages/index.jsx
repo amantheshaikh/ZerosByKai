@@ -5,12 +5,15 @@ import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
 import { useAuth, apiFetch, getApiUrl } from '@/lib/auth';
 import Header from '@/components/Header';
 import Leaderboard from '@/components/Leaderboard';
-import IdeaCard from '@/components/IdeaCard';
+import IdeaCarousel from '@/components/IdeaCarousel';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import { faqSchema, sampleIdeas, sampleWinners } from '@/data/sampleData';
+import Particles from '@/components/Particles';
+import RotatingText from '@/components/RotatingText';
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 const VoteConfirmation = dynamic(() => import('@/components/VoteConfirmation'), {
     loading: () => null,
@@ -133,24 +136,34 @@ const ZerosByKaiLanding = () => {
                 <title>ZerosByKai | 10 Validated Startup Ideas Weekly</title>
                 <meta name="description" content="Find your next validated startup idea. Kai curates 10 real business opportunities every Monday from the internet's chaos. Free weekly startup ideas newsletter for entrepreneurs, indie hackers, and builders. No AI slop — just real pain points waiting to be built." />
                 <meta name="keywords" content="startup ideas, validated business ideas, internet startup ideas, side project ideas, business opportunities, startup idea newsletter, indie hacker ideas, SaaS ideas, entrepreneur tools, startup validation, find startup ideas" />
-                <meta property="og:title" content="ZerosByKai | Validated Startup Ideas from the Chaos" />
+                <meta property="og:title" content="ZerosByKai | Real Problems. Real Startup Ideas" />
                 <meta property="og:description" content="10 validated startup ideas every Monday, curated from millions of online conversations. Free business opportunity newsletter for founders and indie hackers." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/" />
                 <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
-                <meta name="twitter:title" content="ZerosByKai | Validated Startup Ideas from the Chaos" />
+                <meta name="twitter:title" content="ZerosByKai | Real Problems. Real Startup Ideas" />
                 <meta name="twitter:description" content="10 validated startup ideas every Monday from the internet's noise. Free for entrepreneurs, indie hackers & builders." />
                 <meta name="twitter:image" content="https://zerosbykai.com/kai-hero.jpg" />
                 <link rel="canonical" href="https://zerosbykai.com/" />
             </Head>
+            <Header variant="landing" />
             {/* Hero Section - Yellow Background */}
             <section className="relative bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 overflow-hidden">
-                {/* Halftone pattern overlay */}
-                <div className="absolute inset-0 halftone"></div>
+                {/* Particles Background animation */}
+                <div className="absolute inset-0 opacity-20 z-0">
+                    <Particles
+                        particleColors={['#000000']}
+                        particleCount={800}
+                        particleSpread={12}
+                        speed={0.1}
+                        particleBaseSize={200}
+                        moveParticlesOnHover={true}
+                        alphaParticles={true}
+                        disableRotation={false}
+                    />
+                </div>
 
-                <div className="relative max-w-7xl mx-auto px-6 pt-32 pb-6">
-                    {/* Header */}
-                    <Header variant="landing" />
+                <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32 pb-6">
 
                     {/* Main Hero */}
                     <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-4 lg:py-6">
@@ -162,7 +175,9 @@ const ZerosByKaiLanding = () => {
 
                             <h1 className="comic-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl leading-none text-gray-900">
                                 FIND THE<br />
-                                RIGHT <span className="text-rose-700">ZERO</span>
+                                RIGHT <span className="text-rose-700">
+                                    <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100}>ZER</TypingAnimation>O
+                                </span>
                             </h1>
 
                             <div className="comic-panel p-4 sm:p-6 bg-white max-w-xl border-l-4 sm:border-l-8 border-black">
@@ -177,10 +192,6 @@ const ZerosByKaiLanding = () => {
                                 <span className="font-bold"> millions of internet conversations</span> to surface <span className="font-bold">real problems </span>
                                 people won&apos;t shut up about. <span className="font-bold">Real opportunities.</span> No BS. No trend-chasing.
                                 Just validated pain points waiting to be built.
-                            </p>
-                            <p className="text-sm sm:text-base lg:text-lg text-gray-900 comic-body max-w-xl mt-2 sm:mt-4">
-                                For the <span className="font-bold">doers</span>. The <span className="font-bold">hustlers</span>.
-                                The <span className="font-bold">builders</span> who actually ship.
                             </p>
                         </div>
 
@@ -228,7 +239,7 @@ const ZerosByKaiLanding = () => {
                                 </div>
 
                                 {/* Bonus Card: Stats - Top Right, more subtle */}
-                                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-6 z-20 transform rotate-6 hidden sm:block">
+                                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-6 z-20 transform rotate-6">
                                     <div className="bg-white border-2 border-black px-2 py-1 shadow-md transform rotate-3">
                                         <p className="comic-body text-[8px] sm:text-[10px] font-bold text-gray-700">
                                             🏅 EMPLOYEE OF THE MONTH<br />(EVERY MONTH)
@@ -242,17 +253,89 @@ const ZerosByKaiLanding = () => {
             </section>
 
             {/* Live Signal Ticker - The Sources */}
-            <div className="bg-black py-3 border-y-4 border-black overflow-hidden relative">
-                <div className="flex gap-8 items-center justify-center text-yellow-400 opacity-90">
-                    <span className="comic-title text-sm sm:text-base tracking-widest whitespace-nowrap">⚡ LIVE SIGNAL FEEDS:</span>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-x-12 comic-body text-[10px] sm:text-sm font-bold text-white tracking-wider uppercase justify-center">
-                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
-                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
-                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
-                        <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
+            <div className="bg-black py-4 border-y-4 border-black overflow-hidden relative flex items-center">
+                {/* Title overlay to stay fixed on the left (optional, but looks better if it stays while items slide under) */}
+                <div className="absolute left-0 top-0 bottom-0 bg-black z-20 flex items-center px-4 sm:px-8 shadow-[10px_0_15px_rgba(0,0,0,0.9)] border-r border-yellow-400/20">
+                    <span className="comic-title text-sm sm:text-base tracking-widest whitespace-nowrap text-yellow-400 opacity-90">⚡ LIVE SIGNAL FEEDS:</span>
+                </div>
+
+                <div className="flex overflow-hidden">
+                    <div className="flex gap-12 sm:gap-24 items-center animate-marquee whitespace-nowrap pl-48 sm:pl-64">
+                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
+                        </div>
+                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
+                        </div>
+                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
+                        </div>
                     </div>
                 </div>
             </div>
+
+
+            <section id="ideas-section" className="py-4 sm:py-6 lg:py-8 px-4 sm:px-6 bg-yellow-50 overflow-x-hidden">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-6 sm:mb-6">
+                        <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
+                            FRESH FROM THE CHAOS
+                        </div>
+                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
+                        <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 w-full mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
+                            <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
+                            If it wins, you earn a badge—and level up your designation.
+                        </p>
+                    </div>
+
+                    <div className="max-w-6xl mx-auto">
+                        <IdeaCarousel
+                            ideas={displayIdeas}
+                            user={user}
+                            isRealData={isRealData}
+                            userVote={userVote}
+                            votingIdeaId={votingIdeaId}
+                            onVote={handleVote}
+                            getVoteButtonProps={getVoteButtonProps}
+                        />
+                    </div>
+
+                    {/* Vote Error Message */}
+                    <AnimatePresence>
+                        {voteError && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="fixed bottom-4 right-4 z-50 comic-panel p-4 bg-rose-100 border-2 border-rose-700 text-rose-700 comic-body comic-shadow shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">⚠️</span>
+                                    <div>
+                                        <p className="font-bold">Ouch! Vote failed.</p>
+                                        <p className="text-sm">{voteError}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setVoteError(null)}
+                                        className="ml-4 text-rose-900 hover:text-rose-700 font-bold"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </section>
 
             {/* Subscription Form Section - Horizontal Layout */}
             {!user && (
@@ -300,7 +383,7 @@ const ZerosByKaiLanding = () => {
                             )}
 
                             <p className="text-xs comic-body text-center text-gray-600">
-                                ✓ 100% Free &bull; ✓ Unsubscribe anytime &bull; ✓ No spam
+                                ✓ 100% Free &bull; ✓ Unsubscribe anytime &bull; ✓ One mail per week &bull; ✓ No spam
                             </p>
                             <p className="text-xs comic-body mt-2 text-center text-gray-500">
                                 Want to vote &amp; earn badges?{' '}
@@ -316,91 +399,48 @@ const ZerosByKaiLanding = () => {
                 </section>
             )}
 
-
-            <section id="ideas-section" className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-yellow-50">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-6 sm:mb-10">
-                        <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
-                            FRESH FROM THE CHAOS
-                        </div>
-                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
-                        <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
-                            <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
-                            If it wins, you earn a badge—and level up your designation.
-                        </p>
-                    </div>
-
-                    <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                        {displayIdeas.map((idea, index) => (
-                            <IdeaCard
-                                key={idea.id}
-                                idea={idea}
-                                index={index}
-                                isUserPick={user && isRealData && userVote === idea.id}
-                                btnProps={getVoteButtonProps(idea.id)}
-                                votingIdeaId={votingIdeaId}
-                                onVote={handleVote}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Vote Error Message */}
-                    <AnimatePresence>
-                        {voteError && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 20 }}
-                                className="fixed bottom-4 right-4 z-50 comic-panel p-4 bg-rose-100 border-2 border-rose-700 text-rose-700 comic-body comic-shadow shadow-lg"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xl">⚠️</span>
-                                    <div>
-                                        <p className="font-bold">Ouch! Vote failed.</p>
-                                        <p className="text-sm">{voteError}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => setVoteError(null)}
-                                        className="ml-4 text-rose-900 hover:text-rose-700 font-bold"
-                                    >
-                                        &times;
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {!user && (
-                        <div className="text-center">
-                            <div className="comic-panel inline-block p-6 bg-yellow-400 comic-shadow">
-                                <p className="comic-body font-bold text-lg mb-4 text-black">
-                                    Sign up to pick your winner and earn badges towards your next designation
-                                </p>
-                                <button
-                                    onClick={() => openAuthModal()}
-                                    className="px-8 py-3 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-colors"
-                                >
-                                    GET STARTED
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </section>
-
             {/* Leaderboard - Last Week's Winners */}
             <Leaderboard winners={leaderboard || sampleWinners.map(normalizeIdea)} />
 
 
 
             {/* How It Works Section */}
-            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-white">
-                <div className="max-w-6xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-6 sm:mb-10 text-black">HOW IT WORKS</h2>
+            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-white overflow-hidden">
+                <motion.div
+                    className="max-w-6xl mx-auto"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: {
+                            transition: {
+                                staggerChildren: 0.2
+                            }
+                        }
+                    }}
+                >
+                    <motion.h2
+                        className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-6 sm:mb-10 text-black"
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0 }
+                        }}
+                    >
+                        HOW IT WORKS
+                    </motion.h2>
 
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                         {/* Step 1 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300">
+                        <motion.div
+                            className="text-center group"
+                            variants={{
+                                hidden: { opacity: 0, y: 30 },
+                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                            }}
+                            whileHover={{ y: -8 }}
+                            whileTap={{ scale: 0.96 }}
+                        >
                             <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from internet noise" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                             </div>
@@ -409,10 +449,18 @@ const ZerosByKaiLanding = () => {
                                 Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from the noise of the internet.
                                 No fluff. No AI hallucinations. Just real problems people are screaming about.
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Step 2 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-100">
+                        <motion.div
+                            className="text-center group"
+                            variants={{
+                                hidden: { opacity: 0, y: 30 },
+                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                            }}
+                            whileHover={{ y: -8 }}
+                            whileTap={{ scale: 0.96 }}
+                        >
                             <div className="comic-panel p-3 sm:p-4 bg-blue-100 mb-4 sm:mb-6 inline-block transform rotate-2 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-target.png" alt="Vote on validated startup ideas and pick the best business opportunity" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                             </div>
@@ -421,10 +469,18 @@ const ZerosByKaiLanding = () => {
                                 <span className="font-bold text-black">One vote. One idea.</span> Which problem would you solve?
                                 Which opportunity would you bet on? Make your call.
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Step 3 */}
-                        <div className="text-center group hover:-translate-y-2 transition-transform duration-300 delay-200 sm:col-span-2 md:col-span-1">
+                        <motion.div
+                            className="text-center group sm:col-span-2 md:col-span-1"
+                            variants={{
+                                hidden: { opacity: 0, y: 30 },
+                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                            }}
+                            whileHover={{ y: -8 }}
+                            whileTap={{ scale: 0.96 }}
+                        >
                             <div className="comic-panel p-3 sm:p-4 bg-rose-100 mb-4 sm:mb-6 inline-block badge-shine transform -rotate-1 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-trophy.png" alt="Earn badges for picking winning startup ideas" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                             </div>
@@ -433,48 +489,76 @@ const ZerosByKaiLanding = () => {
                                 Pick the winning idea? <span className="font-bold text-black">Badge unlocked.</span> Level up your designation and prove you&apos;ve
                                 got the nose for opportunities. Stack wins. Become a Unicorn Hunter.
                             </p>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
+                </motion.div>
             </section>
 
             {/* Designation Tiers Section */}
-            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-gray-900 text-white">
-                <div className="max-w-6xl mx-auto">
-                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-2 sm:mb-3 text-yellow-400">MISSION DESIGNATIONS</h2>
-                    <p className="comic-body text-center text-base sm:text-lg lg:text-xl mb-6 sm:mb-8">
+            <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-gray-900 text-white overflow-hidden">
+                <motion.div
+                    className="max-w-6xl mx-auto"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: {
+                            transition: {
+                                staggerChildren: 0.1
+                            }
+                        }
+                    }}
+                >
+                    <motion.h2
+                        className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-2 sm:mb-3 text-yellow-400"
+                        variants={{
+                            hidden: { opacity: 0, scale: 0.9 },
+                            visible: { opacity: 1, scale: 1 }
+                        }}
+                    >
+                        MISSION DESIGNATIONS
+                    </motion.h2>
+                    <motion.p
+                        className="comic-body text-center text-base sm:text-lg lg:text-xl mb-6 sm:mb-8"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1 }
+                        }}
+                    >
                         Stop lurking. Start building your record. Prove you can spot the signal.
-                    </p>
+                    </motion.p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-4">
-                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🕵️</div>
-                            <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-400">ONLOOKER</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">0-2 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🦾</div>
-                            <h3 className="comic-title text-base sm:text-lg mb-1 text-gray-300">FIELD AGENT</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">3-6 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
-                            <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-400">LEAD ANALYST</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">7-11 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-5 bg-gray-800 text-center border-gray-700 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[8px] font-bold px-1 uppercase">Expert</div>
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🌐</div>
-                            <h3 className="comic-title text-base sm:text-lg mb-1 text-yellow-500">HEAD OF INTEL</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-gray-500 uppercase font-bold tracking-tight">12-19 winning picks</p>
-                        </div>
-                        <div className="comic-panel p-4 sm:p-5 bg-gradient-to-br from-indigo-900 to-gray-800 text-center border-indigo-500 ring-2 ring-indigo-500/20">
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3 animate-pulse">🦄</div>
-                            <h3 className="comic-title text-base sm:text-lg mb-1 text-indigo-400">UNICORN HUNTER</h3>
-                            <p className="comic-body text-[10px] sm:text-xs text-indigo-300/60 uppercase font-bold tracking-tight">20+ winning picks</p>
-                        </div>
+                        {[
+                            { emoji: '🕵️', title: 'ONLOOKER', tier: '0-2 winning picks', color: 'text-gray-400', special: '' },
+                            { emoji: '🦾', title: 'FIELD AGENT', tier: '3-6 winning picks', color: 'text-gray-300', special: '' },
+                            { emoji: '🧠', title: 'LEAD ANALYST', tier: '7-11 winning picks', color: 'text-yellow-400', special: '' },
+                            { emoji: '🌐', title: 'HEAD OF INTEL', tier: '12-19 winning picks', color: 'text-yellow-500', special: 'Expert' },
+                            { emoji: '🦄', title: 'UNICORN HUNTER', tier: '20+ winning picks', color: 'text-indigo-400', special: 'Legendary' }
+                        ].map((tier, idx) => (
+                            <motion.div
+                                key={idx}
+                                className={`comic-panel p-4 sm:p-5 text-center border-gray-700 relative overflow-hidden ${idx === 4 ? 'bg-gradient-to-br from-indigo-900 to-gray-800 border-indigo-500 ring-2 ring-indigo-500/20' : 'bg-gray-800'}`}
+                                variants={{
+                                    hidden: { opacity: 0, x: -20 },
+                                    visible: { opacity: 1, x: 0 }
+                                }}
+                                whileHover={{ scale: 1.05, borderColor: idx === 4 ? '#818cf8' : '#fbbf24' }}
+                                whileTap={{ scale: 0.96 }}
+                            >
+                                {tier.special && (
+                                    <div className={`absolute top-0 right-0 ${idx === 4 ? 'bg-indigo-500' : 'bg-yellow-400'} text-black text-[8px] font-bold px-1 uppercase`}>
+                                        {tier.special}
+                                    </div>
+                                )}
+                                <div className={`text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3 ${idx === 4 ? 'animate-pulse' : ''}`}>{tier.emoji}</div>
+                                <h3 className={`comic-title text-base sm:text-lg mb-1 ${tier.color}`}>{tier.title}</h3>
+                                <p className={`comic-body text-[10px] sm:text-xs uppercase font-bold tracking-tight ${idx === 4 ? 'text-indigo-300/60' : 'text-gray-500'}`}>{tier.tier}</p>
+                            </motion.div>
+                        ))}
                     </div>
-                </div>
+                </motion.div>
             </section>
 
             {/* Why Kai Section - Newspaper Clippings Style */}
@@ -485,12 +569,22 @@ const ZerosByKaiLanding = () => {
                 <div className="relative max-w-6xl mx-auto">
                     {/* Section Header */}
                     <div className="text-center mb-6 sm:mb-10">
-                        <div className="inline-block bg-black text-yellow-400 px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform rotate-1 border-2 border-yellow-400">
-                            ⚡ WHY BUILDERS TRUST KAI
-                        </div>
                         <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-black drop-shadow-sm">
-                            NOT YOUR AVERAGE<br />
-                            <span className="text-rose-700">IDEA NEWSLETTER</span>
+                            <div>This is for you, if you're a</div>
+                            <div className="mt-4 flex justify-center">
+                                <RotatingText
+                                    texts={['doer', 'builder', 'hustler', 'disruptor']}
+                                    mainClassName="bg-rose-700 text-white px-5 py-2 inline-flex font-bold uppercase tracking-widest text-xl sm:text-2xl md:text-3xl transform -rotate-2 comic-panel comic-shadow"
+                                    staggerFrom={"last"}
+                                    initial={{ y: "100%", opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: "-120%", opacity: 0 }}
+                                    staggerDuration={0.025}
+                                    splitLevelClassName="overflow-hidden"
+                                    transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                                    rotationInterval={2500}
+                                />
+                            </div>
                         </h2>
                     </div>
 
@@ -590,19 +684,47 @@ const ZerosByKaiLanding = () => {
                     style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 10px, transparent 10px, transparent 20px)' }}>
                 </div>
 
-                <div className="relative max-w-5xl mx-auto text-center">
-                    <div className="comic-panel inline-block bg-yellow-400 p-3 sm:p-4 transform -rotate-2 mb-6 sm:mb-8 border-2 sm:border-4 border-white comic-shadow-white">
+                <motion.div
+                    className="relative max-w-5xl mx-auto text-center"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: { transition: { staggerChildren: 0.2 } }
+                    }}
+                >
+                    <motion.div
+                        className="comic-panel inline-block bg-yellow-400 p-3 sm:p-4 transform -rotate-2 mb-6 sm:mb-8 border-2 sm:border-4 border-white comic-shadow-white"
+                        variants={{
+                            hidden: { opacity: 0, scale: 0.8, rotate: -5 },
+                            visible: { opacity: 1, scale: 1, rotate: -2 }
+                        }}
+                    >
                         <h2 className="comic-title text-lg sm:text-2xl md:text-3xl text-black uppercase tracking-widest">
                             ⚠️ WARNING: REALITY CHECK ⚠️
                         </h2>
-                    </div>
+                    </motion.div>
 
-                    <h2 className="comic-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 leading-none drop-shadow-[4px_4px_0_rgba(180,83,9,1)]">
+                    <motion.h2
+                        className="comic-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 leading-none drop-shadow-[4px_4px_0_rgba(180,83,9,1)]"
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0 }
+                        }}
+                    >
                         LOOKING FOR YOUR NEXT<br />
                         <span className="text-yellow-400 text-2xl sm:text-4xl md:text-5xl lg:text-6xl">MILLION DOLLAR IDEA?</span>
-                    </h2>
+                    </motion.h2>
                     <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center text-left">
-                        <div className="comic-panel bg-white p-5 sm:p-6 lg:p-8 transform rotate-1 comic-shadow">
+                        <motion.div
+                            className="comic-panel bg-white p-5 sm:p-6 lg:p-8 transform rotate-1 comic-shadow"
+                            variants={{
+                                hidden: { opacity: 0, x: -30 },
+                                visible: { opacity: 1, x: 0 }
+                            }}
+                            whileHover={{ rotate: 0, scale: 1.02 }}
+                        >
                             <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-rose-700">STOP BRAINSTORMING. START LISTENING.</h3>
                             <p className="comic-body text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 text-black">
                                 The best businesses aren&apos;t invented; they&apos;re <span className="font-bold bg-yellow-200 px-1 text-black">discovered</span>.
@@ -612,32 +734,59 @@ const ZerosByKaiLanding = () => {
                                 Your &quot;Uber for Dogs&quot; idea? No one asked for it.<br />
                                 The problem Kai found yesterday? <span className="font-bold bg-black text-white px-1 mx-1">500 people are already searching for it.</span>
                             </p>
-                        </div>
+                        </motion.div>
 
-                        <div className="comic-panel bg-yellow-400 p-5 sm:p-6 lg:p-8 transform -rotate-1 comic-shadow">
+                        <motion.div
+                            className="comic-panel bg-yellow-400 p-5 sm:p-6 lg:p-8 transform -rotate-1 comic-shadow"
+                            variants={{
+                                hidden: { opacity: 0, x: 30 },
+                                visible: { opacity: 1, x: 0 }
+                            }}
+                            whileHover={{ rotate: 0, scale: 1.02 }}
+                        >
                             <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-black">WE DON&apos;T CREATE IDEAS. WE INTERCEPT THEM.</h3>
                             <p className="comic-body text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 text-black">
                                 We don&apos;t sit in a room brainstorming &quot;cool apps&quot;. We unleash Kai to hunt for <span className="font-bold text-black border-b-2 border-black">commercial intent signals</span>.
                             </p>
 
                             <div className="bg-black p-3 sm:p-4 font-mono text-xs sm:text-sm text-green-400 mb-2 rounded shadow-inner border-2 border-white/20">
-                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;I would pay for...&quot;</p>
-                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;Why doesn&apos;t this exist...&quot;</p>
-                                <p className="mb-1 opacity-70">&gt; SEARCHING FOR: &quot;If [company] added this...&quot;</p>
+                                <p className="mb-1 opacity-70">
+                                    &gt; SEARCHING FOR: &quot;
+                                    <TypingAnimation
+                                        words={[
+                                            "I would pay for...",
+                                            "Why doesn't this exist...",
+                                            "If [company] added this..."
+                                        ]}
+                                        loop
+                                        showCursor={true}
+                                        typeSpeed={50}
+                                        deleteSpeed={40}
+                                        startOnView={false}
+                                        className="inline"
+                                    />
+                                    &quot;
+                                </p>
                                 <p className="mt-2 text-yellow-400 font-bold animate-pulse">&gt; SIGNAL DETECTED: &quot;I&apos;d pay $50/mo right now for a tool that automates [X]&quot;</p>
                             </div>
                             <p className="comic-body text-xs text-black font-bold text-right">
                                 That&apos;s not an idea. That&apos;s a lead.
                             </p>
-                        </div>
+                        </motion.div>
                     </div>
 
-                    <div className="mt-8 sm:mt-12">
+                    <motion.div
+                        className="mt-8 sm:mt-12"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1 }
+                        }}
+                    >
                         <p className="comic-title text-lg sm:text-xl lg:text-2xl text-white mb-4 sm:mb-6">
-                            THAT IS YOUR NEXT STARTUP. THAT IS YOUR OPPORTUNITY.
+                            THIS IS NOT YOUR AVERAGE IDEA NEWSLETTER. THIS IS YOUR NEXT STARTUP. YOUR OPPORTUNITY.
                         </p>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </section>
 
             {/* Final CTA */}

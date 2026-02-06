@@ -192,7 +192,11 @@ export default function AuthModal() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setName('');
+                      setUserStatus({ exists: false, hasName: false, checked: false });
+                    }}
                     placeholder="your@email.com"
                     className={`w-full px-4 py-3 border-3 comic-body focus:outline-none transition-all duration-300 ${isRecognized ? 'border-green-500 bg-green-50' : 'border-black focus:ring-4 focus:ring-yellow-400'
                       }`}
