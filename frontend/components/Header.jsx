@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Mail, ArrowRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth';
-import BadgeDisplay from './BadgeDisplay';
+import { motion, AnimatePresence } from 'framer-motion';
+import BadgeDisplay from './ui/badge-display';
 import HamburgerMenu from './HamburgerMenu';
+
 
 export default function Header({ variant = 'landing' }) {
   const { user, isLoading, signOut, openAuthModal } = useAuth();
@@ -66,33 +68,66 @@ export default function Header({ variant = 'landing' }) {
             >
               PROFILE
             </Link>
-            <button
+            <motion.button
+              whileHover={{
+                x: 1,
+                y: 1,
+                boxShadow: "2px 2px 0px 0px #000"
+              }}
+              whileTap={{
+                x: 3,
+                y: 3,
+                boxShadow: "0px 0px 0px 0px #000"
+              }}
               onClick={signOut}
-              className="px-4 py-2 bg-black text-yellow-400 comic-title text-sm hover:bg-gray-900 transition-colors comic-shadow"
+              className="px-4 py-2 bg-black text-yellow-400 border-2 border-black comic-title text-sm hover:bg-gray-900 shadow-[3px_3px_0px_0px_#000]"
             >
               SIGN OUT
-            </button>
+            </motion.button>
           </>
         ) : (
-
           <div className="flex items-center gap-3">
-            <Link
-              href="/#join-section"
-              className="px-4 py-2 bg-white border-3 border-black comic-title text-sm text-black hover:bg-gray-50 transition-all comic-shadow flex items-center gap-2"
+            <motion.div
+              whileHover={{
+                x: 1,
+                y: 1,
+                boxShadow: "2px 2px 0px 0px #000"
+              }}
+              whileTap={{
+                x: 3,
+                y: 3,
+                boxShadow: "0px 0px 0px 0px #000"
+              }}
+              className="border-2 border-black shadow-[3px_3px_0px_0px_#000]"
             >
-              <Mail className="w-4 h-4" />
-              SUBSCRIBE
-            </Link>
-            <button
+              <Link
+                href="/#join-section"
+                className="px-4 py-2 bg-white comic-title text-sm text-black hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                SUBSCRIBE
+              </Link>
+            </motion.div>
+
+            <motion.button
+              whileHover={{
+                x: 1,
+                y: 1,
+                boxShadow: "2px 2px 0px 0px #000"
+              }}
+              whileTap={{
+                x: 3,
+                y: 3,
+                boxShadow: "0px 0px 0px 0px #000"
+              }}
               onClick={() => openAuthModal('signin')}
-              className="px-4 py-2 bg-black text-yellow-400 border-3 border-black comic-title text-sm hover:bg-gray-900 transition-all comic-shadow flex items-center gap-2"
+              className="px-4 py-2 bg-black text-yellow-400 border-2 border-black comic-title text-sm hover:bg-gray-900 shadow-[3px_3px_0px_0px_#000] flex items-center gap-2"
             >
               <ArrowRight className="w-4 h-4" />
               SIGN IN
-            </button>
+            </motion.button>
           </div>
-        )
-        }
+        )}
       </nav >
 
       {/* Mobile Toggle */}
@@ -141,36 +176,71 @@ export default function Header({ variant = 'landing' }) {
                   PROFILE
                 </Link>
 
-                <button
+                <motion.button
+                  whileHover={{
+                    x: 2,
+                    y: 2,
+                    boxShadow: "4px 4px 0px 0px #000"
+                  }}
+                  whileTap={{
+                    x: 6,
+                    y: 6,
+                    boxShadow: "0px 0px 0px 0px #000"
+                  }}
                   onClick={() => {
                     signOut();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full max-w-xs px-6 py-3 bg-black text-yellow-400 comic-title text-xl hover:bg-gray-900 transition-colors comic-shadow"
+                  className="w-full max-w-xs px-6 py-3 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000]"
                 >
                   SIGN OUT
-                </button>
+                </motion.button>
               </div>
             ) : (
-              <div className="flex flex-col gap-4 w-full px-4">
-                <Link
-                  href="/#join-section"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-full px-6 py-4 bg-white border-4 border-black text-black comic-title text-xl text-center hover:bg-gray-50 transition-colors comic-shadow flex items-center justify-center gap-3"
+              <div className="flex flex-col gap-8 w-full px-4 items-center">
+                <motion.div
+                  whileHover={{
+                    x: 2,
+                    y: 2,
+                    boxShadow: "4px 4px 0px 0px #000"
+                  }}
+                  whileTap={{
+                    x: 6,
+                    y: 6,
+                    boxShadow: "0px 0px 0px 0px #000"
+                  }}
+                  className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
                 >
-                  <Mail className="w-5 h-5" />
-                  SUBSCRIBE
-                </Link>
-                <button
+                  <Link
+                    href="/#join-section"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
+                  >
+                    <Mail className="w-5 h-5" />
+                    SUBSCRIBE
+                  </Link>
+                </motion.div>
+
+                <motion.button
+                  whileHover={{
+                    x: 2,
+                    y: 2,
+                    boxShadow: "4px 4px 0px 0px #000"
+                  }}
+                  whileTap={{
+                    x: 6,
+                    y: 6,
+                    boxShadow: "0px 0px 0px 0px #000"
+                  }}
                   onClick={() => {
                     openAuthModal('signin');
                     setIsMenuOpen(false);
                   }}
-                  className="w-full px-6 py-4 bg-black text-yellow-400 border-4 border-black comic-title text-xl hover:bg-gray-900 transition-colors comic-shadow flex items-center justify-center gap-3"
+                  className="w-full max-w-xs px-6 py-4 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000] flex items-center justify-center gap-3"
                 >
                   <ArrowRight className="w-5 h-5" />
                   SIGN IN
-                </button>
+                </motion.button>
               </div>
             )}
           </div>,

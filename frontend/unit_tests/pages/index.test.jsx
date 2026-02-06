@@ -24,16 +24,42 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 // Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, whileInView, viewport, ...props }) => <div {...props}>{children}</div>,
-        h1: ({ children, ...props }) => <h1 {...props}>{children}</h1>,
-        h2: ({ children, whileInView, viewport, ...props }) => <h2 {...props}>{children}</h2>,
-        p: ({ children, whileInView, viewport, ...props }) => <p {...props}>{children}</p>,
-        span: ({ children, ...props }) => <span {...props}>{children}</span>,
-    },
-    AnimatePresence: ({ children }) => <>{children}</>,
-}));
+vi.mock('framer-motion', () => {
+    const filterMotionProps = (props) => {
+        const {
+            whileInView,
+            viewport,
+            whileHover,
+            whileTap,
+            drag,
+            dragConstraints,
+            dragElastic,
+            onDragEnd,
+            initial,
+            animate,
+            exit,
+            variants,
+            transition,
+            custom,
+            layout,
+            ...rest
+        } = props;
+        return rest;
+    };
+
+    return {
+        motion: {
+            div: ({ children, ...props }) => <div {...filterMotionProps(props)}>{children}</div>,
+            h1: ({ children, ...props }) => <h1 {...filterMotionProps(props)}>{children}</h1>,
+            h2: ({ children, ...props }) => <h2 {...filterMotionProps(props)}>{children}</h2>,
+            p: ({ children, ...props }) => <p {...filterMotionProps(props)}>{children}</p>,
+            span: ({ children, ...props }) => <span {...filterMotionProps(props)}>{children}</span>,
+            button: ({ children, ...props }) => <button {...filterMotionProps(props)}>{children}</button>,
+        },
+        AnimatePresence: ({ children }) => <>{children}</>,
+        useInView: () => true,
+    };
+});
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn(() => ({

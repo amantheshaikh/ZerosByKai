@@ -1,13 +1,10 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 import styles from './RotatingText.module.css';
-
-function cn(...classes) {
-    return classes.filter(Boolean).join(' ');
-}
 
 const RotatingText = forwardRef((props, ref) => {
     const {
@@ -32,6 +29,35 @@ const RotatingText = forwardRef((props, ref) => {
     } = props;
 
     const [currentTextIndex, setCurrentTextIndex] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const [hasBeenVisible, setHasBeenVisible] = useState(false);
+    const containerRef = useRef(null);
+
+    // Intersection Observer to detect when component is in view
+    useEffect(() => {
+        const element = containerRef.current;
+        if (!element) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    if (!hasBeenVisible) {
+                        setHasBeenVisible(true);
+                    }
+                } else {
+                    setIsVisible(false);
+                }
+            },
+            { threshold: 0.1 } // Trigger when 10% of component is visible
+        );
+
+        observer.observe(element);
+
+        return () => {
+            observer.unobserve(element);
+        };
+    }, [hasBeenVisible]);
 
     const splitIntoCharacters = text => {
         if (typeof Intl !== 'undefined' && Intl.Segmenter) {
@@ -136,16 +162,17 @@ const RotatingText = forwardRef((props, ref) => {
         [next, previous, jumpTo, reset]
     );
 
+    // Only run auto-rotation when component is visible
     useEffect(() => {
-        if (!auto) return;
+        if (!auto || !isVisible) return;
         const intervalId = setInterval(next, rotationInterval);
         return () => clearInterval(intervalId);
-    }, [next, rotationInterval, auto]);
+    }, [next, rotationInterval, auto, isVisible]);
 
     return (
-        <motion.span className={cn(styles['text-rotate'], mainClassName)} {...rest} layout transition={transition}>
+        <motion.span ref={containerRef} className={cn(styles['text-rotate'], mainClassName)} {...rest} layout transition={transition}>
             <span className={styles['text-rotate-sr-only']}>{texts[currentTextIndex]}</span>
-            <AnimatePresence mode={animatePresenceMode} initial={animatePresenceInitial}>
+            <AnimatePresence mode={animatePresenceMode} initial={!hasBeenVisible}>
                 <motion.span
                     key={currentTextIndex}
                     className={cn(splitBy === 'lines' ? styles['text-rotate-lines'] : styles['text-rotate'])}

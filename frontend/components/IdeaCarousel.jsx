@@ -110,17 +110,19 @@ export default function IdeaCarousel({
                                     filter: { duration: 0.2 },
                                     scale: { duration: 0.2 }
                                 }}
-                                drag={card.position === 'center' ? "x" : false}
-                                dragConstraints={{ left: 0, right: 0 }}
-                                dragElastic={1}
-                                onDragEnd={(e, { offset, velocity }) => {
-                                    const swipe = swipePower(offset.x, velocity.x);
-                                    if (swipe < -swipeConfidenceThreshold) {
-                                        paginate(1);
-                                    } else if (swipe > swipeConfidenceThreshold) {
-                                        paginate(-1);
+                                {...(card.position === 'center' && {
+                                    drag: "x",
+                                    dragConstraints: { left: 0, right: 0 },
+                                    dragElastic: 1,
+                                    onDragEnd: (e, { offset, velocity }) => {
+                                        const swipe = swipePower(offset.x, velocity.x);
+                                        if (swipe < -swipeConfidenceThreshold) {
+                                            paginate(1);
+                                        } else if (swipe > swipeConfidenceThreshold) {
+                                            paginate(-1);
+                                        }
                                     }
-                                }}
+                                })}
                                 className="absolute w-full max-w-sm sm:max-w-md lg:max-w-lg cursor-grab active:cursor-grabbing"
                             >
                                 <IdeaCard

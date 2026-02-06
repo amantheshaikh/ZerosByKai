@@ -15,7 +15,7 @@ import Particles from '@/components/Particles';
 import RotatingText from '@/components/RotatingText';
 import { TypingAnimation } from "@/components/ui/typing-animation";
 
-const VoteConfirmation = dynamic(() => import('@/components/VoteConfirmation'), {
+const VoteConfirmation = dynamic(() => import('@/components/ui/vote-confirmation'), {
     loading: () => null,
 });
 
@@ -176,7 +176,7 @@ const ZerosByKaiLanding = () => {
                             <h1 className="comic-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl leading-none text-gray-900">
                                 FIND THE<br />
                                 RIGHT <span className="text-rose-700">
-                                    <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100}>ZER</TypingAnimation>O
+                                    <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100} startOnView={false}>ZER</TypingAnimation>O
                                 </span>
                             </h1>
 
@@ -750,7 +750,7 @@ const ZerosByKaiLanding = () => {
                             </p>
 
                             <div className="bg-black p-3 sm:p-4 font-mono text-xs sm:text-sm text-green-400 mb-2 rounded shadow-inner border-2 border-white/20">
-                                <p className="mb-1 opacity-70">
+                                <div className="mb-1 opacity-70">
                                     &gt; SEARCHING FOR: &quot;
                                     <TypingAnimation
                                         words={[
@@ -766,7 +766,7 @@ const ZerosByKaiLanding = () => {
                                         className="inline"
                                     />
                                     &quot;
-                                </p>
+                                </div>
                                 <p className="mt-2 text-yellow-400 font-bold animate-pulse">&gt; SIGNAL DETECTED: &quot;I&apos;d pay $50/mo right now for a tool that automates [X]&quot;</p>
                             </div>
                             <p className="comic-body text-xs text-black font-bold text-right">
