@@ -15,7 +15,11 @@ transactionalEmailsApi.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, con
 const contactsApi = new brevo.ContactsApi();
 contactsApi.setApiKey(brevo.ContactsApiApiKeys.apiKey, config.brevo.apiKey);
 
+const webhooksApi = new brevo.WebhooksApi();
+webhooksApi.setApiKey(brevo.WebhooksApiApiKeys.apiKey, config.brevo.apiKey);
+
 export {
     transactionalEmailsApi as brevoClient,
-    contactsApi
+    contactsApi,
+    webhooksApi
 };

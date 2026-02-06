@@ -25,6 +25,7 @@ export const config = {
     brevo: {
         apiKey: process.env.BREVO_API_KEY,
         listId: parseInt(process.env.BREVO_LIST_ID || '2', 10),
+        webhookSecret: process.env.BREVO_WEBHOOK_SECRET,
     },
 
     // AI (Gemini)
