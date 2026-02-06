@@ -1,10 +1,10 @@
 # ZerosByKai - AI-Powered Startup Ideas Platform
 
-> Weekly validated startup ideas scraped from Reddit, analyzed by AI, delivered every Monday.
+> Weekly validated startup ideas scraped from multi-platforms, analyzed by AI, delivered every Monday.
 
 ## Overview
 
-ZerosByKai is a platform that helps entrepreneurs find validated startup opportunities by analyzing real problems discussed on Reddit. Every week, we deliver 10 curated startup ideas based on actual pain points people are experiencing.
+ZerosByKai is a platform that helps entrepreneurs find validated startup opportunities by analyzing real problems discussed on Reddit, Hacker News, Indie Hackers, and X. Every week, we deliver 10 curated startup ideas based on actual pain points people are experiencing.
 
 **Website**: https://zerosbykai.com
 **Tagline**: "Finding the right 0 in a world of easy 0-to-1 building"
@@ -15,35 +15,40 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - **Community Voting**: Vote for your favorite idea each week
 - **Badge System**: Earn badges for picking winning ideas and climb the Mission Designations
 - **Email Digest**: Weekly newsletter with ideas + last week's winner
-- **Auto-Login**: Seamless voting experience via email links
+- **Auto-Login**: Seamless voting experience via secure email links
+- **Multi-source Scraping**: Comprehensive analysis across Reddit, HN, IH, and X
 
 ## How It Works
 
-1. **Sunday**: AI scrapes 17+ startup-related subreddits for real problems
-2. **AI Analysis**: Google Gemini processes ~150 posts and generates 10 validated ideas
-3. **Monday**: Ideas published, users vote, weekly digest sent
-4. **Winner**: Most-voted idea is marked as winner (binary flag), voters earn badges
+1. **Scraping**: AI-powered scrapers fetch ~300+ posts from multiple community sources.
+2. **AI Analysis**: Google Gemini processes the data and generates high-quality startup ideas.
+3. **Scheduling**: Admin reviews `backlog` ideas, approves them, and schedules a weekly batch.
+4. **Execution**: Every Monday, the winner is calculated, ideas are published, and the digest is sent.
 
 ## Technology Stack
 
 ### Frontend
 - Next.js 14 (Pages Router)
-- React + Tailwind CSS
+- React + Tailwind CSS + Framer Motion
 - Comic book design aesthetic
 - Deployed on Vercel
 
 ### Backend
 - Node.js + Express
 - Supabase (PostgreSQL + Auth)
-- Google Gemini AI
-- Resend (Email)
+- Google Gemini AI (Flash 2.0 / 1.5)
+- Brevo (Transactional Email & Contacts)
 - Deployed on Fly.io
+
+### Testing
+- Vitest (Unit & Integration)
+- Supertest (API Testing)
 
 ### Authentication
 - Magic link (passwordless)
 - Google OAuth
-- Email token auto-login
-- Newsletter-only subscription
+- JWT-based Email token auto-login
+- Newsletter-only subscription flow
 
 ## Main Pages
 
@@ -51,28 +56,36 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - `/story` - Origin story and mission
 - `/profile` - User profile with badges and voting history
 - `/archive` - Past weekly idea archives
+- `/unsubscribe` - One-click newsletter unsubscription
 
 ## API Endpoints
 
 ### Public
 - `GET /api/ideas/weekly` - Current week's ideas
 - `GET /api/ideas/winner/:week` - Week's winning idea
+- `GET /api/ideas/leaderboard` - Recent winners and top performers
 
-### Authenticated
-- `POST /api/votes` - Cast vote (one per week)
-- `GET /api/votes/badges` - Get user's badges
-
-### Auth
+### Auth (Public/Token)
+- `POST /api/auth/check` - Check user existence/name
 - `POST /api/auth/subscribe` - Newsletter subscription
 - `POST /api/auth/signup` - Send magic link
+- `POST /api/auth/verify-email-token` - Auto-login via email JWT
+- `GET /api/auth/unsubscribe` - Token-validated unsubscribe
+
+### Authenticated
+- `POST /api/auth/post-login` - Post-auth setup (Welcome emails, etc)
+- `GET /api/auth/user` - Current user profile
+- `POST /api/votes` - Cast vote (one per week)
+- `GET /api/votes/user-votes` - Get user's voting history
+- `DELETE /api/auth/user` - Account deletion
 
 ## Documentation
 
-- **Main Docs**: `/PROJECT_DOCUMENTATION.md` - Comprehensive project guide
-- **Auth Guide**: `/AUTH_DOCUMENTATION.md` - Authentication system details
-- **Backend**: `/backend/README.md` - Backend setup and deployment
-- **Testing**: `/backend/SIMULATION.md` - Testing and simulation guide
-- **Changes**: `/CHANGELOG.md` - Recent updates and changes
+- **Master Workflow**: `/docs/MASTER_WORKFLOW.md` - Full lifecycle of an edition
+- **Brevo Guide**: `/docs/BREVO_GUIDE.md` - Email system and automation
+- **Main Docs**: `/README.md` - Comprehensive project guide
+- **Auth Guide**: `/docs/AUTH_DOCUMENTATION.md` - Authentication system details
+- **Claude Guide**: `/docs/CLAUDE-CODE-GUIDE.md` - Coding standards and patterns
 
 ## Project Structure
 
@@ -81,51 +94,27 @@ ZerosByKai/
 ├── frontend/          # Next.js application
 │   ├── pages/         # All routes
 │   ├── components/    # Reusable UI components
-│   └── lib/auth.js    # Auth context provider
+│   ├── lib/auth.js    # Auth context provider
+│   └── unit_tests/    # Frontend Vitest suite
 ├── backend/           # Express API
 │   ├── src/routes/    # API endpoints
-│   ├── src/jobs/      # Cron jobs (scraping, digest)
-│   └── src/emails/    # Email templates
-└── docs/              # Documentation
+│   ├── src/jobs/      # Cron jobs (scraping, seasonal)
+│   ├── src/services/  # Business logic (Brevo, AI, Newsletter)
+│   ├── src/emails/    # Transactional email templates
+│   └── unit_tests/    # Backend Vitest suite
+└── docs/              # Detailed documentation
 ```
 
-## Key Concepts
+## Mission Designations
 
-### Mission Designations
 - **Onlooker**: 0-2 winning picks
 - **Field Agent**: 3-6 winning picks
 - **Lead Analyst**: 7-11 winning picks
 - **Head of Intelligence**: 12-19 winning picks
 - **Unicorn Hunter**: 20+ winning picks
 
-### Weekly Cycle
-- **Sunday 10 AM UTC**: Reddit scraping + AI analysis
-- **Monday 9 AM UTC**: Publish ideas, calculate winner, send digest
-
-### Email Auto-Login
-Authenticated users receive weekly digest emails with JWT tokens in URLs, enabling one-click voting without manual sign-in.
-
-## Target Audience
-
-- **Aspiring Entrepreneurs**: Looking for validated startup ideas
-- **Indie Hackers**: Want to build products people actually need
-- **Product Managers**: Researching market opportunities
-- **Developers**: Seeking side project ideas
-
-## Unique Value Proposition
-
-Instead of brainstorming ideas in a vacuum, ZerosByKai surfaces real problems that real people are actively complaining about on Reddit. This provides built-in validation and market demand signals.
-
-## Contact
-
-- **Email**: kai@zerosbykai.com
-- **GitHub**: https://github.com/amantheshaikh/ZerosByKai
-
-## License
-
-Proprietary - All rights reserved
-
 ---
 
-*Last Updated: February 2, 2026*
+*Last Updated: February 6, 2026*
 *For AI assistants: See `/CLAUDE.md` for development context and coding standards*
+

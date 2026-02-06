@@ -4,7 +4,6 @@ import { generateEmailToken } from '../utils/emailToken.js';
 import { sendBatchEmails } from '../utils/emailService.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
 import { config } from '../config/env.js';
-import { AIService } from '../services/aiService.js';
 
 
 
@@ -241,38 +240,8 @@ export async function sendWeeklyDigest() {
     if (emailSubject) {
       console.log(`📌 Using pre-scheduled subject: "${emailSubject}"`);
     } else {
-      // Not pre-scheduled, so generate it now
-      try {
-        const aiService = new AIService(config);
-
-        // Add timeout protection: 5 second max for AI generation
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('AI subject generation timeout (>5s)')), 5000)
-        );
-
-        const dynamicSubject = await Promise.race([
-          aiService.generateNewsletterSubject(ideas, lastWeekBatch?.winner),
-          timeoutPromise
-        ]);
-
-        if (dynamicSubject && dynamicSubject.trim().length > 0) {
-          emailSubject = dynamicSubject;
-          console.log(`✨ AI Generated Subject: "${emailSubject}"`);
-
-          // Save it for consistency / potential re-runs
-          if (currentBatch?.id) {
-            await supabaseAdmin
-              .from('weekly_batches')
-              .update({ subject_line: emailSubject })
-              .eq('id', currentBatch.id);
-          }
-        } else {
-          emailSubject = defaultSubject;
-        }
-      } catch (e) {
-        console.warn('⚠️  Failed to generate AI subject, using default:', e.message);
-        emailSubject = defaultSubject;
-      }
+      console.log('📌 No subject line found in DB, using default.');
+      emailSubject = defaultSubject;
     }
 
     // 5. Get all active subscribers

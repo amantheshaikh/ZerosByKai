@@ -1,43 +1,10 @@
 import express from 'express';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { getLastMonday } from '../utils/dateUtils.js';
+import { supabaseAdmin } from '../config/supabase.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
+import * as ideaService from '../services/ideaService.js';
+import * as badgeService from '../services/badgeService.js';
 
 const router = express.Router();
-
-// Middleware to verify JWT token from Supabase
-const requireAuth = async (req, res, next) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Authentication failed' });
-  }
-};
-
-// Helper: Get the current active week for voting
-const getActiveWeek = async () => {
-  const { data: latestIdea } = await supabaseAdmin
-    .from('ideas')
-    .select('week_published')
-    .eq('status', 'published')
-    .order('week_published', { ascending: false })
-    .limit(1)
-    .single();
-
-  return latestIdea?.week_published || null;
-};
 
 // GET /api/votes - Get votes status (public)
 router.get('/', (req, res) => {
@@ -45,12 +12,12 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/votes - Cast or change vote (one vote per week)
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { ideaId } = req.body;
     const userId = req.user.id;
 
-    const weekStart = await getActiveWeek();
+    const weekStart = await ideaService.getVotingWeek();
 
     // Check if idea exists and is from current week
     const { data: idea, error: ideaError } = await supabaseAdmin
@@ -108,15 +75,15 @@ router.post('/', requireAuth, async (req, res) => {
       changedFrom: existingVotes && existingVotes.length > 0 ? existingVotes[0].idea_id : null
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/votes/user - Get user's current vote
-router.get('/user', requireAuth, async (req, res) => {
+router.get('/user', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const weekStart = await getActiveWeek();
+    const weekStart = await ideaService.getVotingWeek();
 
     // Get current week's ideas
     const { data: weekIdeas } = await supabaseAdmin
@@ -137,23 +104,23 @@ router.get('/user', requireAuth, async (req, res) => {
       .select('*, idea:ideas(*)')
       .eq('user_id', userId)
       .in('idea_id', ideaIds)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) throw error;
 
     res.json({ vote: vote || null });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/votes/last-week - Get user's last week vote result
-router.get('/last-week', requireAuth, async (req, res) => {
+router.get('/last-week', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // 1. Find the latest week that has published ideas (Data-Driven)
-    const activeWeek = await getActiveWeek();
+    // 1. Find the latest week that has published ideas
+    const activeWeek = await ideaService.getVotingWeek();
     if (!activeWeek) {
       return res.json({ lastWeekVote: null, winner: null, earnedBadge: false });
     }
@@ -163,8 +130,6 @@ router.get('/last-week', requireAuth, async (req, res) => {
     const lastWeekDate = new Date(activeDate);
     lastWeekDate.setUTCDate(lastWeekDate.getUTCDate() - 7);
     const lastWeekStart = lastWeekDate.toISOString().split('T')[0];
-
-    console.log(`[DEBUG] /last-week: userId=${userId}, activeWeek=${activeWeek}, lastWeekStart=${lastWeekStart}`);
 
     // 1. Get last week's batch with winner
     const { data: batch, error: batchError } = await supabaseAdmin
@@ -176,17 +141,13 @@ router.get('/last-week', requireAuth, async (req, res) => {
       .eq('week_start_date', lastWeekStart)
       .maybeSingle();
 
-    if (batchError) {
-      console.error(`[DEBUG] Error fetching batch for ${lastWeekStart}:`, batchError);
-    }
+    if (batchError) throw batchError;
 
     if (!batch || !batch.winner) {
-      console.log(`[DEBUG] No winner data found for ${lastWeekStart}. Batch: ${!!batch}, Winner: ${!!batch?.winner}`);
       return res.json({
         lastWeekVote: null,
         winner: null,
-        earnedBadge: false,
-        debug: { lastWeekStart, userId, hasBatch: !!batch }
+        earnedBadge: false
       });
     }
 
@@ -197,7 +158,6 @@ router.get('/last-week', requireAuth, async (req, res) => {
       .eq('idea_id', batch.winner_idea_id);
 
     // 3. Get user's vote from last week
-    // We need to find if the user voted for ANY idea that was active last week
     const { data: lastWeekIdeas } = await supabaseAdmin
       .from('ideas')
       .select('id')
@@ -217,13 +177,8 @@ router.get('/last-week', requireAuth, async (req, res) => {
       lastWeekVote = vote || null;
     }
 
-    // 4. Check if user earned a badge for the winning idea
-    const { data: badge } = await supabaseAdmin
-      .from('user_badges')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('idea_id', batch.winner_idea_id)
-      .maybeSingle();
+    // 4. Check if user earned a badge
+    const earnedBadge = await badgeService.hasBadge(userId, batch.winner_idea_id);
 
     res.json({
       lastWeekVote: lastWeekVote ? { name: lastWeekVote.idea?.name, title: lastWeekVote.idea?.title } : null,
@@ -232,44 +187,20 @@ router.get('/last-week', requireAuth, async (req, res) => {
         title: batch.winner.title,
         voteCount: winnerVoteCount || 0
       },
-      earnedBadge: !!badge,
-      debug: { lastWeekStart, userId }
+      earnedBadge
     });
-
   } catch (error) {
-    console.error('[DEBUG] /last-week error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/votes/badges - Get user's badges
-router.get('/badges', requireAuth, async (req, res) => {
+router.get('/badges', requireAuth, async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
-    const { data: badges, error } = await supabaseAdmin
-      .from('user_badges')
-      .select('*, idea:ideas(*)')
-      .eq('user_id', userId)
-      .order('awarded_at', { ascending: false });
-
-    if (error) throw error;
-
-    const kaiPickCount = badges?.filter(b => b.badge_type === 'kai_pick').length || 0;
-    let tier = 'onlooker';
-    if (kaiPickCount >= 20) tier = 'unicorn_hunter';
-    else if (kaiPickCount >= 12) tier = 'head_intelligence';
-    else if (kaiPickCount >= 7) tier = 'lead_analyst';
-    else if (kaiPickCount >= 3) tier = 'field_agent';
-
-    res.json({
-      badges,
-      count: kaiPickCount,
-      tier
-    });
+    const result = await badgeService.getUserBadges(req.user.id);
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
-
 export default router;

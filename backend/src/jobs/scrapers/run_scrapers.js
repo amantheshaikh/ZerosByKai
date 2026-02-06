@@ -24,7 +24,7 @@ const SUBREDDITS = [
 
 const aiService = new AIService(config);
 
-async function runScraperFlow() {
+export async function runScraperFlow() {
     console.log(`Starting Multi-Source Idea Scraper (Reddit, HN, IH, X)...`);
 
     // 1. Fetch data from all sources in parallel (allSettled to prevent single source failure)
@@ -77,7 +77,7 @@ async function runScraperFlow() {
 
     // ===== STAGE 1: Generate ideas from each source independently (up to 15 each) =====
     console.log(`\n🔄 STAGE 1: Generating ideas from each source...`);
-    
+
     const generatedIdeasBySource = {
         reddit: [],
         hn: [],
@@ -186,7 +186,7 @@ async function runScraperFlow() {
 }
 
 // source-specific wrappers
-async function scrapeReddit() {
+export async function scrapeReddit() {
     console.log('Scraping Reddit...');
     let posts = [];
     const CHUNK_SIZE = 4;
@@ -211,7 +211,7 @@ async function scrapeReddit() {
 
 
 
-async function getExistingIdeaTitles() {
+export async function getExistingIdeaTitles() {
     const { data } = await supabaseAdmin
         .from('ideas')
         .select('title, name')

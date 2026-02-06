@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useAuth, getApiUrl } from '@/lib/auth';
+import { useAuth, getApiUrl, apiFetch } from '@/lib/auth';
 import { CheckCircle2, ArrowRight, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthModal() {
   const { showAuthModal, closeAuthModal, signInWithProvider } = useAuth();
@@ -42,31 +44,29 @@ export default function AuthModal() {
   // Auto-detect user status
   useEffect(() => {
     const checkUser = async () => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(debouncedEmail)) {
-        setUserStatus({ exists: false, hasName: false, checked: false });
+      // Clear previous check results and name whenever we start a new check
+      setUserStatus({ exists: false, hasName: false, checked: false });
+      setName('');
+
+      if (!EMAIL_REGEX.test(debouncedEmail)) {
         return;
       }
 
       setStatus('checking');
       try {
-        const apiUrl = getApiUrl();
-        const res = await fetch(`${apiUrl}/api/auth/check`, {
+        const data = await apiFetch('/api/auth/check', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: debouncedEmail }),
         });
 
-        const data = await res.json();
-        if (res.ok) {
-          setUserStatus({ exists: data.exists, hasName: data.hasName, checked: true });
-          if (data.exists && data.name) {
-            setName(data.name);
-          }
+        setUserStatus({ exists: data.exists, hasName: data.hasName, checked: true });
+        if (data.exists && data.name) {
+          setName(data.name);
         }
         setStatus('idle');
       } catch (err) {
         console.error('Check failed:', err);
+        // On failure, we don't mark as checked but allow user to try anyway
         setStatus('idle');
       }
     };
@@ -88,19 +88,23 @@ export default function AuthModal() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const isValidEmail = EMAIL_REGEX.test(email);
+    const needsName = userStatus.checked && !userStatus.hasName;
+    const hasName = name.trim().length > 0;
+
+    if (!isValidEmail || (needsName && !hasName) || status === 'checking' || status === 'sending') {
+      return;
+    }
+
     setStatus('sending');
     setErrorMsg('');
 
     try {
-      const apiUrl = getApiUrl();
-      const res = await fetch(`${apiUrl}/api/auth/signup`, {
+      await apiFetch('/api/auth/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ email: email.toLowerCase().trim(), name: name.trim() }),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Something went wrong');
 
       setStep('success');
     } catch (err) {
@@ -232,10 +236,16 @@ export default function AuthModal() {
 
                 <button
                   type="submit"
-                  disabled={status === 'sending' || (userStatus.checked && !userStatus.hasName && !name)}
+                  disabled={
+                    status === 'sending' ||
+                    status === 'checking' ||
+                    !EMAIL_REGEX.test(email) ||
+                    !userStatus.checked ||
+                    (userStatus.checked && !userStatus.hasName && !name.trim())
+                  }
                   className="w-full px-6 py-4 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {status === 'sending' ? 'SENDING...' : (
+                  {status === 'sending' ? 'SENDING...' : status === 'checking' ? 'JUST SEC...' : (
                     <>
                       {isRecognized ? 'SIGN IN' : 'CONTINUE'}
                       <ArrowRight className="w-5 h-5" />

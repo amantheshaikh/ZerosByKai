@@ -221,9 +221,8 @@ const ZerosByKaiLanding = () => {
                                 <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-8 z-30 transform rotate-3 hover:rotate-0 transition-transform duration-300">
                                     <div className="p-2 sm:p-3 comic-shadow border-3 border-black" style={{ background: '#be123c' }}>
                                         <p className="comic-title text-[10px] sm:text-xs leading-tight text-center text-white">
-                                            🏆 WORLD&apos;S MOST<br />
-                                            <span className="text-yellow-300">OBSESSIVE</span><br />
-                                            PROBLEM HUNTER
+                                            🏆 WORLD&apos;S BEST<br />
+                                            <span className="text-yellow-300">PROBLEM HUNTER</span>
                                         </p>
                                     </div>
                                 </div>

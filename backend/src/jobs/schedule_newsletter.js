@@ -12,7 +12,7 @@ import { getMonday, getLastMonday } from '../utils/dateUtils.js';
  *   node src/jobs/schedule_newsletter.js --date 2024-02-19 (Schedules specific week)
  */
 
-async function scheduleNewsletter() {
+export async function scheduleNewsletter() {
     try {
         // Parse args
         const args = process.argv.slice(2);
@@ -117,4 +117,6 @@ async function scheduleNewsletter() {
     }
 }
 
-scheduleNewsletter();
+if (import.meta.url === `file://${process.argv[1]}`) {
+    scheduleNewsletter();
+}

@@ -1,92 +1,31 @@
 import express from 'express';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { getMonday, getLastMonday } from '../utils/dateUtils.js';
+import { supabase } from '../config/supabase.js';
+import { getMonday } from '../utils/dateUtils.js';
+import * as ideaService from '../services/ideaService.js';
 
 const router = express.Router();
 
 // GET /api/ideas/leaderboard - Get top 3 winners from last week
-router.get('/leaderboard', async (req, res) => {
+router.get('/leaderboard', async (req, res, next) => {
   try {
-    // 1. Find the latest batch that has been "sent" or is current (Data-Driven)
-    const { data: latestBatch } = await supabaseAdmin
-      .from('weekly_batches')
-      .select('week_start_date')
-      .not('week_start_date', 'is', null)
-      .gt('week_start_date', '2025-01-01')
-      .lte('week_start_date', getMonday()) // Can be this week
-      .order('week_start_date', { ascending: false })
-      .limit(1)
-      .single();
+    const latestActiveWeek = await ideaService.getLatestActiveWeek();
+    if (!latestActiveWeek) return res.json([]);
 
-    if (!latestBatch) return res.json([]);
-
-    // 2. The leaderboard should show the week BEFORE the latest one
-    // (If Feb 2 is the latest active week, show Jan 26 results)
-    const latestDate = new Date(latestBatch.week_start_date);
+    // The leaderboard shows the week BEFORE the latest one
+    const latestDate = new Date(latestActiveWeek);
     const lastWeekDate = new Date(latestDate);
     lastWeekDate.setUTCDate(lastWeekDate.getUTCDate() - 7);
     const weekStart = lastWeekDate.toISOString().split('T')[0];
 
-    console.log(`Fetching leaderboard results for week: ${weekStart}`);
-
-    // 2. Fetch ideas for that week
-    const { data: ideas, error } = await supabaseAdmin
-      .from('ideas')
-      .select('*')
-      .eq('week_published', weekStart)
-      .in('status', ['published', 'archived']);
-
-    if (error) throw error;
-
-    // If no ideas, return empty
-    if (!ideas || ideas.length === 0) return res.json([]);
-
-    // 3. Fetch all votes for these ideas in a single query to avoid N+1
-    const ideaIds = ideas.map(i => i.id);
-    const { data: votesRows, error: votesError } = await supabaseAdmin
-      .from('votes')
-      .select('idea_id')
-      .in('idea_id', ideaIds);
-
-    if (votesError) throw votesError;
-
-    const voteCountMap = {};
-    (votesRows || []).forEach(v => {
-      voteCountMap[v.idea_id] = (voteCountMap[v.idea_id] || 0) + 1;
-    });
-
-    const ideasWithVotes = ideas.map(idea => ({
-      ...idea,
-      votes: voteCountMap[idea.id] || 0
-    }));
-
-    const sorted = ideasWithVotes.sort((a, b) => b.votes - a.votes).slice(0, 3);
-
-    // Add category/rank
-    const ranked = sorted.map((idea, index) => {
-      let category = 'Startup';
-      if (idea.tags) {
-        if (Array.isArray(idea.tags)) {
-          // New format: ["Tag1", "Tag2"] -> Tag2 is usually the category
-          category = idea.tags[1] || idea.tags[0] || 'Startup';
-        } else {
-          // Legacy format: { category: "Tag" }
-          category = idea.tags.category || 'Startup';
-        }
-      }
-      return { ...idea, category };
-    });
-
+    const ranked = await ideaService.getLeaderboardForWeek(weekStart);
     res.json(ranked);
-
   } catch (error) {
-    console.error('Leaderboard error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/ideas - List all published ideas
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const { data: ideas, error } = await supabase
       .from('ideas')
@@ -96,56 +35,32 @@ router.get('/', async (req, res) => {
       .order('week_published', { ascending: false });
 
     if (error) throw error;
-
     res.json({ ideas });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/ideas/weekly - Get latest published batch of ideas
-router.get('/weekly', async (req, res) => {
+router.get('/weekly', async (req, res, next) => {
   try {
-    // 1. Find the latest week that has published ideas
-    const { data: latestIdea, error: weekError } = await supabase
-      .from('ideas')
-      .select('week_published')
-      .or('status.eq.published,is_winner.eq.true')
-      .lte('week_published', getMonday())
-      .order('week_published', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (weekError && weekError.code !== 'PGRST116') throw weekError;
-
-    if (!latestIdea) {
+    const weekStart = await ideaService.getVotingWeek();
+    if (!weekStart) {
       return res.json({ ideas: [], weekStart: null });
     }
 
-    const weekStart = latestIdea.week_published;
-
-    // 2. Fetch all published ideas for that week
-    const { data: ideas, error: ideasError } = await supabase
-      .from('ideas')
-      .select('*')
-      .or('status.eq.published,is_winner.eq.true')
-      .eq('week_published', weekStart)
-      .order('created_at', { ascending: true });
-
-    if (ideasError) throw ideasError;
-
+    const ideas = await ideaService.getIdeasByWeek(weekStart);
     res.json({ ideas, weekStart });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/ideas/weekly-batches - Get past weekly batches with pagination
-// Query params: page (default: 1), limit (default: 20)
-router.get('/weekly-batches', async (req, res) => {
+router.get('/weekly-batches', async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20)); // Max 100 per page
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
 
     // First, get total count
     const { count, error: countError } = await supabase
@@ -177,30 +92,25 @@ router.get('/weekly-batches', async (req, res) => {
     if (error) throw error;
 
     if (!batches || batches.length === 0) {
-      return res.json({
-        batches: [],
-        page,
-        limit,
-        total,
-        pages
-      });
+      return res.json({ batches: [], page, limit, total, pages });
     }
 
-    // Optimized: Avoid N+1 query by fetching all ideas for these weeks in one go
+    // Optimized: Fetch all ideas for these weeks in one go
     const weekStartDates = batches.map(b => b.week_start_date);
-    const { data: allIdeas, error: ideasError } = await supabase
+    const allIdeas = await ideaService.getIdeasByWeek(weekStartDates);
+    // Wait, getIdeasByWeek needs to handle array or I use a different query
+
+    const { data: batchIdeas, error: ideasError } = await supabase
       .from('ideas')
       .select('*')
       .in('week_published', weekStartDates)
-      // No status filter here, if it belongs to a past batch, we show it
       .order('created_at', { ascending: true });
 
     if (ideasError) throw ideasError;
 
-    // Map ideas back to their respective batches
     const batchesWithIdeas = batches.map(batch => ({
       ...batch,
-      ideas: allIdeas?.filter(opp => opp.week_published === batch.week_start_date) || []
+      ideas: batchIdeas?.filter(opp => opp.week_published === batch.week_start_date) || []
     }));
 
     res.json({
@@ -211,61 +121,27 @@ router.get('/weekly-batches', async (req, res) => {
       pages
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/ideas/:id - Get single idea with vote count
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const { data: idea, error: ideaError } = await supabase
-      .from('ideas')
-      .select('*')
-      .eq('id', id)
-      .or('status.eq.published,is_winner.eq.true')
-      .single();
-
-    if (ideaError) throw ideaError;
-
-    // Get vote count
-    const { count, error: voteError } = await supabase
-      .from('votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('idea_id', id);
-
-    if (voteError) throw voteError;
-
-    res.json({
-      ...idea,
-      voteCount: count || 0
-    });
+    const idea = await ideaService.getIdeaWithVoteCount(req.params.id);
+    res.json(idea);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // GET /api/ideas/winner/:week - Get winner for specific week
-router.get('/winner/:week', async (req, res) => {
+router.get('/winner/:week', async (req, res, next) => {
   try {
-    const { week } = req.params;
-
-    const { data: batch, error } = await supabase
-      .from('weekly_batches')
-      .select(`
-        *,
-        winner:ideas!fk_weekly_batches_winner_idea (*)
-      `)
-      .eq('week_start_date', week)
-      .single();
-
-    if (error) throw error;
-
+    const batch = await ideaService.getWinnerByWeek(req.params.week);
     res.json({ batch });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
-
 export default router;

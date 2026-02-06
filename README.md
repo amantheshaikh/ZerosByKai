@@ -60,31 +60,31 @@
 
 ## 🧪 Testing & Verification
 
-### 1. Run All Scrapers (Backlog Fill)
+### 1. Run Unit Tests (Recommended)
 ```bash
-cd backend
-node src/jobs/scrapers/run_scrapers.js # Runs Reddit, HN, IH, X
+# Backend
+cd backend && npm test
+
+# Frontend
+cd frontend && npm test
 ```
 
-### 2. Test Monday Workflow (End-to-End)
+### 2. Run All Scrapers (Backlog Fill)
+```bash
+cd backend
+npm run scrape:local # Runs Reddit, HN, IH, X
+```
+
+### 3. Test Monday Workflow (Simulated)
 ```bash
 cd backend
 node src/workflows/simulate_monday_workflow.js
 ```
 
-### 3. Test Email Templates
-
-# Welcome email
-node src/workflows/simulate_welcome.js
-
-# Magic link
-node src/workflows/simulate_magic_link.js
-```
-
 ### 4. Verify Flows
-- **Newsletter Signup**: Subscribe via landing page. Check for welcome email.
+- **Newsletter Signup**: Subscribe via landing page. Check for welcome email and Brevo sync.
 - **Account Creation**: Sign up with email. Check for magic link.
-- **Auto-Login**: Click link in weekly digest email. Should auto-login.
+- **Auto-Login**: Click link in weekly digest email. Should auto-login via JWT.
 - **Vote**: Click "I'D BUILD THIS" (requires login). Checks `votes` table.
 
 ---
@@ -97,45 +97,29 @@ zerosbykai/
 │   ├── src/
 │   │   ├── server.js                 # Entry point + Cron jobs
 │   │   ├── config/                   # Supabase, environment
-│   │   ├── routes/                   # API routes
-│   │   │   ├── ideas.js              # Ideas endpoints
-│   │   │   ├── votes.js              # Voting endpoints
-│   │   │   └── auth.js               # Auth endpoints
+│   │   ├── services/                 # Business logic (Brevo, AI, Newsletter)
+│   │   ├── routes/                   # API routes (Auth, Ideas, Votes)
 │   │   ├── jobs/                     # Production cron jobs
 │   │   │   ├── scrapers/             # Scrapers (Reddit, HN, IH, X)
-│   │   │   │   └── run_scrapers.js   # Master orchestration script
 │   │   │   └── weekly.js             # Monday: publish, winner, digest
-│   │   ├── workflows/                # Testing/simulation scripts
-│   │   │   ├── simulate_monday_workflow.js
-
-│   │   │   ├── simulate_welcome.js
-│   │   │   └── simulate_magic_link.js
-│   │   ├── emails/                   # Email templates
-│   │   │   └── templates/
-│   │   │       ├── shared.js         # Shared components
-│   │   │       ├── weekly-digest.js  # Weekly digest email
-│   │   │       ├── welcome.js        # Welcome email
-│   │   │       └── magic-link.js     # Magic link email
-│   │   ├── utils/                    # Utilities
-│   │   │   └── emailToken.js         # JWT token generation/verification
-│   │   └── scripts/                  # Utility scripts
-│   │       └── delete-user-by-email.sql
+│   │   ├── emails/                   # Transactional templates
+│   │   └── utils/                    # Utilities (JWT Tokens, etc)
+│   ├── unit_tests/                   # Vitest suite (Services, Routes, Jobs)
 │   └── fly.toml                      # Deployment config
 │
-├── frontend/                         # Next.js
-│   ├── pages/
-│   │   ├── index.jsx                 # Main landing page
-│   │   ├── profile.jsx               # User profile
-│   │   └── story.jsx                 # About page
-│   ├── components/                   # React components
-│   ├── lib/
-│   │   └── auth.js                   # Auth context provider
+├── frontend/                         # Next.js 14
+│   ├── pages/                        # Routes (index, profile, archive, story)
+│   ├── components/                   # UI Components (AuthModal, Cards, etc)
+│   ├── lib/                          # Auth context, API helpers
+│   ├── unit_tests/                   # React testing library suite
 │   └── public/                       # Static assets
 │
-├── .github/workflows/                # GitHub Actions
-│   └── reddit-scraper.yml            # Sunday Reddit scraping
+├── docs/                             # Deep-dive guides
+│   ├── MASTER_WORKFLOW.md            # Newsletter lifecycle
+│   ├── BREVO_GUIDE.md                # Email/Contact automation
+│   └── AUTH_DOCUMENTATION.md         # Auth system technicals
 │
-└── AUTH_DOCUMENTATION.md             # Comprehensive auth guide
+└── .github/workflows/                # CI/CD & Scraper crons
 ```
 
 ---
@@ -294,37 +278,24 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-03)
+## 📝 Recent Changes (2026-02-06)
 
-### System Audit & Hardening
-- ✅ **Complete Logic Verification**: Validated 100% of Winner, Badge, and Leaderboard logic.
-- ✅ **Frontend/Backend Parity**: Confirmed Auth & API environments match perfectly (`localhost` vs `prod`).
-- ✅ **Tag System Finalized**: Flexible array tags fully implemented; legacy JSON tags- **Sync**: Unified `tags` array on ideas.
-- ✅ **Multi-source Strategy**: Expanded scraping to include Hacker News, Indie Hackers, and X (Twitter) along with Reddit.
-- ✅ **Cleanup**: Removed inefficient scripts (`check_db_badges.js`) and deprecated migrations.
+### System Reliability & Testing
+- ✅ **Full Test Suite**: Implemented Vitest suite for both Backend and Frontend.
+- ✅ **High Coverage**: Achieved near 100% logic coverage for services, routes, and core jobs.
+- ✅ **Test Consolidation**: Moved all unit tests to dedicated `unit_tests/` directories.
+- ✅ **Refactoring**: Modularized `auth.js`, `ideas.js`, and `votes.js` into clean service/route patterns.
 
-### Code Organization
-- ✅ Moved `daily_startup_ideas.js` → `jobs/reddit_scraper.js`
-- ✅ Removed redundant `run-reddit-flow.js` wrapper
-- ✅ Separated email templates into individual files
-- ✅ Removed admin routes (use Supabase dashboard instead)
-- ✅ Refactored `auth.js` with comprehensive documentation
+### Authentication & UI
+- ✅ **AuthModal Refinement**: Enhanced email and name validation for better UX.
+- ✅ **Signup Logic**: Improved handling of existing vs new subscribers during magic link flows.
+- ✅ **Security**: Hardened JWT email token verification and rate limiting.
 
-### New Features
-- ✅ **Brand Design**: Emails now match website aesthetic ("Rose 700" Pink + Yellow + Comic Cards)
-- ✅ **Consistent Metrics**: Implemented robust thread count heuristic (2,100+) for weekly stats
-- ✅ **Backlog Health**: Automated alerts on Fridays/Sundays if backlog < 10 ideas
-- ✅ Email token auto-login from weekly digest
-- ✅ Enhanced Reddit scraping anti-detection
-- ✅ Newsletter-only subscription flow
-- ✅ Comprehensive auth documentation
-
-### Cleanup & Fixes
-- ✅ **Security**: Removed temporary debug scripts (`diagnose_user.js`, etc.)
-- ✅ **Status Model**: Simplified idea status to `backlog` -> `published` (removed `pending`/`rejected`)
-- ✅ **Bug Fixes**: Fixed duplicate welcome emails, improved error handling
-
+### Infrastructure (Feb 4, 2026)
+- ✅ **Architecture**: Extracted planning logic to `src/services/newsletterService.js`.
+- ✅ **State Machine**: `backlog` -> `approved` -> `scheduled` (hidden) -> `published` (live).
+- ✅ **Efficiency**: Brevo Batch API (50 emails/req) for high-volume delivery.
 
 ---
 
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-06

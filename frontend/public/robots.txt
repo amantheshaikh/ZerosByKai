@@ -4,5 +4,7 @@ Disallow: /auth/
 Disallow: /profile
 Disallow: /unsubscribe
 Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
 
 Sitemap: https://zerosbykai.com/sitemap.xml

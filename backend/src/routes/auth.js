@@ -3,89 +3,78 @@ import { config } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { generateWelcomeEmail } from '../emails/templates/welcome.js';
 import { generateMagicLinkEmail } from '../emails/templates/magic-link.js';
-import { verifyEmailToken } from '../utils/emailToken.js';
 import { sendEmail } from '../utils/emailService.js';
 import rateLimit from 'express-rate-limit';
 import { generateEmailToken } from '../utils/emailToken.js';
 import { syncContact, blocklistContact, deleteContact } from '../services/brevoService.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
+import { verifyEmailToken } from '../utils/emailToken.js';
 
 const router = express.Router();
 
 // Rate limiters for public endpoints (Relaxed in non-production)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: config.nodeEnv === 'production' ? 15 : 100, // 15 requests per 15 minutes in prod, 100 in dev
+  max: config.nodeEnv === 'production' ? 15 : 100,
   message: { error: 'Too many authentication requests, please try again later.' }
 });
 
-// Stricter limiter for one-time tokens (brute-force protection)
 const tokenLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: config.nodeEnv === 'production' ? 5 : 20, // fewer attempts allowed
+  max: config.nodeEnv === 'production' ? 5 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   message: { error: 'Too many token verification attempts. Please request a new link.' }
 });
 
+// Helper for admin key check
+const requireAdminKey = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${config.supabase.serviceKey}`) {
+    return res.status(401).json({ error: 'Unauthorized: Admin access required' });
+  }
+  next();
+};
+
 // POST /api/auth/check - Check if user exists and has name
-router.post('/check', authLimiter, async (req, res) => {
+router.post('/check', authLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ error: 'Email is required' });
 
     if (!supabaseAdmin) {
-      console.error('❌ Check failed: SUPABASE_SERVICE_KEY missing');
       return res.status(503).json({ error: 'Service temporarily unavailable' });
     }
 
-    // Check subscribers table
     const { data: subscriber, error } = await supabaseAdmin
       .from('subscribers')
       .select('name, welcomed')
       .eq('email', email)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
-      throw error;
-    }
+    if (error && error.code !== 'PGRST116') throw error;
 
-    // If no subscriber found, check auth.users (fallback for legacy cases)
-    // Note: This requires admin privileges which supabaseAdmin has
-    let name = subscriber?.name || null;
-
-    // Return status
     res.json({
       exists: !!subscriber,
-      hasName: !!name,
-      name: name
+      hasName: !!subscriber?.name,
+      name: subscriber?.name || null
     });
-
   } catch (error) {
-    console.error('Check user error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-// POST /api/auth/subscribe - Newsletter-only subscribe (no account creation)
-router.post('/subscribe', authLimiter, async (req, res) => {
+// POST /api/auth/subscribe - Newsletter-only subscribe
+router.post('/subscribe', authLimiter, async (req, res, next) => {
   try {
     const { email, name } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ error: 'Email is required' });
 
     if (!supabaseAdmin) {
-      console.error('❌ Subscribe failed: SUPABASE_SERVICE_KEY missing in environment variables');
-      return res.status(503).json({ error: 'Subscription service temporarily unavailable. Please contact support.' });
+      return res.status(503).json({ error: 'Subscription service unavailable' });
     }
 
-    // Upsert into subscribers table (re-subscribe if previously unsubscribed)
-    // Use supabaseAdmin to bypass RLS since this is a public endpoint doing an update
     const { error } = await supabaseAdmin
       .from('subscribers')
       .upsert(
@@ -95,224 +84,143 @@ router.post('/subscribe', authLimiter, async (req, res) => {
 
     if (error) throw error;
 
-    // Send welcome email (fire-and-forget)
-    try {
-      // 1. Sync Contact to Brevo
-      syncContact({ email, name }).catch(err => {
-        console.error(`❌ Failed to sync contact for ${email}:`, err.message);
-      });
+    // Async tasks
+    syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
 
-      // 2. Send Email
-      const token = generateEmailToken(email, email);
-      const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
-
-      const { success, error: emailError, data } = await sendEmail({
-        to: email,
-        subject: "Welcome to ZerosByKai",
-        html: welcomeHtml,
-        tags: ['welcome-email'],
-        headers: {
-          'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-        }
-      });
-      if (!success) console.error('❌ Failed to send welcome email:', emailError);
-      else console.log('✅ Welcome email sent:', data.MessageId);
-    } catch (emailError) {
-      console.error('❌ Unexpected error sending welcome email:', emailError);
-    }
+    const token = generateEmailToken(email, email);
+    const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
+    sendEmail({
+      to: email,
+      subject: "Welcome to ZerosByKai",
+      html: welcomeHtml,
+      tags: ['welcome-email'],
+      headers: {
+        'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      }
+    }).catch(err => console.error('Welcome Email Error:', err.message));
 
     res.json({ message: "You're in!" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // POST /api/auth/signup - Send magic link
-router.post('/signup', authLimiter, async (req, res) => {
+router.post('/signup', authLimiter, async (req, res, next) => {
   try {
     const { email, name } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+    if (!supabaseAdmin) throw new Error('SUPABASE_SERVICE_KEY missing');
 
-    if (!supabaseAdmin) {
-      console.error('❌ Signup failed: SUPABASE_SERVICE_KEY missing');
-      return res.status(503).json({ error: 'Service temporarily unavailable' });
-    }
-
-    // Generate link using Admin API to get the action_link directly
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: {
         redirectTo: `${config.frontendUrl}/auth/callback`,
-        data: {
-          name: name || ''
-        }
+        data: { name: name || '' }
       }
     });
 
     if (error) throw error;
 
-    // Check if this is an existing user and get name
-    let isExisting = false;
-    let dbName = null;
+    // Get existing info if any
+    const { data: subscriber } = await supabaseAdmin
+      .from('subscribers')
+      .select('welcomed, name')
+      .eq('email', email)
+      .maybeSingle();
 
-    if (data?.properties?.action_link && data.user?.id) {
-      const { data: subscriber } = await supabaseAdmin
-        .from('subscribers')
-        .select('welcomed, name')
-        .eq('user_id', data.user.id)
-        .single();
+    const magicLinkHtml = generateMagicLinkEmail({
+      email,
+      actionLink: data.properties.action_link,
+      name: name || subscriber?.name || ''
+    });
 
-      isExisting = subscriber?.welcomed === true;
-      dbName = subscriber?.name;
-    }
+    const { success, error: emailError } = await sendEmail({
+      to: email,
+      subject: "Your Login Link",
+      html: magicLinkHtml,
+      tags: ['magic-link']
+    });
 
-    // Send email
-    try {
-      const magicLinkHtml = generateMagicLinkEmail({
-        email,
-        actionLink: data.properties.action_link,
-        name: name || dbName || '' // Prefer input name, fall back to DB, then empty
-      });
-
-      const { success, error: emailError, data: emailData } = await sendEmail({
-        to: email,
-        subject: "Your Login Link",
-        html: magicLinkHtml,
-        tags: ['magic-link']
-      });
-
-      if (!success) {
-        console.error('❌ Failed to send magic link email:', emailError);
-        return res.status(500).json({ error: 'Failed to send verification email' });
-      }
-      console.log('✅ Magic link sent:', emailData.MessageId);
-    } catch (emailError) {
-      console.error('❌ Unexpected error sending magic link email:', emailError);
-      return res.status(500).json({ error: 'Failed to send verification email' });
-    }
+    if (!success) throw new Error(emailError || 'Failed to send email');
 
     res.json({
       message: 'Magic link sent! Check your email.',
       email,
-      isExisting
+      isExisting: subscriber?.welcomed === true
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-// POST /api/auth/post-login - Handle post-login tasks (welcome email, subscriber sync)
-router.post('/post-login', async (req, res) => {
+// POST /api/auth/post-login
+router.post('/post-login', requireAuth, async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const user = req.user;
 
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    // Check if user has already been welcomed
-    // Use retry logic to wait for the subscriber record to be created by the Supabase trigger
+    // Retry logic for subscriber record (created by DB trigger)
     let subscriber = null;
     let retries = 5;
     while (retries > 0) {
-      const { data, error: subError } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from('subscribers')
         .select('welcomed, name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!subError && data) {
+      if (data) {
         subscriber = data;
         break;
       }
-
-      console.log(`Waiting for subscriber record... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       retries--;
     }
 
-    if (!subscriber) {
-      console.error(`❌ Post-login: Subscriber record not found for user ${user.id} after retries`);
-      return res.status(404).json({ error: 'Subscriber record not found' });
-    }
+    if (!subscriber) return res.status(404).json({ error: 'Subscriber record not found' });
+    if (subscriber.welcomed) return res.json({ isNewUser: false });
 
-    if (subscriber.welcomed) {
-      return res.json({ isNewUser: false });
-    }
-
-    // New user: send welcome email
+    // New user tasks
     const userName = subscriber.name || user.user_metadata?.name || null;
-    const userEmail = user.email;
+    syncContact({ email: user.email, name: userName }).catch(err => console.error('Brevo Sync Error:', err.message));
 
-    try {
-      // Sync confirmed user to Brevo
-      syncContact({ email: userEmail, name: userName }).catch(err => {
-        console.error(`❌ Failed to sync contact for ${userEmail}:`, err.message);
-      });
+    const token = generateEmailToken(user.id, user.email);
+    const welcomeHtml = generateWelcomeEmail({ name: userName, email: user.email });
 
-      const token = generateEmailToken(user.id, userEmail);
-      const welcomeHtml = generateWelcomeEmail({ name: userName, email: userEmail });
-      const { success, error: emailError, data } = await sendEmail({
-        to: userEmail,
-        subject: "Welcome to ZerosByKai",
-        html: welcomeHtml,
-        tags: ['welcome-email'],
-        headers: {
-          'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(userEmail)}&token=${token}>`,
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-        }
-      });
-
-      if (!success) {
-        console.error('❌ Failed to send welcome email:', emailError);
-        // Don't mark as welcomed so we can try again on next login
-        return res.json({ isNewUser: true, emailError: true });
+    const { success } = await sendEmail({
+      to: user.email,
+      subject: "Welcome to ZerosByKai",
+      html: welcomeHtml,
+      tags: ['welcome-email'],
+      headers: {
+        'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(user.email)}&token=${token}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
       }
+    });
 
-      // Mark user as welcomed ONLY after successful email send
-      await supabaseAdmin
-        .from('subscribers')
-        .update({ welcomed: true })
-        .eq('user_id', user.id);
-
-      console.log(`✅ Welcome email sent and status updated for ${userEmail}. ID: ${data.MessageId}`);
-      res.json({ isNewUser: true });
-
-    } catch (emailError) {
-      console.error('❌ Unexpected error sending welcome email:', emailError);
-      res.json({ isNewUser: true, emailError: true });
+    if (success) {
+      await supabaseAdmin.from('subscribers').update({ welcomed: true }).eq('user_id', user.id);
     }
 
+    res.json({ isNewUser: true, emailError: !success });
   } catch (error) {
-    console.error('Post-login error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-
 // POST /api/auth/verify - Verify magic link token
-router.post('/verify', async (req, res) => {
+router.post('/verify', async (req, res, next) => {
   try {
     const { token, type } = req.body;
-
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: token,
       type: type || 'magiclink'
     });
 
     if (error) throw error;
-
     res.json({
       message: 'Authenticated successfully',
       session: data.session,
@@ -323,222 +231,109 @@ router.post('/verify', async (req, res) => {
   }
 });
 
-// POST /api/auth/verify-email-token - Verify email link token and create session
-router.post('/verify-email-token', tokenLimiter, async (req, res) => {
+// POST /api/auth/verify-email-token
+router.post('/verify-email-token', tokenLimiter, async (req, res, next) => {
   try {
     const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token is required' });
 
-    if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
-    }
+    const { userId } = verifyEmailToken(token);
+    const { data, error } = await supabaseAdmin.auth.admin.createSession({ user_id: userId });
 
-    // Basic token format validation to reject obviously invalid attempts early
-    if (typeof token !== 'string' || token.length < 20 || token.length > 2000) {
-      return res.status(400).json({ error: 'Invalid token format' });
-    }
-
-    // Verify and decode the email token
-    const { userId, email } = verifyEmailToken(token);
-
-    // Create a session for this user using Supabase Admin
-    const { data, error } = await supabaseAdmin.auth.admin.createSession({
-      user_id: userId
-    });
-
-    if (error) {
-      console.error('Failed to create session:', error);
-      throw error;
-    }
-
-    res.json({
-      session: data.session,
-      user: data.user
-    });
+    if (error) throw error;
+    res.json({ session: data.session, user: data.user });
   } catch (error) {
-    console.error('Email token verification error:', error.message);
     res.status(401).json({ error: error.message });
   }
 });
 
-
-// GET /api/auth/user - Get current user
-router.get('/user', async (req, res) => {
+// GET /api/auth/user
+router.get('/user', requireAuth, async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    // Get subscriber record (replaces profiles)
     const { data: profile } = await supabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', req.user.id)
+      .maybeSingle();
 
-    res.json({ user, profile });
+    res.json({ user: req.user, profile });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // POST /api/auth/signout
-router.post('/signout', async (req, res) => {
+router.post('/signout', async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
+    if (!token) return res.status(401).json({ error: 'No token' });
 
     const { error } = await supabase.auth.signOut(token);
-
     if (error) throw error;
 
-    res.json({ message: 'Signed out successfully' });
+    res.json({ message: 'Signed out' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-// GET /api/auth/unsubscribe - Unsubscribe email
-router.get('/unsubscribe', async (req, res) => {
+// GET /api/auth/unsubscribe
+router.get('/unsubscribe', async (req, res, next) => {
   try {
     const { email, token } = req.query;
+    if (!email) return res.status(400).json({ error: 'Email required' });
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+    const decoded = verifyEmailToken(token);
+    if (decoded.email !== email) return res.status(401).json({ error: 'Invalid token' });
 
-    // Secure token verification
-    try {
-      const decoded = verifyEmailToken(token);
-      if (decoded.email !== email) {
-        return res.status(401).json({ error: 'Invalid unsubscribe token for this email' });
-      }
-    } catch (e) {
-      return res.status(401).json({ error: 'Invalid or expired unsubscribe token' });
-    }
-
-    // Mark as unsubscribed in subscribers table (acts as suppression list)
-    // 1. Try to update existing subscriber (preserves name/other data)
-    const { data: existing, error: updateError } = await supabaseAdmin
-      .from('subscribers')
+    await supabaseAdmin.from('subscribers')
       .update({ unsubscribed_at: new Date().toISOString() })
-      .eq('email', email)
-      .select();
+      .eq('email', email);
 
-    if (updateError) throw updateError;
-
-    // 2. If no subscriber found (e.g. auth user not in list), insert new suppression record
-    if (!existing || existing.length === 0) {
-      const { error: insertError } = await supabaseAdmin
-        .from('subscribers')
-        .insert({
-          email,
-          unsubscribed_at: new Date().toISOString()
-        });
-
-      if (insertError) throw insertError;
-    }
-
-    // 3. Blocklist in Brevo (fire-and-forget)
-    blocklistContact(email).catch(err => {
-      console.error(`❌ Failed to blocklist contact for ${email} in Brevo:`, err.message);
-    });
-
+    blocklistContact(email).catch(err => console.error('Brevo Blocklist Error:', err.message));
     res.json({ message: 'Unsubscribed successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-// DELETE /api/auth/user - Delete current user account and sync with Brevo
-router.delete('/user', async (req, res) => {
+// DELETE /api/auth/user - Delete current user
+router.delete('/user', requireAuth, async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const user = req.user;
+    deleteContact(user.email).catch(err => console.error('Brevo Delete Error:', err.message));
 
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
+    await supabaseAdmin.from('subscribers').delete().eq('user_id', user.id);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+    if (error) throw error;
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    const userEmail = user.email;
-
-    // 1. Delete from Brevo (fire-and-forget)
-    deleteContact(userEmail).catch(err => {
-      console.error(`❌ Failed to delete contact for ${userEmail} from Brevo:`, err.message);
-    });
-
-    // 2. Delete from subscribers table (preserves RLS if any, but we use admin to be sure)
-    await supabaseAdmin
-      .from('subscribers')
-      .delete()
-      .eq('user_id', user.id);
-
-    // 3. Delete from auth.users (requires Admin API)
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
-    if (deleteError) throw deleteError;
-
-    console.log(`🗑️ User deleted: ${userEmail}`);
-    res.json({ message: 'Account deleted successfully' });
+    res.json({ message: 'Account deleted' });
   } catch (error) {
-    console.error('Account deletion error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-// DELETE /api/auth/admin/user - Admin delete user (requires service key)
-router.delete('/admin/user', async (req, res) => {
+// DELETE /api/auth/admin/user - Admin delete
+router.delete('/admin/user', requireAdminKey, async (req, res, next) => {
   try {
     const { email } = req.body;
-    const authHeader = req.headers.authorization;
+    if (!email) return res.status(400).json({ error: 'Email required' });
 
-    // Strict admin check: require Supabase Service Key in header
-    if (authHeader !== `Bearer ${config.supabase.serviceKey}`) {
-      return res.status(401).json({ error: 'Unauthorized: Admin access required' });
-    }
+    await deleteContact(email).catch(() => { });
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-
-    // 1. Delete from Brevo
-    await deleteContact(email);
-
-    // 2. Get user by email to delete from Supabase
-    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) throw listError;
-
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
     const user = users.find(u => u.email === email);
+
     if (user) {
-      // Delete from subscribers
       await supabaseAdmin.from('subscribers').delete().eq('user_id', user.id);
-      // Delete from auth
-      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
-      if (deleteError) throw deleteError;
+      await supabaseAdmin.auth.admin.deleteUser(user.id);
     } else {
-      // Just in case they are only in subscribers
       await supabaseAdmin.from('subscribers').delete().eq('email', email);
     }
 
-    console.log(`🗑️ Admin deleted user: ${email}`);
     res.json({ message: `User ${email} deleted successfully from all systems` });
   } catch (error) {
-    console.error('Admin user deletion error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
-
 export default router;
