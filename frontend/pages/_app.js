@@ -2,11 +2,17 @@ import { Bangers, Courier_Prime } from 'next/font/google'
 import Head from 'next/head'
 import Script from 'next/script'
 import '@/styles/globals.css'
+import 'lenis/dist/lenis.css'
 import { AuthProvider } from '@/lib/auth'
+import { SmoothScrollProvider } from '@/lib/smoothScroll'
 import dynamic from 'next/dynamic'
 import { Analytics } from '@vercel/analytics/react'
 
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
+    loading: () => null,
+})
+
+const SubscribeModal = dynamic(() => import('@/components/SubscribeModal'), {
     loading: () => null,
 })
 
@@ -53,33 +59,36 @@ const websiteSchema = {
 export default function App({ Component, pageProps }) {
     return (
         <AuthProvider>
-            <Head>
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                {/* Default OG fallbacks — overridden per page */}
-                <meta property="og:site_name" content="ZerosByKai" />
-                <meta property="og:locale" content="en_US" />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:site" content="@zerosbykai" />
-                <meta name="robots" content="index, follow" />
-            </Head>
-            <Script
-                id="org-schema"
-                type="application/ld+json"
-                strategy="afterInteractive"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-            />
-            <Script
-                id="website-schema"
-                type="application/ld+json"
-                strategy="afterInteractive"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-            />
-            <main className={`${bangers.variable} ${courierPrime.variable} font-sans`}>
-                <Component {...pageProps} />
-                <AuthModal />
-                <Analytics />
-                <div id="mobile-menu-portal" />
-            </main>
+            <SmoothScrollProvider>
+                <Head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1" />
+                    {/* Default OG fallbacks — overridden per page */}
+                    <meta property="og:site_name" content="ZerosByKai" />
+                    <meta property="og:locale" content="en_US" />
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:site" content="@zerosbykai" />
+                    <meta name="robots" content="index, follow" />
+                </Head>
+                <Script
+                    id="org-schema"
+                    type="application/ld+json"
+                    strategy="afterInteractive"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+                />
+                <Script
+                    id="website-schema"
+                    type="application/ld+json"
+                    strategy="afterInteractive"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+                />
+                <main className={`${bangers.variable} ${courierPrime.variable} font-sans`}>
+                    <Component {...pageProps} />
+                    <AuthModal />
+                    <SubscribeModal />
+                    <Analytics />
+                    <div id="mobile-menu-portal" />
+                </main>
+            </SmoothScrollProvider>
         </AuthProvider>
     )
 }

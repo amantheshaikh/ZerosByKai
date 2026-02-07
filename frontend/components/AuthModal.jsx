@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth, getApiUrl, apiFetch } from '@/lib/auth';
+import { useRouter } from 'next/router';
 import { CheckCircle2, ArrowRight, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthModal() {
+  const router = useRouter();
   const { showAuthModal, closeAuthModal, signInWithProvider } = useAuth();
 
   // Form State
@@ -83,6 +85,18 @@ export default function AuthModal() {
       return () => clearTimeout(timer);
     }
   }, [step, closeAuthModal]);
+
+  // Close modal on route change (page navigation)
+  useEffect(() => {
+    const handleRouteChange = () => {
+      closeAuthModal();
+    };
+
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, [router, closeAuthModal]);
 
   if (!showAuthModal) return null;
 

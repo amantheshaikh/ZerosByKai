@@ -105,6 +105,9 @@ export function AuthProvider({ children }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('signin'); // 'signin' | 'join'
 
+  // Subscribe modal state
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+
   // Refs to prevent duplicate operations
   const isInitialized = useRef(false);
   const postLoginProcessed = useRef(new Map()); // Changed from Set to Map for thread-safe dedup
@@ -578,6 +581,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
+   * Open subscribe modal
+   */
+  const openSubscribeModal = useCallback(() => {
+    setShowSubscribeModal(true);
+  }, []);
+
+  /**
+   * Close subscribe modal
+   */
+  const closeSubscribeModal = useCallback(() => {
+    setShowSubscribeModal(false);
+  }, []);
+
+  /**
    * Clear error state
    */
   const clearError = useCallback(() => {
@@ -604,6 +621,9 @@ export function AuthProvider({ children }) {
     authModalMode,
     openAuthModal,
     closeAuthModal,
+    showSubscribeModal,
+    openSubscribeModal,
+    closeSubscribeModal,
 
     // Supabase client (for advanced use cases)
     supabase

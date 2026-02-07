@@ -1,25 +1,55 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Mail, ArrowRight } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAnchorNavigation, scrollEasings } from '@/lib/smoothScroll';
+import { motion } from 'framer-motion';
 import BadgeDisplay from './ui/badge-display';
 import HamburgerMenu from './HamburgerMenu';
 
 
 export default function Header({ variant = 'landing' }) {
-  const { user, isLoading, signOut, openAuthModal } = useAuth();
+  const router = useRouter();
+  const { user, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { activeSection, scrollToAnchor } = useAnchorNavigation({
+    offset: 100,
+    duration: 1.4,
+    easing: scrollEasings.smooth,
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const isPage = variant === 'page';
   const isStory = variant === 'story';
+
+  // Handle smooth scroll for anchor links
+  const handleAnchorClick = (e, hash) => {
+    e.preventDefault();
+    scrollToAnchor(hash);
+    setIsMenuOpen(false);
+  };
+
+  // Handle "THIS WEEK" link - navigate to landing page first if not there
+  const handleThisWeekClick = (e) => {
+    e.preventDefault();
+    if (router.pathname === '/') {
+      // Already on landing page, just scroll
+      scrollToAnchor('#ideas-section');
+    } else {
+      // On another page, navigate to landing page with hash
+      router.push('/#ideas-section');
+    }
+    setIsMenuOpen(false);
+  };
+
+  // Check if a nav item is active
+  const isActive = (sectionId) => activeSection === sectionId;
 
   return (
     <header
@@ -53,12 +83,17 @@ export default function Header({ variant = 'landing' }) {
         >
           KAI&apos;S STORY
         </Link>
-        <Link
-          href="/#ideas-section"
-          className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors"
+        <a
+          href="#ideas-section"
+          onClick={handleThisWeekClick}
+          className={`px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm transition-colors ${
+            isActive('ideas-section')
+              ? 'text-rose-700 border-b-2 border-rose-700'
+              : 'text-black hover:text-rose-700'
+          }`}
         >
           THIS WEEK
-        </Link>
+        </a>
         {isLoading ? null : user ? (
           <>
             <BadgeDisplay />
@@ -100,13 +135,16 @@ export default function Header({ variant = 'landing' }) {
               }}
               className="border-2 border-black shadow-[3px_3px_0px_0px_#000]"
             >
-              <Link
-                href="/#final-cta"
+              <button
+                onClick={() => {
+                  closeAuthModal();
+                  openSubscribeModal();
+                }}
                 className="px-4 py-2 bg-white comic-title text-sm text-black hover:bg-gray-50 flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />
                 SUBSCRIBE
-              </Link>
+              </button>
             </motion.div>
 
             <motion.button
@@ -120,7 +158,10 @@ export default function Header({ variant = 'landing' }) {
                 y: 3,
                 boxShadow: "0px 0px 0px 0px #000"
               }}
-              onClick={() => openAuthModal('signin')}
+              onClick={() => {
+                closeSubscribeModal();
+                openAuthModal('signin');
+              }}
               className="px-4 py-2 bg-black text-yellow-400 border-2 border-black comic-title text-sm hover:bg-gray-900 shadow-[3px_3px_0px_0px_#000] flex items-center gap-2"
             >
               <ArrowRight className="w-4 h-4" />
@@ -150,13 +191,15 @@ export default function Header({ variant = 'landing' }) {
             >
               KAI&apos;S STORY
             </Link>
-            <Link
-              href="/#ideas-section"
-              onClick={() => setIsMenuOpen(false)}
-              className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+            <a
+              href="#ideas-section"
+              onClick={handleThisWeekClick}
+              className={`text-center comic-title text-2xl transition-colors ${
+                isActive('ideas-section') ? 'text-rose-700' : 'text-black hover:text-rose-700'
+              }`}
             >
               THIS WEEK
-            </Link>
+            </a>
 
             <div className="w-full h-px bg-gray-200 my-2" />
 
@@ -211,14 +254,17 @@ export default function Header({ variant = 'landing' }) {
                   }}
                   className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
                 >
-                  <Link
-                    href="/#final-cta"
-                    onClick={() => setIsMenuOpen(false)}
+                  <button
+                    onClick={() => {
+                      closeAuthModal();
+                      openSubscribeModal();
+                      setIsMenuOpen(false);
+                    }}
                     className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
                   >
                     <Mail className="w-5 h-5" />
                     SUBSCRIBE
-                  </Link>
+                  </button>
                 </motion.div>
 
                 <motion.button
@@ -233,6 +279,7 @@ export default function Header({ variant = 'landing' }) {
                     boxShadow: "0px 0px 0px 0px #000"
                   }}
                   onClick={() => {
+                    closeSubscribeModal();
                     openAuthModal('signin');
                     setIsMenuOpen(false);
                   }}

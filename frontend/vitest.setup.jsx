@@ -118,3 +118,66 @@ vi.mock('@/components/Particles', () => {
         default: () => <div data-testid="mock-particles"></div>,
     };
 });
+
+// Mock Lenis smooth scroll
+vi.mock('lenis', () => {
+    return {
+        __esModule: true,
+        default: vi.fn().mockImplementation(() => ({
+            on: vi.fn(),
+            off: vi.fn(),
+            raf: vi.fn(),
+            scrollTo: vi.fn(),
+            stop: vi.fn(),
+            start: vi.fn(),
+            destroy: vi.fn(),
+            scroll: 0,
+            limit: 1000,
+        })),
+    };
+});
+
+vi.mock('lenis/dist/lenis.css', () => ({}));
+
+// Mock smooth scroll provider
+vi.mock('@/lib/smoothScroll', () => {
+    return {
+        __esModule: true,
+        SmoothScrollProvider: ({ children }) => <>{children}</>,
+        useSmoothScroll: () => ({
+            lenis: null,
+            scrollTo: vi.fn(),
+            stop: vi.fn(),
+            start: vi.fn(),
+            getScroll: () => 0,
+            getLimit: () => 0,
+            velocity: 0,
+            direction: 0,
+            progress: 0,
+            isScrolling: false,
+        }),
+        useScrollVelocity: () => ({
+            velocity: 0,
+            rawVelocity: 0,
+            direction: 0,
+            isScrolling: false,
+            intensity: 0,
+        }),
+        useAnchorNavigation: () => ({
+            activeSection: null,
+            scrollToAnchor: vi.fn(),
+            scrollToSection: vi.fn(),
+        }),
+        useScrollActions: () => ({
+            scrollToElement: vi.fn(),
+            scrollToTop: vi.fn(),
+            scrollToSubscribe: vi.fn(),
+        }),
+        scrollEasings: {
+            smooth: (t) => t,
+            snappy: (t) => t,
+            gentle: (t) => t,
+            bounce: (t) => t,
+        },
+    };
+});

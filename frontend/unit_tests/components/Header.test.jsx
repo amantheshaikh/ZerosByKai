@@ -193,7 +193,7 @@ describe('Header Component', () => {
             const thisWeekLink = screen.getByRole('link', { name: 'THIS WEEK' });
 
             expect(storyLink).toHaveAttribute('href', '/story');
-            expect(thisWeekLink).toHaveAttribute('href', '/#ideas-section');
+            expect(thisWeekLink).toHaveAttribute('href', '#ideas-section');
         });
 
         it('profile link points to /profile when authenticated', () => {

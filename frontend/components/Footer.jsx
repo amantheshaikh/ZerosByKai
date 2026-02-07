@@ -1,6 +1,17 @@
 import Link from 'next/link';
+import { useScrollActions, scrollEasings } from '@/lib/smoothScroll';
 
 export default function Footer() {
+    const { scrollToElement } = useScrollActions();
+
+    const handleAnchorClick = (e, selector) => {
+        e.preventDefault();
+        scrollToElement(selector, {
+            duration: 1.6,
+            easing: scrollEasings.gentle,
+        });
+    };
+
     return (
         <footer className="relative w-full bg-gray-900 text-white py-8 sm:py-10 lg:py-12 px-4 sm:px-6">
             <div className="max-w-6xl mx-auto">
@@ -14,7 +25,7 @@ export default function Footer() {
                     <div>
                         <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">LINKS</h4>
                         <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                            <li><a href="#ideas-section" className="hover:text-yellow-400">This Week&apos;s Ideas</a></li>
+                            <li><a href="#ideas-section" onClick={(e) => handleAnchorClick(e, '#ideas-section')} className="hover:text-yellow-400 cursor-pointer">This Week&apos;s Ideas</a></li>
                             <li><Link href="/archive" className="hover:text-yellow-400">Archive</Link></li>
                             <li><Link href="/story" className="hover:text-yellow-400">Kai&apos;s story</Link></li>
                         </ul>

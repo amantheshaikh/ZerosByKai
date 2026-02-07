@@ -97,8 +97,6 @@ router.get('/weekly-batches', async (req, res, next) => {
 
     // Optimized: Fetch all ideas for these weeks in one go
     const weekStartDates = batches.map(b => b.week_start_date);
-    const allIdeas = await ideaService.getIdeasByWeek(weekStartDates);
-    // Wait, getIdeasByWeek needs to handle array or I use a different query
 
     const { data: batchIdeas, error: ideasError } = await supabase
       .from('ideas')

@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Lenis Smooth Scroll Styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Scroll-based animations */
+[data-scroll-speed] {
+  will-change: transform;
+}
+
+/* Velocity-based effects */
+.scroll-blur {
+  transition: filter 0.3s ease-out;
+}
+
+.scroll-blur[data-scrolling="true"] {
+  filter: blur(1px);
+}
+
+/* Parallax sections */
+.parallax-slow {
+  transform: translateY(calc(var(--scroll-progress, 0) * -20px));
+}
+
+.parallax-fast {
+  transform: translateY(calc(var(--scroll-progress, 0) * 20px));
+}
+
 .comic-title {
   font-family: var(--font-bangers), system-ui, sans-serif;
   letter-spacing: 2px;
