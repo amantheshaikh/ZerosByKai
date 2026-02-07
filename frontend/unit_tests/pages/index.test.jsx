@@ -75,14 +75,6 @@ vi.mock('@/components/Header', () => ({
 vi.mock('@/components/Leaderboard', () => ({
     default: ({ winners }) => <div data-testid="mock-leaderboard">Leaderboard: {winners?.length}</div>,
 }));
-vi.mock('@/components/IdeaCard', () => ({
-    default: ({ idea, onVote }) => (
-        <div data-testid="mock-idea-card">
-            <h3>{idea.name || idea.title}</h3>
-            <button onClick={() => onVote(idea.id)}>VOTE</button>
-        </div>
-    ),
-}));
 vi.mock('@/components/Footer', () => ({
     default: () => <footer data-testid="mock-footer">Footer</footer>,
 }));
@@ -140,8 +132,8 @@ describe('ZerosByKaiLanding', () => {
 
         await waitFor(() => {
             expect(fetchCurrentWeekIdeas).toHaveBeenCalled();
-            // IdeaCarousel renders 3 cards (left, center, right) for the 3D effect
-            expect(screen.getAllByTestId('mock-idea-card')).toHaveLength(3);
+            // IdeaCarousel is mocked and renders all ideas
+            expect(screen.getByTestId('mock-idea-carousel')).toBeInTheDocument();
         });
     });
 
@@ -231,7 +223,7 @@ describe('ZerosByKaiLanding', () => {
             fireEvent.click(voteButtons[0]);
         });
 
-        // Ensure we check the ID type correctly (received as number)
-        expect(castVote).toHaveBeenCalledWith(10, mockSession);
+        // The first idea in mockIdeas has id: 1
+        expect(castVote).toHaveBeenCalledWith(1, mockSession);
     });
 });

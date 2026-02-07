@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
-import { useAuth, apiFetch, getApiUrl } from '@/lib/auth';
+import { useAuth } from '@/lib/auth';
 import Header from '@/components/Header';
 import Leaderboard from '@/components/Leaderboard';
 import IdeaCarousel from '@/components/IdeaCarousel';
@@ -27,13 +27,27 @@ import {
     getUserVote
 } from '@/lib/ideas';
 
+// Constants
+const VOTE_ERROR_TIMEOUT = 5000;
+const LIVE_SIGNAL_SOURCES = ['Reddit', 'Hacker News', 'X (Twitter)', 'Indie Hackers'];
+const MISSION_DESIGNATIONS = [
+    { img: '/badges/bronze-circle.png', title: 'ONLOOKER', tier: '0-2 winning picks', color: 'text-gray-400', special: '' },
+    { img: '/badges/silver-pentagon.png', title: 'FIELD AGENT', tier: '3-6 winning picks', color: 'text-gray-300', special: '' },
+    { img: '/badges/gold-hexagon.png', title: 'LEAD ANALYST', tier: '7-11 winning picks', color: 'text-yellow-400', special: '' },
+    { img: '/badges/platinum-shield.png', title: 'HEAD OF INTEL', tier: '12-19 winning picks', color: 'text-yellow-500', special: 'Expert' },
+    { img: '/badges/unicorn-prism.png', title: 'UNICORN HUNTER', tier: '20+ winning picks', color: 'text-indigo-400', special: 'Legendary' }
+];
+
 const ZerosByKaiLanding = () => {
-    const { user, session, isLoading: authLoading, openAuthModal, subscribeNewsletter } = useAuth();
+    const { user, session, openAuthModal, subscribeNewsletter } = useAuth();
+    const errorTimeoutRef = useRef(null);
+
+    // Form state
     const [email, setEmail] = useState('');
     const [subscribeStatus, setSubscribeStatus] = useState('idle');
     const [subscribeError, setSubscribeError] = useState(null);
 
-    // Real ideas state
+    // Ideas state
     const [ideas, setIdeas] = useState(null);
     const [leaderboard, setLeaderboard] = useState(null);
     const [userVote, setUserVote] = useState(null);
@@ -41,16 +55,13 @@ const ZerosByKaiLanding = () => {
     const [voteConfirmation, setVoteConfirmation] = useState(null);
     const [voteError, setVoteError] = useState(null);
 
-    // State for hero subscribe button expansion
-    const [showHeroSubscribe, setShowHeroSubscribe] = useState(false);
-
-    // Fetch data
+    // Fetch ideas and leaderboard
     useEffect(() => {
         fetchCurrentWeekIdeas().then(data => data.length > 0 && setIdeas(data));
         fetchLeaderboard().then(data => data.length > 0 && setLeaderboard(data));
     }, []);
 
-    // Fetch user's current vote (if authenticated)
+    // Fetch user's current vote
     useEffect(() => {
         if (!session) {
             setUserVote(null);
@@ -58,6 +69,15 @@ const ZerosByKaiLanding = () => {
         }
         getUserVote(session).then(setUserVote);
     }, [session]);
+
+    // Cleanup error timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (errorTimeoutRef.current) {
+                clearTimeout(errorTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const displayIdeas = ideas || sampleIdeas.map(normalizeIdea);
     const isRealData = ideas !== null;
@@ -76,25 +96,18 @@ const ZerosByKaiLanding = () => {
         }
     };
 
-    const scrollToIdeas = () => {
-        const section = document.getElementById('ideas-section');
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
-
     const handleVote = async (ideaId) => {
         if (!user) {
             openAuthModal();
             return;
         }
-        if (votingIdeaId) return; // prevent double-click
+        if (votingIdeaId) return;
 
         setVotingIdeaId(ideaId);
         try {
             const data = await castVote(ideaId, session);
-
             const votedIdea = displayIdeas.find((i) => i.id === ideaId);
+            
             setVoteConfirmation({
                 ideaName: votedIdea?.name || 'Idea',
                 changed: data.changedFrom !== null,
@@ -103,25 +116,36 @@ const ZerosByKaiLanding = () => {
             setVoteError(null);
         } catch (err) {
             console.error('Voting error:', err);
-            setVoteError(err.message || 'Failed to cast vote. Please try again.');
-            // Clear error after 5 seconds
-            setTimeout(() => setVoteError(null), 5000);
+            const errorMsg = err.message || 'Failed to cast vote. Please try again.';
+            setVoteError(errorMsg);
+            
+            // Clear previous timeout if exists
+            if (errorTimeoutRef.current) {
+                clearTimeout(errorTimeoutRef.current);
+            }
+            
+            errorTimeoutRef.current = setTimeout(() => {
+                setVoteError(null);
+                errorTimeoutRef.current = null;
+            }, VOTE_ERROR_TIMEOUT);
         } finally {
             setVotingIdeaId(null);
         }
     };
 
     const getVoteButtonProps = (ideaId) => {
+        const defaultStyle = 'bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black';
+        
         if (!user || !isRealData) {
-            return { label: 'VOTE FOR THIS', style: 'bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black' };
+            return { label: 'VOTE FOR THIS', style: defaultStyle };
         }
         if (userVote === ideaId) {
             return { label: '✓ YOUR PICK', style: 'bg-yellow-400 text-black border-yellow-500' };
         }
         if (userVote) {
-            return { label: 'CHANGE TO THIS', style: 'bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black' };
+            return { label: 'CHANGE TO THIS', style: defaultStyle };
         }
-        return { label: 'VOTE FOR THIS', style: 'bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black' };
+        return { label: 'VOTE FOR THIS', style: defaultStyle };
     };
 
     return (
@@ -176,7 +200,7 @@ const ZerosByKaiLanding = () => {
                             <h1 className="comic-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl leading-none text-gray-900">
                                 FIND THE<br />
                                 RIGHT <span className="text-rose-700">
-                                    <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100} startOnView={false}>ZER</TypingAnimation>O
+                                    <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100} startOnView={false}>ZER</TypingAnimation>O  {/*this is intentional*/}
                                 </span>
                             </h1>
 
@@ -198,9 +222,9 @@ const ZerosByKaiLanding = () => {
                         {/* Right: Kai Character with Social Proof Cards */}
                         <div className="relative flex flex-col items-center mt-0 lg:mt-0">
                             {/* Container for Kai Image + Floating Cards */}
-                            <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md mx-auto">
+                            <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md mx-auto scale-90">
                                 {/* Social Proof Card: Meet Kai - Top Left */}
-                                <div className="absolute -top-4 -left-4 sm:-top-6 sm:-left-8 z-30 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
+                                <div className="absolute -top-4 -left-4 sm:-top-6 sm:-left-8 z-30 transform -rotate-6 animate-bob">
                                     <div className="p-2 sm:p-3 comic-shadow border-3 border-yellow-400" style={{ background: '#000' }}>
                                         <div className="flex items-center gap-2">
                                             <span className="text-lg sm:text-xl">👋</span>
@@ -217,8 +241,8 @@ const ZerosByKaiLanding = () => {
                                     <Image
                                         src="/kai-hero.jpg"
                                         alt="Kai - AI-powered startup idea curator finding validated business opportunities from the internet's noise"
-                                        width={682}
-                                        height={1024}
+                                        width={546}
+                                        height={820}
                                         className="w-full h-auto border-2 sm:border-4 border-black"
                                         style={{
                                             filter: 'contrast(1.1) brightness(1.05)',
@@ -229,7 +253,7 @@ const ZerosByKaiLanding = () => {
                                 </div>
 
                                 {/* Social Proof Card: Best Analyst - Bottom Right */}
-                                <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-8 z-30 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                                <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-8 z-30 transform rotate-3 animate-bob" style={{ animationDelay: '1s' }}>
                                     <div className="p-2 sm:p-3 comic-shadow border-3 border-black" style={{ background: '#be123c' }}>
                                         <p className="comic-title text-[10px] sm:text-xs leading-tight text-center text-white">
                                             🏆 WORLD&apos;S BEST<br />
@@ -238,9 +262,9 @@ const ZerosByKaiLanding = () => {
                                     </div>
                                 </div>
 
-                                {/* Bonus Card: Stats - Top Right, more subtle */}
-                                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-6 z-20 transform rotate-6">
-                                    <div className="bg-white border-2 border-black px-2 py-1 shadow-md transform rotate-3">
+                                {/* Bonus Card: Stats - Top Right */}
+                                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-6 z-20 transform rotate-6 animate-bob" style={{ animationDelay: '2s' }}>
+                                    <div className="p-2 sm:p-3 comic-shadow border-3 border-black bg-white">
                                         <p className="comic-body text-[8px] sm:text-[10px] font-bold text-gray-700">
                                             🏅 EMPLOYEE OF THE MONTH<br />(EVERY MONTH)
                                         </p>
@@ -254,31 +278,23 @@ const ZerosByKaiLanding = () => {
 
             {/* Live Signal Ticker - The Sources */}
             <div className="bg-black py-4 border-y-4 border-black overflow-hidden relative flex items-center">
-                {/* Title overlay to stay fixed on the left (optional, but looks better if it stays while items slide under) */}
+                {/* Title overlay */}
                 <div className="absolute left-0 top-0 bottom-0 bg-black z-20 flex items-center px-4 sm:px-8 shadow-[10px_0_15px_rgba(0,0,0,0.9)] border-r border-yellow-400/20">
                     <span className="comic-title text-sm sm:text-base tracking-widest whitespace-nowrap text-yellow-400 opacity-90">⚡ LIVE SIGNAL FEEDS:</span>
                 </div>
 
                 <div className="flex overflow-hidden">
                     <div className="flex gap-12 sm:gap-24 items-center animate-marquee whitespace-nowrap pl-48 sm:pl-64">
-                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
-                        </div>
-                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
-                        </div>
-                        <div className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Reddit</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-75"></span> Hacker News</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-150"></span> X (Twitter)</span>
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse animate-delay-200"></span> Indie Hackers</span>
-                        </div>
+                        {[0, 1, 2].map((repeatIdx) => (
+                            <div key={repeatIdx} className="flex gap-12 sm:gap-24 comic-body text-[11px] sm:text-sm font-bold text-white tracking-widest uppercase items-center">
+                                {LIVE_SIGNAL_SOURCES.map((source, idx) => (
+                                    <span key={source} className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 bg-green-500 rounded-full animate-pulse ${idx > 0 ? `animate-delay-${idx * 75}` : ''}`}></span>
+                                        {source}
+                                    </span>
+                                ))}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -337,72 +353,8 @@ const ZerosByKaiLanding = () => {
                 </div>
             </section>
 
-            {/* Subscription Form Section - Horizontal Layout */}
-            {!user && (
-                <section id="join-section" className="relative bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 border-t-4 border-black">
-                    <div className="absolute inset-0 halftone"></div>
-                    <div className="relative max-w-5xl mx-auto px-6 py-8">
-                        <div className="comic-panel p-8 bg-white comic-shadow">
-                            <h3 className="comic-title text-2xl text-black mb-2 text-center">JOIN THE REVOLUTION!</h3>
-                            <p className="comic-body text-lg text-gray-700 mb-6 text-center">
-                                The only newsletter that feeds you <span className="font-bold text-rose-700">real startup ideas</span> from real problems.
-                            </p>
-
-                            {subscribeStatus === 'success' ? (
-                                <div className="text-center py-2">
-                                    <div className="text-4xl mb-3">⚡</div>
-                                    <h4 className="comic-title text-xl mb-2 text-black">YOU&apos;RE IN!</h4>
-                                    <p className="comic-body text-gray-700">First email drops Monday.</p>
-                                </div>
-                            ) : (
-                                <div>
-                                    <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 mb-4">
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="your@email.com"
-                                            className="w-full sm:flex-1 px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black text-center sm:text-left"
-                                            required
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={subscribeStatus === 'loading'}
-                                            className="w-full sm:w-auto px-8 py-3 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 whitespace-nowrap"
-                                        >
-                                            {subscribeStatus === 'loading' ? 'SUBSCRIBING...' : 'SUBSCRIBE FREE'}
-                                        </button>
-                                    </form>
-
-                                    {subscribeStatus === 'error' && (
-                                        <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm mb-4">
-                                            {subscribeError}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <p className="text-xs comic-body text-center text-gray-600">
-                                ✓ 100% Free &bull; ✓ Unsubscribe anytime &bull; ✓ One mail per week &bull; ✓ No spam
-                            </p>
-                            <p className="text-xs comic-body mt-2 text-center text-gray-500">
-                                Want to vote &amp; earn badges?{' '}
-                                <button
-                                    onClick={() => openAuthModal()}
-                                    className="text-rose-700 font-bold underline hover:text-rose-900"
-                                >
-                                    Create an account &rarr;
-                                </button>
-                            </p>
-                        </div>
-                    </div>
-                </section>
-            )}
-
             {/* Leaderboard - Last Week's Winners */}
             <Leaderboard winners={leaderboard || sampleWinners.map(normalizeIdea)} />
-
-
 
             {/* How It Works Section */}
             <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-white overflow-hidden">
@@ -529,32 +481,49 @@ const ZerosByKaiLanding = () => {
                         Stop lurking. Start building your record. Prove you can spot the signal.
                     </motion.p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-4">
-                        {[
-                            { emoji: '🕵️', title: 'ONLOOKER', tier: '0-2 winning picks', color: 'text-gray-400', special: '' },
-                            { emoji: '🦾', title: 'FIELD AGENT', tier: '3-6 winning picks', color: 'text-gray-300', special: '' },
-                            { emoji: '🧠', title: 'LEAD ANALYST', tier: '7-11 winning picks', color: 'text-yellow-400', special: '' },
-                            { emoji: '🌐', title: 'HEAD OF INTEL', tier: '12-19 winning picks', color: 'text-yellow-500', special: 'Expert' },
-                            { emoji: '🦄', title: 'UNICORN HUNTER', tier: '20+ winning picks', color: 'text-indigo-400', special: 'Legendary' }
-                        ].map((tier, idx) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-6">
+                        {MISSION_DESIGNATIONS.map((tier, idx) => (
                             <motion.div
-                                key={idx}
-                                className={`comic-panel p-4 sm:p-5 text-center border-gray-700 relative overflow-hidden ${idx === 4 ? 'bg-gradient-to-br from-indigo-900 to-gray-800 border-indigo-500 ring-2 ring-indigo-500/20' : 'bg-gray-800'}`}
+                                key={tier.title}
+                                className={`comic-panel p-4 sm:p-5 text-center border-gray-700 relative overflow-visible group ${idx === 4 ? 'bg-gradient-to-br from-indigo-900 to-gray-800 border-indigo-500 ring-2 ring-indigo-500/20' : 'bg-gray-800'}`}
                                 variants={{
                                     hidden: { opacity: 0, x: -20 },
                                     visible: { opacity: 1, x: 0 }
                                 }}
-                                whileHover={{ scale: 1.05, borderColor: idx === 4 ? '#818cf8' : '#fbbf24' }}
+                                whileHover={{ scale: 1.05, borderColor: idx === 4 ? '#818cf8' : '#fbbf24', zIndex: 10 }}
                                 whileTap={{ scale: 0.96 }}
                             >
                                 {tier.special && (
-                                    <div className={`absolute top-0 right-0 ${idx === 4 ? 'bg-indigo-500' : 'bg-yellow-400'} text-black text-[8px] font-bold px-1 uppercase`}>
+                                    <div className={`absolute top-0 right-0 ${idx === 4 ? 'bg-indigo-500' : 'bg-yellow-400'} text-black text-[8px] font-bold px-1 uppercase z-20`}>
                                         {tier.special}
                                     </div>
                                 )}
-                                <div className={`text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3 ${idx === 4 ? 'animate-pulse' : ''}`}>{tier.emoji}</div>
-                                <h3 className={`comic-title text-base sm:text-lg mb-1 ${tier.color}`}>{tier.title}</h3>
-                                <p className={`comic-body text-[10px] sm:text-xs uppercase font-bold tracking-tight ${idx === 4 ? 'text-indigo-300/60' : 'text-gray-500'}`}>{tier.tier}</p>
+
+                                <div className="relative mb-3 sm:mb-4 h-24 sm:h-28 flex items-center justify-center">
+                                    <div className={`badge-container relative w-20 h-20 sm:w-24 sm:h-24 transition-all duration-500 ${idx === 4 ? 'animate-pulse-slow' : ''}`}>
+                                        <Image
+                                            src={tier.img}
+                                            alt={tier.title}
+                                            fill
+                                            className="drop-shadow-2xl filter brightness-110 mix-blend-screen object-contain"
+                                        />
+                                        {/* Reflection effect */}
+                                        <div className="absolute -bottom-8 left-0 right-0 h-full opacity-30 transform scale-y-[-0.5] mask-linear-gradient pointer-events-none">
+                                            <Image
+                                                src={tier.img}
+                                                alt=""
+                                                fill
+                                                className="mix-blend-screen object-contain"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h3 className={`comic-title text-base sm:text-lg mb-1 ${tier.color} relative z-10`}>{tier.title}</h3>
+                                <p className={`comic-body text-[10px] sm:text-xs uppercase font-bold tracking-tight ${idx === 4 ? 'text-indigo-300/60' : 'text-gray-500'} relative z-10`}>{tier.tier}</p>
+
+                                {/* Hover Shine Effect */}
+                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none mix-blend-overlay"></div>
                             </motion.div>
                         ))}
                     </div>
@@ -791,7 +760,7 @@ const ZerosByKaiLanding = () => {
 
             {/* Final CTA */}
             {!user && (
-                <section className="bg-gradient-to-br from-yellow-400 to-amber-400 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden">
+                <section id="final-cta" className="bg-gradient-to-br from-yellow-400 to-amber-400 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden">
                     <div className="absolute inset-0 halftone"></div>
                     <div className="relative max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">

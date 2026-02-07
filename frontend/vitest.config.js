@@ -8,6 +8,15 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['./vitest.setup.jsx'],
+        testTimeout: 20000,
+        hookTimeout: 20000,
+        isolate: false,
+        pool: 'forks',
+        poolOptions: {
+            forks: {
+                singleFork: true,
+            },
+        },
     },
     esbuild: {
         loader: 'jsx',

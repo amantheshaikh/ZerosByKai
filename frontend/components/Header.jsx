@@ -101,7 +101,7 @@ export default function Header({ variant = 'landing' }) {
               className="border-2 border-black shadow-[3px_3px_0px_0px_#000]"
             >
               <Link
-                href="/#join-section"
+                href="/#final-cta"
                 className="px-4 py-2 bg-white comic-title text-sm text-black hover:bg-gray-50 flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function Header({ variant = 'landing' }) {
                   className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
                 >
                   <Link
-                    href="/#join-section"
+                    href="/#final-cta"
                     onClick={() => setIsMenuOpen(false)}
                     className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
                   >

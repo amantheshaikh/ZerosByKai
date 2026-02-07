@@ -5,13 +5,11 @@ const nextConfig = {
     reactStrictMode: true,
     compress: true,
     output: 'standalone',
+    turbopack: {
+        root: __dirname,
+    },
     images: {
         formats: ['image/avif', 'image/webp'],
-    },
-    experimental: {},
-    turbopack: {
-        // Silence warning about workspace root by explicitly setting it to the project root
-        root: path.resolve(__dirname, '..'),
     },
     async redirects() {
         return [

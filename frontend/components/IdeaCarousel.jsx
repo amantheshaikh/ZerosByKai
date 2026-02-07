@@ -92,7 +92,7 @@ export default function IdeaCarousel({
 
     return (
         <div className="relative w-full max-w-5xl mx-auto px-4 py-4 overflow-visible">
-            <div className="relative h-[550px] sm:h-[450px] flex items-center justify-center">
+            <div className="relative h-[600px] sm:h-[500px] flex items-center justify-center">
                 <AnimatePresence initial={false} custom={direction}>
                     {cardData.map((card) => {
                         const idea = ideas[card.index];

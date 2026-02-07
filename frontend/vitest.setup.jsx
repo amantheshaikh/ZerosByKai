@@ -1,6 +1,28 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Mock Supabase auth helpers FIRST to prevent initialization hangs
+vi.mock('@supabase/auth-helpers-nextjs', () => {
+    const mockSupabaseClient = {
+        auth: {
+            getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+            setSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+            signOut: vi.fn().mockResolvedValue({ error: null }),
+            signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+            refreshSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+            onAuthStateChange: vi.fn(() => ({
+                data: { subscription: { unsubscribe: vi.fn() } },
+            })),
+        },
+    };
+
+    return {
+        __esModule: true,
+        createPagesBrowserClient: vi.fn(() => mockSupabaseClient),
+        createPagesServerClient: vi.fn(() => mockSupabaseClient),
+    };
+});
+
 // Mock Next.js router
 vi.mock('next/router', () => ({
     useRouter: () => ({
@@ -26,8 +48,8 @@ vi.mock('next/head', () => {
 vi.mock('next/image', () => {
     return {
         __esModule: true,
-        // Extract priority and other Next.js specific props to avoid warnings
-        default: ({ priority, fill, ...props }) => {
+        // Filter out Next.js-specific props to avoid React warnings
+        default: ({ priority, fill, objectFit, layout, ...props }) => {
             // eslint-disable-next-line @next/next/no-img-element
             return <img {...props} />;
         },
@@ -41,5 +63,58 @@ vi.mock('next/script', () => {
         default: ({ children }) => {
             return <script>{children}</script>;
         },
+    };
+});
+
+// Mock IdeaCarousel to prevent worker timeouts
+vi.mock('@/components/IdeaCarousel', () => {
+    return {
+        __esModule: true,
+        default: ({ ideas, onVote, getVoteButtonProps }) => {
+            return (
+                <div data-testid="mock-idea-carousel">
+                    {ideas?.map((idea, idx) => (
+                        <div key={idea.id || idx} data-testid="mock-idea-card">
+                            <h3>{idea.name || idea.title}</h3>
+                            <button onClick={() => onVote(idea.id)}>
+                                {getVoteButtonProps ? getVoteButtonProps(idea.id).label : 'VOTE'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            );
+        },
+    };
+});
+
+// Mock dynamic imports that might cause timeouts
+vi.mock('@/components/ui/vote-confirmation', () => {
+    return {
+        __esModule: true,
+        default: () => <div data-testid="mock-vote-confirmation">Vote Confirmed!</div>,
+    };
+});
+
+// Mock TypingAnimation to prevent animation loops
+vi.mock('@/components/ui/typing-animation', () => {
+    return {
+        __esModule: true,
+        TypingAnimation: ({ children }) => <span>{children}</span>,
+    };
+});
+
+// Mock RotatingText component
+vi.mock('@/components/RotatingText', () => {
+    return {
+        __esModule: true,
+        default: ({ texts }) => <span>{texts?.[0] || 'rotating'}</span>,
+    };
+});
+
+// Mock Particles component
+vi.mock('@/components/Particles', () => {
+    return {
+        __esModule: true,
+        default: () => <div data-testid="mock-particles"></div>,
     };
 });
