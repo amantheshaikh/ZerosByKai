@@ -29,8 +29,7 @@ export class AIService {
         // Smart exclusion list handling: keep only the most recent 100 published ideas
         let exclusionList = this.exclusionList;
         if (exclusionList && exclusionList.length > 100) {
-            const trimmedCount = exclusionList.length - 100;
-            exclusionList = exclusionList.slice(trimmedCount); // Keep most recent 100
+            exclusionList = exclusionList.slice(0, 100); // Keep most recent 100
             console.log(`[AI] Using last 100 published ideas in exclusion list (trimmed from ${this.exclusionList.length})`);
         }
 
@@ -150,14 +149,70 @@ export class AIService {
         return null;
     }
 
+    async regenerateNames(ideas) {
+        if (!Array.isArray(ideas) || ideas.length === 0) return [];
+
+        const ideasText = ideas
+            .map((idea, idx) => `${idx + 1}. Title: ${idea.title}\n   Problem: ${idea.problem}\n   Solution: ${idea.solution}`)
+            .join('\n\n');
+
+        const prompt = `
+            You are Kai, an expert brand consultant.
+            I have a list of startup ideas. I need you to generate a unique, catchy, and creative multi-word brand name for each one.
+            The name should be primarily inspired by the **Solution**.
+
+            **Ideas to Rename:**
+            ${ideasText}
+
+            **Requirements:**
+            - Names MUST be creative, eccentric, and show real "character".
+            - STRICTLY FORBIDDEN: Generic technical descriptors (e.g., "On-Device Utility", "File Converter", "Payment Tool", "Soft Landing", "Planner", "System").
+            - Favor punchy 1-2 word names or clever idioms that feel like a high-end brand.
+            - The name should be primarily inspired by the **Solution** vibe, not its function.
+            - Do NOT use the examples literally.
+            - Ensure names are distinct for each idea.
+            - KEEP the same JSON format.
+
+            **Output Format (Strict JSON array of objects):**
+            [
+              {
+                "id": "[Fill with original index 1-based]",
+                "name": "New Creative name"
+              }
+            ]
+        `;
+
+        const chain = [this.models.primary, this.models.fallback].filter(Boolean);
+        for (const model of chain) {
+            try {
+                const result = await this._callGeminiGeneric(model, prompt);
+                if (!Array.isArray(result)) throw new Error("AI did not return an array");
+
+                // Map back to original ideas
+                return ideas.map((idea, idx) => {
+                    const aiMatch = result.find(r => parseInt(r.id) === idx + 1);
+                    return {
+                        ...idea,
+                        name: aiMatch ? aiMatch.name : idea.name
+                    };
+                });
+            } catch (e) {
+                console.warn(`[AI] Renaming failed with ${model}: ${e.message}`);
+                if (model === chain[chain.length - 1]) throw e;
+            }
+        }
+    }
+
     async _callGeminiGeneric(modelName, prompt) {
         console.log(`[AI] Calling model: ${modelName}`);
         const model = this.genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(prompt);
         const text = result.response.text();
 
-        // Clean and parse
-        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // More robust JSON extraction
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        const cleanJson = jsonMatch ? jsonMatch[0] : text.replace(/```json/g, '').replace(/```/g, '').trim();
+
         try {
             return JSON.parse(cleanJson);
         } catch (e) {
@@ -166,10 +221,7 @@ export class AIService {
     }
 
     _buildPrompt(posts, count, exclusionList = []) {
-        const listToUse = exclusionList.length > 0 ? exclusionList : this.exclusionList;
-        const exclusionText = listToUse.length > 0
-            ? `\n**EXCLUSION LIST (Do NOT repeat these ideas):**\n- ${listToUse.join('\n- ')}`
-            : "";
+        const exclusionText = this._formatExclusionList(exclusionList);
 
         return `
             You are Kai, an expert opportunity analyst. 
@@ -186,64 +238,85 @@ export class AIService {
             **Output Format (Strict JSON array of objects):**
             [
               {
-                "name": "Creative Brand Name",
+                "name": "Eccentric Brand Name (Must be creative, punchy, and have 'soul'. ABSOLUTELY NO technical descriptors like 'Utility', 'Tool', 'Planner', 'Platform', 'System', 'Suite', 'Solution', 'Optimizer'. Think Slack, Ghost, Linear, or clever idioms like 'Too Many Tabs', 'Stop The Scroll'. Be brave and quirky.)",
                 "title": "Descriptive Title",
                 "tags": ["Tag1", "Tag2"],
                 "problem": "Pain point description.",
-                "solution": "MVP solution.",
+                "solution": "MVP solution (Primary context for the name - BUT DO NOT DESCRIBE IT).",
                 "target": "Niche audience.",
                 "why": "Market sizing/why now."
               }
             ]
         `;
+    }
+
+    _formatExclusionList(exclusionList) {
+        const listToUse = exclusionList.length > 0 ? exclusionList : this.exclusionList;
+        if (!listToUse || listToUse.length === 0) return "";
+
+        const batch1 = listToUse.slice(0, 50);
+        const batch2 = listToUse.slice(50, 100);
+
+        let text = "\n**EXCLUSION LIST (Do NOT repeat these ideas):**\n";
+
+        if (batch1.length > 0) {
+            text += `\n### MOST RECENT IDEAS (1-50):\n- ${batch1.join('\n- ')}\n`;
+        }
+
+        if (batch2.length > 0) {
+            text += `\n### EARLIER IDEAS (51-100):\n- ${batch2.join('\n- ')}\n`;
+        }
+
+        return text;
     }
 
     _buildDedupePrompt(ideasText, totalCount) {
         return `
             You are Kai, an expert opportunity analyst doing quality control and synthesis.
             
-            You have received ${totalCount} startup ideas from multiple sources (Reddit, HN, Indie Hackers, X/Twitter).
-            Many may be duplicates or similar concepts. Your job is to:
+            You have received ${totalCount} startup ideas from multiple sources(Reddit, HN, Indie Hackers, X / Twitter).
+            Many may be duplicates or similar concepts.Your job is to:
+
+        1. ** Identify Duplicates **: Ideas that are essentially the same concept
+        2. ** Synthesize **: Merge similar ideas into one stronger idea
+        3. ** Curate **: Keep only the highest - quality, most novel ideas
+        4. ** Maintain Diversity **: Ensure ideas span different industries / categories
+
+            ** Ideas to Dedupe:**
+                ${ideasText}
             
-            1. **Identify Duplicates**: Ideas that are essentially the same concept
-            2. **Synthesize**: Merge similar ideas into one stronger idea
-            3. **Curate**: Keep only the highest-quality, most novel ideas
-            4. **Maintain Diversity**: Ensure ideas span different industries/categories
-            
-            **Ideas to Dedupe:**
-            ${ideasText}
-            
-            **Selection Criteria:**
+            ** Selection Criteria:**
             - Novelty: Avoid repeating concepts already in the list
-            - Clarity: Problem and solution should be clear
-            - Market Size: Should serve a meaningful market
-            - Feasibility: Should be buildable as an MVP
-            - Diversity: Different industries/verticals preferred
-            
-            **Output Requirements:**
-            - Return up to 40 final ideas (can be fewer if quality is the priority)
-            - DO remove near-duplicates
+                - Clarity: Problem and solution should be clear
+                    - Market Size: Should serve a meaningful market
+                        - Feasibility: Should be buildable as an MVP
+                            - Diversity: Different industries / verticals preferred
+
+                                ** Output Requirements:**
+                                    - Return up to 40 final ideas(can be fewer if quality is the priority)
+        - DO remove near - duplicates
             - DO merge very similar ideas
-            - DO keep ideas from all sources if they're unique
-            - KEEP the same JSON format
-            
-            **Output Format (Strict JSON array):**
-            [
-              {
-                "name": "Creative Brand Name",
-                "title": "Descriptive Title",
-                "tags": ["Tag1", "Tag2"],
-                "problem": "Pain point description.",
-                "solution": "MVP solution.",
-                "target": "Niche audience.",
-                "why": "Market sizing/why now."
-              }
-            ]
-        `;
+                - DO keep ideas from all sources if they're unique
+                    - KEEP the same JSON format
+
+                        ** Output Format(Strict JSON array):**
+                            [
+                                {
+                                    "name": "Eccentric Brand Name (Must be creative, punchy, and have 'soul'. ABSOLUTELY NO technical descriptors like 'Utility', 'Tool', 'Planner', 'Platform', 'System', 'Suite', 'Solution', 'Optimizer'. Think Slack, Ghost, Linear, or clever idioms like 'Too Many Tabs', 'Stop The Scroll'. Be brave and quirky.)",
+                                    "title": "Descriptive Title",
+                                    "tags": ["Tag1", "Tag2"],
+                                    "problem": "Pain point description.",
+                                    "solution": "MVP solution (Primary context for the name - BUT DO NOT DESCRIBE IT).",
+                                    "target": "Niche audience.",
+                                    "why": "Market sizing/why now."
+                                }
+                            ]
+                                `;
     }
 
     _buildSubjectPrompt(ideas, winner) {
-        const ideasList = ideas.map(i => `- ${i.title} (Tags: ${i.tags ? i.tags.join(', ') : ''})`).join('\n');
+        const ideasList = ideas.map(i => `- ${i.title} (Tags: ${i.tags ? i.tags.join(', ') : ''
+            })`).join('\n');
         const winnerText = winner ? `\n(Previous Week's Winner: "${winner.name}: ${winner.title}")` : "";
 
         return `

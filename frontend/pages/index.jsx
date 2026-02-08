@@ -14,6 +14,7 @@ import { faqSchema, sampleIdeas, sampleWinners } from '@/data/sampleData';
 import Particles from '@/components/Particles';
 import RotatingText from '@/components/RotatingText';
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import Reveal, { RevealContainer, RevealItem } from '@/components/animations/Reveal';
 
 const VoteConfirmation = dynamic(() => import('@/components/ui/vote-confirmation'), {
     loading: () => null,
@@ -358,40 +359,31 @@ const ZerosByKaiLanding = () => {
 
             {/* How It Works Section */}
             <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-white overflow-hidden">
-                <motion.div
+                <RevealContainer
                     className="max-w-6xl mx-auto"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-100px" }}
-                    variants={{
-                        hidden: {},
-                        visible: {
-                            transition: {
-                                staggerChildren: 0.2
-                            }
-                        }
-                    }}
+                    stagger={0.15}
+                    rootMargin="-100px 0px"
                 >
-                    <motion.h2
-                        className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-6 sm:mb-10 text-black"
-                        variants={{
-                            hidden: { opacity: 0, y: 20 },
-                            visible: { opacity: 1, y: 0 }
-                        }}
+                    <RevealItem
+                        type="slide"
+                        direction="up"
+                        spring="gentle"
+                        className="text-center mb-6 sm:mb-10"
                     >
-                        HOW IT WORKS
-                    </motion.h2>
+                        <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-black">
+                            HOW IT WORKS
+                        </h2>
+                    </RevealItem>
 
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                         {/* Step 1 */}
-                        <motion.div
+                        <RevealItem
+                            type="slide"
+                            direction="up"
+                            spring="snappy"
                             className="text-center group"
-                            variants={{
-                                hidden: { opacity: 0, y: 30 },
-                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
-                            }}
-                            whileHover={{ y: -8 }}
-                            whileTap={{ scale: 0.96 }}
+                            hover={{ y: -8 }}
+                            tap={{ scale: 0.96 }}
                         >
                             <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from internet noise" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
@@ -401,17 +393,16 @@ const ZerosByKaiLanding = () => {
                                 Every Monday: <span className="font-bold text-black">10 opportunities</span> scraped from the noise of the internet.
                                 No fluff. No AI hallucinations. Just real problems people are screaming about.
                             </p>
-                        </motion.div>
+                        </RevealItem>
 
                         {/* Step 2 */}
-                        <motion.div
+                        <RevealItem
+                            type="slide"
+                            direction="up"
+                            spring="snappy"
                             className="text-center group"
-                            variants={{
-                                hidden: { opacity: 0, y: 30 },
-                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
-                            }}
-                            whileHover={{ y: -8 }}
-                            whileTap={{ scale: 0.96 }}
+                            hover={{ y: -8 }}
+                            tap={{ scale: 0.96 }}
                         >
                             <div className="comic-panel p-3 sm:p-4 bg-blue-100 mb-4 sm:mb-6 inline-block transform rotate-2 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-target.png" alt="Vote on validated startup ideas and pick the best business opportunity" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
@@ -421,17 +412,16 @@ const ZerosByKaiLanding = () => {
                                 <span className="font-bold text-black">One vote. One idea.</span> Which problem would you solve?
                                 Which opportunity would you bet on? Make your call.
                             </p>
-                        </motion.div>
+                        </RevealItem>
 
                         {/* Step 3 */}
-                        <motion.div
+                        <RevealItem
+                            type="slide"
+                            direction="up"
+                            spring="snappy"
                             className="text-center group sm:col-span-2 md:col-span-1"
-                            variants={{
-                                hidden: { opacity: 0, y: 30 },
-                                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
-                            }}
-                            whileHover={{ y: -8 }}
-                            whileTap={{ scale: 0.96 }}
+                            hover={{ y: -8 }}
+                            tap={{ scale: 0.96 }}
                         >
                             <div className="comic-panel p-3 sm:p-4 bg-rose-100 mb-4 sm:mb-6 inline-block badge-shine transform -rotate-1 group-hover:rotate-0 transition-transform">
                                 <Image src="/icon-trophy.png" alt="Earn badges for picking winning startup ideas" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
@@ -441,57 +431,46 @@ const ZerosByKaiLanding = () => {
                                 Pick the winning idea? <span className="font-bold text-black">Badge unlocked.</span> Level up your designation and prove you&apos;ve
                                 got the nose for opportunities. Stack wins. Become a Unicorn Hunter.
                             </p>
-                        </motion.div>
+                        </RevealItem>
                     </div>
-                </motion.div>
+                </RevealContainer>
             </section>
 
             {/* Designation Tiers Section */}
             <section className="py-8 sm:py-10 lg:py-12 px-4 sm:px-6 bg-gray-900 text-white overflow-hidden">
-                <motion.div
+                <RevealContainer
                     className="max-w-6xl mx-auto"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-100px" }}
-                    variants={{
-                        hidden: {},
-                        visible: {
-                            transition: {
-                                staggerChildren: 0.1
-                            }
-                        }
-                    }}
+                    stagger={0.08}
+                    rootMargin="-100px 0px"
                 >
-                    <motion.h2
-                        className="comic-title text-3xl sm:text-4xl lg:text-5xl text-center mb-2 sm:mb-3 text-yellow-400"
-                        variants={{
-                            hidden: { opacity: 0, scale: 0.9 },
-                            visible: { opacity: 1, scale: 1 }
-                        }}
+                    <RevealItem
+                        type="scale"
+                        spring="bouncy"
+                        className="text-center mb-2 sm:mb-3"
                     >
-                        MISSION DESIGNATIONS
-                    </motion.h2>
-                    <motion.p
-                        className="comic-body text-center text-base sm:text-lg lg:text-xl mb-6 sm:mb-8"
-                        variants={{
-                            hidden: { opacity: 0 },
-                            visible: { opacity: 1 }
-                        }}
+                        <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-yellow-400">
+                            MISSION DESIGNATIONS
+                        </h2>
+                    </RevealItem>
+                    <RevealItem
+                        type="fade"
+                        spring="gentle"
+                        className="text-center mb-6 sm:mb-8"
                     >
-                        Stop lurking. Start building your record. Prove you can spot the signal.
-                    </motion.p>
+                        <p className="comic-body text-base sm:text-lg lg:text-xl">
+                            Stop lurking. Start building your record. Prove you can spot the signal.
+                        </p>
+                    </RevealItem>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-6">
                         {MISSION_DESIGNATIONS.map((tier, idx) => (
-                            <motion.div
+                            <RevealItem
                                 key={tier.title}
+                                type="scaleRotate"
+                                spring="snappy"
                                 className={`comic-panel p-4 sm:p-5 text-center border-gray-700 relative overflow-visible group ${idx === 4 ? 'bg-gradient-to-br from-indigo-900 to-gray-800 border-indigo-500 ring-2 ring-indigo-500/20' : 'bg-gray-800'}`}
-                                variants={{
-                                    hidden: { opacity: 0, x: -20 },
-                                    visible: { opacity: 1, x: 0 }
-                                }}
-                                whileHover={{ scale: 1.05, borderColor: idx === 4 ? '#818cf8' : '#fbbf24', zIndex: 10 }}
-                                whileTap={{ scale: 0.96 }}
+                                hover={{ scale: 1.05, borderColor: idx === 4 ? '#818cf8' : '#fbbf24', zIndex: 10 }}
+                                tap={{ scale: 0.96 }}
                             >
                                 {tier.special && (
                                     <div className={`absolute top-0 right-0 ${idx === 4 ? 'bg-indigo-500' : 'bg-yellow-400'} text-black text-[8px] font-bold px-1 uppercase z-20`}>
@@ -524,10 +503,10 @@ const ZerosByKaiLanding = () => {
 
                                 {/* Hover Shine Effect */}
                                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none mix-blend-overlay"></div>
-                            </motion.div>
+                            </RevealItem>
                         ))}
                     </div>
-                </motion.div>
+                </RevealContainer>
             </section>
 
             {/* Why Kai Section - Newspaper Clippings Style */}
@@ -537,7 +516,7 @@ const ZerosByKaiLanding = () => {
 
                 <div className="relative max-w-6xl mx-auto">
                     {/* Section Header */}
-                    <div className="text-center mb-6 sm:mb-10">
+                    <Reveal type="fade" delay={0} className="text-center mb-6 sm:mb-10">
                         <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl text-black drop-shadow-sm">
                             <div>This is for you, if you're a</div>
                             <div className="mt-4 flex justify-center">
@@ -555,13 +534,17 @@ const ZerosByKaiLanding = () => {
                                 />
                             </div>
                         </h2>
-                    </div>
+                    </Reveal>
 
                     {/* Newspaper Clippings Grid */}
-                    <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+                    <RevealContainer stagger={0.15} className="grid md:grid-cols-3 gap-6 lg:gap-8">
                         {/* Card 1: The Builder */}
-                        <div className="comic-panel p-5 sm:p-6 lg:p-8 bg-white transform md:-rotate-2 hover:rotate-0 transition-transform duration-300 comic-shadow relative">
-                            <div className="absolute -top-4 left-4 bg-blue-600 text-white border-2 border-black px-3 py-1 comic-title text-xs transform -rotate-2 uppercase tracking-wider">
+                        <RevealItem
+                            type="fade"
+                            spring="gentle"
+                            className="comic-panel p-5 sm:p-6 lg:p-8 bg-white md:-rotate-2 hover:rotate-0 hover:scale-[1.02] transition-transform duration-300 comic-shadow relative"
+                        >
+                            <div className="absolute -top-4 left-4 bg-blue-600 text-white border-2 border-black px-3 py-1 comic-title text-xs -rotate-2 uppercase tracking-wider">
                                 FOR THE BUILDER
                             </div>
                             <div className="mt-4">
@@ -582,11 +565,15 @@ const ZerosByKaiLanding = () => {
                                     </p>
                                 </div>
                             </div>
-                        </div>
+                        </RevealItem>
 
                         {/* Card 2: The Veteran */}
-                        <div className="comic-panel p-5 sm:p-6 lg:p-8 bg-white transform md:rotate-1 hover:rotate-0 transition-transform duration-300 comic-shadow relative md:mt-8">
-                            <div className="absolute -top-4 right-4 bg-purple-600 text-white border-2 border-black px-3 py-1 comic-title text-xs transform rotate-2 uppercase tracking-wider">
+                        <RevealItem
+                            type="fade"
+                            spring="gentle"
+                            className="comic-panel p-5 sm:p-6 lg:p-8 bg-white md:rotate-1 hover:rotate-0 hover:scale-[1.02] transition-transform duration-300 comic-shadow relative md:mt-8"
+                        >
+                            <div className="absolute -top-4 right-4 bg-purple-600 text-white border-2 border-black px-3 py-1 comic-title text-xs rotate-2 uppercase tracking-wider">
                                 FOR THE VETERAN
                             </div>
                             <div className="mt-4">
@@ -606,11 +593,15 @@ const ZerosByKaiLanding = () => {
                                     </p>
                                 </div>
                             </div>
-                        </div>
+                        </RevealItem>
 
                         {/* Card 3: The Investor */}
-                        <div className="comic-panel p-5 sm:p-6 lg:p-8 bg-white transform md:-rotate-1 hover:rotate-0 transition-transform duration-300 comic-shadow relative">
-                            <div className="absolute -top-4 left-4 bg-emerald-600 text-white border-2 border-black px-3 py-1 comic-title text-xs transform -rotate-2 uppercase tracking-wider">
+                        <RevealItem
+                            type="fade"
+                            spring="gentle"
+                            className="comic-panel p-5 sm:p-6 lg:p-8 bg-white md:-rotate-1 hover:rotate-0 hover:scale-[1.02] transition-transform duration-300 comic-shadow relative"
+                        >
+                            <div className="absolute -top-4 left-4 bg-emerald-600 text-white border-2 border-black px-3 py-1 comic-title text-xs -rotate-2 uppercase tracking-wider">
                                 FOR THE INVESTOR
                             </div>
                             <div className="mt-4">
@@ -631,18 +622,18 @@ const ZerosByKaiLanding = () => {
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </RevealItem>
+                    </RevealContainer>
 
                     {/* Bottom Tagline */}
-                    <div className="mt-10 sm:mt-16 text-center">
+                    <Reveal type="scale" delay={0.4} spring="bouncy" className="mt-10 sm:mt-16 text-center">
                         <div className="inline-block p-4 sm:p-6 comic-shadow transform -rotate-1 border-3 border-black" style={{ background: '#000' }}>
                             <p className="comic-title text-xl sm:text-2xl lg:text-3xl text-yellow-400">
                                 WHILE YOU&apos;RE BRAINSTORMING,<br />
                                 <span className="text-white">SOMEONE&apos;S ALREADY BUILDING YOUR IDEA.</span>
                             </p>
                         </div>
-                    </div>
+                    </Reveal>
                 </div>
             </section>
 
@@ -762,52 +753,44 @@ const ZerosByKaiLanding = () => {
             {!user && (
                 <section id="final-cta" className="bg-gradient-to-br from-yellow-400 to-amber-400 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden">
                     <div className="absolute inset-0 halftone"></div>
-                    <div className="relative max-w-6xl mx-auto">
+                    <RevealContainer stagger={0.1} className="relative max-w-6xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
                             {/* Left: Text Content */}
                             <div className="text-center lg:text-left">
-                                <motion.h2
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 0.5 }}
-                                    className="comic-title text-3xl sm:text-4xl lg:text-5xl mb-4 sm:mb-6 text-black"
-                                >
-                                    STOP GUESSING.<br />START BUILDING.
-                                </motion.h2>
-                                <motion.p
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 0.5, delay: 0.1 }}
-                                    className="comic-body text-lg sm:text-xl lg:text-2xl max-w-xl mx-auto lg:mx-0 text-black"
-                                >
-                                    <span className="font-bold">10 validated opportunities</span> land in your inbox every Monday.
-                                    No AI slop. No fake problems. Just real pain points from <span className="font-bold">the internet&apos;s digital town squares.</span>
-                                </motion.p>
+                                <RevealItem type="fade" spring="gentle">
+                                    <h2 className="comic-title text-3xl sm:text-4xl lg:text-5xl mb-4 sm:mb-6 text-black">
+                                        STOP GUESSING.<br />START BUILDING.
+                                    </h2>
+                                </RevealItem>
+                                <RevealItem type="fade" spring="gentle">
+                                    <p className="comic-body text-lg sm:text-xl lg:text-2xl max-w-xl mx-auto lg:mx-0 text-black">
+                                        <span className="font-bold">10 validated opportunities</span> land in your inbox every Monday.
+                                        No AI slop. No fake problems. Just real pain points from <span className="font-bold">the internet&apos;s digital town squares.</span>
+                                    </p>
+                                </RevealItem>
 
                                 {/* Social proof badges */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 0.5, delay: 0.2 }}
-                                    className="mt-6 flex flex-wrap gap-3 justify-center lg:justify-start"
-                                >
-                                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
-                                        <Sparkles className="w-4 h-4" /> Every Monday
-                                    </span>
-                                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
-                                        <Zap className="w-4 h-4" /> 100% Free
-                                    </span>
-                                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
-                                        <Mail className="w-4 h-4" /> No Spam
-                                    </span>
-                                </motion.div>
+                                <RevealItem type="fade" spring="gentle">
+                                    <div className="mt-6 flex flex-wrap gap-3 justify-center lg:justify-start">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
+                                            <Sparkles className="w-4 h-4" /> Every Monday
+                                        </span>
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
+                                            <Zap className="w-4 h-4" /> 100% Free
+                                        </span>
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-black text-yellow-400 comic-body text-sm font-bold border-2 border-yellow-400">
+                                            <Mail className="w-4 h-4" /> No Spam
+                                        </span>
+                                    </div>
+                                </RevealItem>
                             </div>
 
                             {/* Right: Subscribe Form */}
-                            <div className="comic-panel p-6 sm:p-8 bg-white comic-shadow transform rotate-1 hover:rotate-0 transition-transform duration-300">
+                            <RevealItem
+                                type="fade"
+                                spring="gentle"
+                                className="comic-panel p-6 sm:p-8 bg-white comic-shadow rotate-1 hover:rotate-0 hover:scale-[1.02] transition-transform duration-300"
+                            >
                                 <h3 className="comic-title text-xl sm:text-2xl mb-4 text-black flex items-center gap-2">
                                     <Mail className="w-6 h-6 text-rose-700" />
                                     GET THE WEEKLY ZEROS
@@ -865,9 +848,9 @@ const ZerosByKaiLanding = () => {
                                         Create an account <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
-                            </div>
+                            </RevealItem>
                         </div>
-                    </div>
+                    </RevealContainer>
                 </section>
             )}
 

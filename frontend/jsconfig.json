@@ -1,10 +1,35 @@
 {
     "compilerOptions": {
         "baseUrl": ".",
+        "module": "esnext",
+        "moduleResolution": "node",
+        "jsx": "preserve",
+        "checkJs": false,
+        "allowJs": true,
         "paths": {
             "@/*": [
                 "./*"
+            ],
+            "@/components/*": [
+                "components/*"
+            ],
+            "@/hooks/*": [
+                "hooks/*"
+            ],
+            "@/lib/*": [
+                "lib/*"
+            ],
+            "@/styles/*": [
+                "styles/*"
+            ],
+            "@/data/*": [
+                "data/*"
             ]
         }
-    }
+    },
+    "exclude": [
+        "node_modules",
+        ".next",
+        "out"
+    ]
 }

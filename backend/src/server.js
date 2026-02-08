@@ -11,6 +11,7 @@ import ideasRouter from './routes/ideas.js';
 import votesRouter from './routes/votes.js';
 import authRouter from './routes/auth.js';
 import webhooksRouter from './routes/webhooks.js';
+import emailsRouter from './routes/emails.js';
 
 // Config & Services
 import { config } from './config/env.js';
@@ -115,6 +116,7 @@ app.use('/api/ideas', ideasRouter);
 app.use('/api/votes', votesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/webhooks', webhooksRouter);
+app.use('/api/emails', emailsRouter);
 
 // Newsletter subscribe shortcut (maps to /api/auth/subscribe)
 app.post('/api/subscribe', (req, res, next) => {

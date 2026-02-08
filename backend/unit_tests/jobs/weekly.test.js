@@ -97,6 +97,36 @@ describe('weekly.js', () => {
             expect(result.winner.id).toBe('1');
             expect(result.badgeCount).toBe(1);
         });
+
+        it('should handle "no winner" case when there are no votes', async () => {
+            const mockIdeas = [{ id: '1', name: 'Idea 1' }];
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // getVotes (0 votes)
+                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // upsert batch
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // archive
+
+            const result = await calculateWinner();
+            expect(result.winner).toBeNull();
+        });
+
+        it('should throw error if checkBatch fails', async () => {
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: new Error('DB Error') }).then(f));
+            await expect(calculateWinner()).rejects.toThrow('DB Error');
+        });
+
+        it('should throw error if winner status update fails', async () => {
+            const mockIdeas = [{ id: '1', name: 'Idea 1' }];
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ idea_id: '1', count: 5 }], error: null }).then(f)) // getVotes
+                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'b' }, error: null }).then(f)) // upsert batch
+                .mockImplementationOnce(f => Promise.resolve({ error: new Error('Update Failed') }).then(f)); // update winner flag
+
+            await expect(calculateWinner()).rejects.toThrow('Critical failure: Could not set winner status for 1');
+        });
     });
 
     describe('sendWeeklyDigest()', () => {
@@ -146,6 +176,36 @@ describe('weekly.js', () => {
 
             const result = await sendWeeklyDigest();
             expect(result.sent).toBe(1);
+        });
+
+        it('should log warning if failCount > 10%', async () => {
+            const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
+            const mockSubscribers = [{ email: 'f@e.com' }, { email: 'f2@e.com' }];
+            sendBatchEmails.mockResolvedValueOnce({ success: false, error: { message: 'Brevo Down' } });
+
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // batch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subs
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch update
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+            await sendWeeklyDigest();
+            expect(warnSpy).toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
+        it('should throw error if fetching subscribers fails', async () => {
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // batch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: new Error('Subs Fetch Failed') }).then(f)); // subs
+
+            await expect(sendWeeklyDigest()).rejects.toThrow('Subs Fetch Failed');
         });
     });
 });

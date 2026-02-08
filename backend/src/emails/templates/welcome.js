@@ -1,10 +1,11 @@
 import { generateEmailWrapper, generateEmailHeader, generateEmailFooter, emailStyles } from './shared.js';
+import { config } from '../../config/env.js';
 
 export function generateWelcomeEmail({ name, email }) {
-    const displayName = name || 'there';
-    const token = Buffer.from(email).toString('base64');
+  const displayName = name || 'there';
+  const token = Buffer.from(email).toString('base64');
 
-    const content = `
+  const content = `
     ${generateEmailHeader({ title: 'Welcome to the Hunt' })}
 
     <!-- Main Content -->
@@ -30,13 +31,14 @@ export function generateWelcomeEmail({ name, email }) {
     </div>
 
     ${generateEmailFooter({
-        unsubscribeLink: `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`
-    })}
+    unsubscribeLink: `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`
+  })}
   `;
 
-    return generateEmailWrapper({
-        title: 'Welcome to ZerosByKai',
-        preheader: 'You\'re in. 10 startup opportunities analyzed from real complaints every Monday.',
-        content
-    });
+  return generateEmailWrapper({
+    title: 'Welcome to ZerosByKai',
+    preheader: 'You\'re in. 10 startup opportunities analyzed from real complaints every Monday.',
+    content,
+    mirrorLinkUrl: `${config.backendUrl}/api/emails/view/welcome`
+  });
 }

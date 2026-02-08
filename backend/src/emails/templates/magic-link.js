@@ -1,4 +1,5 @@
 import { generateEmailWrapper, generateEmailHeader, emailStyles, escapeHtml } from './shared.js';
+import { config } from '../../config/env.js';
 
 export function generateMagicLinkEmail({ email: _email, actionLink, name }) {
   const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi there,';
@@ -41,6 +42,7 @@ export function generateMagicLinkEmail({ email: _email, actionLink, name }) {
   return generateEmailWrapper({
     title: 'Login to ZerosByKai',
     preheader: 'Here is your magic link to log in to ZerosByKai.',
-    content
+    content,
+    mirrorLinkUrl: `${config.backendUrl}/api/emails/view/magic-link`
   });
 }

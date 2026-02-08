@@ -95,22 +95,6 @@ const Leaderboard = ({ winners }) => {
 
                         const isFlipped = flippedIndex === index;
 
-                        // Mobile-specific variant: slide up instead of sideways when stacked
-                        const mobileVariant = {
-                            hidden: { opacity: 0, y: 30 },
-                            visible: { opacity: 1, y: 0 }
-                        };
-
-                        const finalVariant = index === 1 ? variant : {
-                            ...variant,
-                            hidden: {
-                                ...variant.hidden,
-                                // On small screens (less than 768px), override x with 0 and use y
-                                x: typeof window !== 'undefined' && window.innerWidth < 768 ? 0 : variant.hidden.x,
-                                y: typeof window !== 'undefined' && window.innerWidth < 768 ? 30 : variant.hidden.y
-                            }
-                        };
-
                         return (
                             <motion.div
                                 key={index}
@@ -119,7 +103,7 @@ const Leaderboard = ({ winners }) => {
                                     perspective: '1000px',
                                     height: `${cardHeight}px`
                                 }}
-                                variants={finalVariant}
+                                variants={variant}
                                 whileTap={{ scale: 0.98 }}
                             >
                                 {/* Card Container - this is the element that flips */}

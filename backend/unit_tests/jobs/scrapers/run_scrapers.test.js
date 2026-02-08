@@ -77,7 +77,7 @@ describe('run_scrapers.js', () => {
             );
 
             const titles = await getExistingIdeaTitles();
-            expect(titles).toEqual(['IdeaA: TitleA']);
+            expect(titles).toEqual(['TitleA']);
             expect(supabaseAdmin.from).toHaveBeenCalledWith('ideas');
         });
 

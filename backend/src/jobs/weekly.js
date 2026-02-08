@@ -265,7 +265,8 @@ export async function sendWeeklyDigest() {
         month: 'long',
         day: 'numeric',
         year: 'numeric'
-      })
+      }),
+      id: weekStart
     });
 
     // 6. Construct Batch Payloads

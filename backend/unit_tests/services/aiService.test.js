@@ -115,8 +115,8 @@ describe('AIService', () => {
             await aiService.generateIdeas(mockPosts, 5);
 
             const prompt = modelMock.generateContent.mock.calls[0][0];
-            expect(prompt).toContain('Idea 149');
-            expect(prompt).not.toContain('Idea 0');
+            expect(prompt).toContain('Idea 0');
+            expect(prompt).not.toContain('Idea 149');
         });
 
         it('should handle multi-model fallback chain', async () => {
@@ -172,6 +172,59 @@ describe('AIService', () => {
             });
 
             await expect(aiService.generateIdeas(mockPosts, 5)).rejects.toThrow('AI did not return an array');
+        });
+    });
+
+    describe('regenerateNames()', () => {
+        const mockIdeas = [
+            { id: 1, name: 'Old Name 1', title: 'Title 1', solution: 'Sol 1' },
+            { id: 2, name: 'Old Name 2', title: 'Title 2', solution: 'Sol 2' }
+        ];
+
+        it('should return empty array if no ideas provided', async () => {
+            expect(await aiService.regenerateNames(null)).toEqual([]);
+            expect(await aiService.regenerateNames([])).toEqual([]);
+        });
+
+        it('should regenerate names using AI', async () => {
+            const mockResponse = [
+                { id: 1, name: 'New Name 1' },
+                { id: 2, name: 'New Name 2' }
+            ];
+            const modelMock = new GoogleGenerativeAI().getGenerativeModel();
+            modelMock.generateContent.mockResolvedValue({
+                response: {
+                    text: () => JSON.stringify(mockResponse)
+                }
+            });
+
+            const result = await aiService.regenerateNames(mockIdeas);
+            expect(result[0].name).toBe('New Name 1');
+            expect(result[1].name).toBe('New Name 2');
+            expect(result[0].title).toBe('Title 1');
+        });
+
+        it('should fallback to original names if AI response is missing an ID', async () => {
+            const mockResponse = [
+                { id: 1, name: 'New Name 1' }
+            ];
+            const modelMock = new GoogleGenerativeAI().getGenerativeModel();
+            modelMock.generateContent.mockResolvedValue({
+                response: {
+                    text: () => JSON.stringify(mockResponse)
+                }
+            });
+
+            const result = await aiService.regenerateNames(mockIdeas);
+            expect(result[0].name).toBe('New Name 1');
+            expect(result[1].name).toBe('Old Name 2');
+        });
+
+        it('should handle AI failures during renaming', async () => {
+            const modelMock = new GoogleGenerativeAI().getGenerativeModel();
+            modelMock.generateContent.mockRejectedValue(new Error('Renaming Failed'));
+
+            await expect(aiService.regenerateNames(mockIdeas)).rejects.toThrow('Renaming Failed');
         });
     });
 

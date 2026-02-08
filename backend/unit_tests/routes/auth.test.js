@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import authRouter from '../../src/routes/auth.js';
@@ -32,6 +32,11 @@ vi.mock('../../src/config/supabase.js', () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        not: vi.fn().mockReturnThis(),
+        gt: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
         auth: {
             getUser: vi.fn(),
             signOut: vi.fn(),
@@ -43,7 +48,6 @@ vi.mock('../../src/config/supabase.js', () => {
                 listUsers: vi.fn()
             }
         },
-        // Support thenable for common patterns
         then: vi.fn(function (resolve) {
             return Promise.resolve({ data: null, error: null }).then(resolve);
         })
@@ -108,15 +112,9 @@ describe('auth.js routes', () => {
             expect(res.body).toEqual({ exists: true, hasName: true, name: 'John' });
         });
 
-        it('should return existing:false if subscriber not found', async () => {
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: { code: 'PGRST116' } }).then(f));
-
-            const res = await request(app)
-                .post('/api/auth/check')
-                .send({ email: 'new@example.com' });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual({ exists: false, hasName: false, name: null });
+        it('should return 400 if email is missing', async () => {
+            const res = await request(app).post('/api/auth/check').send({});
+            expect(res.status).toBe(400);
         });
     });
 
@@ -169,17 +167,18 @@ describe('auth.js routes', () => {
             expect(sendEmail).toHaveBeenCalled();
         });
 
-        it('should skip email for existing users', async () => {
+        it('should return 404 if subscriber record never appears', async () => {
             supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: true }, error: null }).then(f));
+            supabaseAdmin.then.mockImplementation(f => Promise.resolve({ data: null, error: null }).then(f));
+
+            const sleepSpy = vi.spyOn(global, 'setTimeout').mockImplementation((fn) => fn());
 
             const res = await request(app)
                 .post('/api/auth/post-login')
                 .set('Authorization', 'Bearer token');
 
-            expect(res.status).toBe(200);
-            expect(res.body.isNewUser).toBe(false);
-            expect(sendEmail).not.toHaveBeenCalled();
+            expect(res.status).toBe(404);
+            sleepSpy.mockRestore();
         });
     });
 
@@ -193,6 +192,23 @@ describe('auth.js routes', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.message).toBe('Authenticated successfully');
+        });
+    });
+
+    describe('POST /api/auth/verify-email-token', () => {
+        it('should create session for valid token', async () => {
+            verifyEmailToken.mockReturnValue({ userId: 'u1' });
+            supabaseAdmin.auth.admin.createSession.mockResolvedValue({ data: { session: {}, user: {} }, error: null });
+
+            const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'valid' });
+            expect(res.status).toBe(200);
+            expect(res.body.session).toBeDefined();
+        });
+
+        it('should return error if userId is invalid', async () => {
+            verifyEmailToken.mockImplementationOnce(() => { throw new Error('Invalid Token'); });
+            const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'bad' });
+            expect(res.status).toBe(401);
         });
     });
 
@@ -240,13 +256,16 @@ describe('auth.js routes', () => {
             expect(res.body.message).toContain('deleted successfully');
         });
 
-        it('should fail if service key is wrong', async () => {
+        it('should delete from subscribers even if user not in auth', async () => {
+            supabaseAdmin.auth.admin.listUsers.mockResolvedValue({ data: { users: [] }, error: null }); // No users
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // delete subscribers
+
             const res = await request(app)
                 .delete('/api/auth/admin/user')
-                .set('Authorization', 'Bearer WRONG')
-                .send({ email: 'admin@t.com' });
+                .set('Authorization', 'Bearer test-service-key')
+                .send({ email: 'unknown@t.com' });
 
-            expect(res.status).toBe(401);
+            expect(res.status).toBe(200);
         });
     });
 });

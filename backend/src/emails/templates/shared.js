@@ -27,8 +27,18 @@ export const emailStyles = {
 
   button: `display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;`,
 
-  divider: `border: none; border-top: 1px solid #000; margin: 32px 0;`
+  divider: `border: none; border-top: 1px solid #000; margin: 32px 0;`,
+  mirrorLink: `font-size: 11px; text-align: center; margin-bottom: 20px; color: #666;`
 };
+
+export function generateMirrorLinkSection(url) {
+  if (!url) return '';
+  return `
+    <div style="${emailStyles.mirrorLink}">
+      Not rendering correctly? <a href="${url}" style="color: #000; font-weight: 700;">View in browser</a>
+    </div>
+  `;
+}
 
 export function generateEmailHeader({ title, subtitle }) {
   return `
@@ -64,7 +74,7 @@ export function generateEmailFooter({ unsubscribeLink }) {
   `;
 }
 
-export function generateEmailWrapper({ title, preheader, content }) {
+export function generateEmailWrapper({ title, preheader, content, mirrorLinkUrl }) {
   return `
 <!DOCTYPE html>
 <html>
@@ -81,6 +91,7 @@ export function generateEmailWrapper({ title, preheader, content }) {
   </div>
   <!--<![endif]-->
   <div style="${emailStyles.container}">
+    ${generateMirrorLinkSection(mirrorLinkUrl)}
     ${content}
   </div>
 </body>

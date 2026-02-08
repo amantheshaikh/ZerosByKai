@@ -66,13 +66,8 @@ export async function runScraperFlow() {
     }
 
     // 2. Set exclusion list from existing published ideas
-    let existingIdeas = await getExistingIdeaTitles();
-    const MAX_EXCLUSION_IDEAS = 100;
-    if (existingIdeas.length > MAX_EXCLUSION_IDEAS) {
-        const trimmedCount = existingIdeas.length - MAX_EXCLUSION_IDEAS;
-        existingIdeas = existingIdeas.slice(trimmedCount);
-        console.log(`[Scraper] Exclusion list: using last ${existingIdeas.length} published ideas`);
-    }
+    const existingIdeas = await getExistingIdeaTitles();
+    console.log(`[Scraper] Exclusion list: using last ${existingIdeas.length} published ideas`);
     aiService.setExclusionList(existingIdeas);
 
     // ===== STAGE 1: Generate ideas from each source independently (up to 15 each) =====
@@ -214,10 +209,10 @@ export async function scrapeReddit() {
 export async function getExistingIdeaTitles() {
     const { data } = await supabaseAdmin
         .from('ideas')
-        .select('title, name')
+        .select('title')
         .order('created_at', { ascending: false })
-        .limit(300);
-    return data?.map(i => `${i.name}: ${i.title}`) || [];
+        .limit(100);
+    return data?.map(i => i.title) || [];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -51,15 +51,26 @@ router.post('/brevo', async (req, res) => {
             }
         }
 
-        // Handle Unsubscription / Blocklisting
-        else if (event === 'unsubscribe' || event === 'unsubscribed') {
+        // Handle Unsubscription / Blocklisting / Bounces / Spam
+        else if (
+            event === 'unsubscribe' ||
+            event === 'unsubscribed' ||
+            event === 'hardBounce' ||
+            event === 'hard_bounce' ||
+            event === 'softBounce' ||
+            event === 'soft_bounce' ||
+            event === 'spam' ||
+            event === 'blocked' ||
+            event === 'blocklisted' ||
+            event === 'invalid'
+        ) {
             const { error } = await supabaseAdmin
                 .from('subscribers')
                 .update({ unsubscribed_at: new Date().toISOString() })
                 .eq('email', email);
 
             if (error) throw error;
-            console.log(`  🚫  Successfully unsubscribed user ${email} in Supabase (triggered by Brevo)`);
+            console.log(`  🚫  Successfully marked ${email} as unsubscribed in Supabase (event: ${event})`);
         }
 
         res.json({ message: 'Webhook processed' });

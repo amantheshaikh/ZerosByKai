@@ -31,6 +31,11 @@ vi.mock('next/router', () => ({
         prefetch: vi.fn(),
         query: {},
         pathname: '',
+        events: {
+            on: vi.fn(),
+            off: vi.fn(),
+            emit: vi.fn(),
+        },
     }),
 }));
 
@@ -138,6 +143,46 @@ vi.mock('lenis', () => {
 });
 
 vi.mock('lenis/dist/lenis.css', () => ({}));
+
+// Mock animation components
+vi.mock('@/components/animations/Reveal', () => {
+    return {
+        __esModule: true,
+        default: ({ children, className }) => (
+            <div className={className} data-testid="mock-reveal">{children}</div>
+        ),
+        RevealContainer: ({ children, className }) => (
+            <div className={className} data-testid="mock-reveal-container">{children}</div>
+        ),
+        RevealItem: ({ children, className }) => (
+            <div className={className} data-testid="mock-reveal-item">{children}</div>
+        ),
+    };
+});
+
+vi.mock('@/components/animations/CountUp', () => {
+    return {
+        __esModule: true,
+        default: ({ value, prefix = '', suffix = '', className }) => (
+            <span className={className} data-testid="mock-countup">{prefix}{value}{suffix}</span>
+        ),
+    };
+});
+
+// Mock IntersectionObserver
+class MockIntersectionObserver {
+    constructor(callback) {
+        this.callback = callback;
+    }
+    observe() {
+        // Immediately trigger as visible for tests
+        this.callback([{ isIntersecting: true }]);
+    }
+    unobserve() {}
+    disconnect() {}
+}
+
+global.IntersectionObserver = MockIntersectionObserver;
 
 // Mock smooth scroll provider
 vi.mock('@/lib/smoothScroll', () => {

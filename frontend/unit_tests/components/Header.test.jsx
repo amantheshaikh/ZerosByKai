@@ -59,6 +59,9 @@ describe('Header Component', () => {
             isLoading: false,
             signOut: vi.fn(),
             openAuthModal: vi.fn(),
+            closeAuthModal: vi.fn(),
+            openSubscribeModal: vi.fn(),
+            closeSubscribeModal: vi.fn(),
         });
     });
 
@@ -121,6 +124,9 @@ describe('Header Component', () => {
                 isLoading: false,
                 signOut: vi.fn(),
                 openAuthModal,
+                closeAuthModal: vi.fn(),
+                openSubscribeModal: vi.fn(),
+                closeSubscribeModal: vi.fn(),
             });
 
             render(<Header />);
@@ -137,6 +143,9 @@ describe('Header Component', () => {
                 isLoading: false,
                 signOut,
                 openAuthModal: vi.fn(),
+                closeAuthModal: vi.fn(),
+                openSubscribeModal: vi.fn(),
+                closeSubscribeModal: vi.fn(),
             });
 
             render(<Header />);

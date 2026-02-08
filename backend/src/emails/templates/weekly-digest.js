@@ -1,4 +1,5 @@
 import { generateEmailWrapper, generateEmailHeader, generateEmailFooter, emailStyles } from './shared.js';
+import { config } from '../../config/env.js';
 
 const escapeHtml = (str) => {
   if (!str) return '';
@@ -10,7 +11,7 @@ const escapeHtml = (str) => {
     .replace(/'/g, '&#039;');
 };
 
-export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate }) => {
+export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate, id }) => {
   const ideasHtml = ideas.map((idea, index) => {
     const safeName = escapeHtml(idea.name);
     const safeTitle = escapeHtml(idea.title);
@@ -155,9 +156,14 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
   })}
   `;
 
+  const mirrorLinkUrl = id
+    ? `${config.backendUrl}/api/emails/view/weekly/${id}`
+    : `${config.backendUrl}/api/emails/view/weekly`;
+
   return generateEmailWrapper({
     title: `ZerosByKai - ${weekDate}`,
     preheader: '10 new startup opportunities. Real problems from Reddit, real solutions to build.',
-    content
+    content,
+    mirrorLinkUrl
   });
 }

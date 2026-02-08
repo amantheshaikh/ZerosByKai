@@ -88,6 +88,12 @@ describe('ideas.js routes', () => {
             expect(response.status).toBe(200);
             expect(response.body.ideas).toEqual(mockIdeas);
         });
+
+        it('should handle database errors', async () => {
+            supabase.then.mockImplementationOnce(f => f({ error: { message: 'DB Error' } }));
+            const response = await request(app).get('/api/ideas/');
+            expect(response.status).toBe(500);
+        });
     });
 
     describe('GET /api/ideas/weekly', () => {
@@ -101,6 +107,13 @@ describe('ideas.js routes', () => {
             expect(response.status).toBe(200);
             expect(response.body.weekStart).toBe('2025-02-03');
             expect(response.body.ideas).toEqual(mockIdeas);
+        });
+
+        it('should return empty array if no voting week found', async () => {
+            ideaService.getVotingWeek.mockResolvedValue(null);
+            const response = await request(app).get('/api/ideas/weekly');
+            expect(response.status).toBe(200);
+            expect(response.body.ideas).toEqual([]);
         });
     });
 
@@ -119,6 +132,22 @@ describe('ideas.js routes', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.batches).toHaveLength(1);
+        });
+
+        it('should return empty array if no batches found', async () => {
+            supabase.then
+                .mockImplementationOnce(f => f({ count: 0, error: null }))
+                .mockImplementationOnce(f => f({ data: [], error: null }));
+
+            const response = await request(app).get('/api/ideas/weekly-batches');
+            expect(response.status).toBe(200);
+            expect(response.body.batches).toEqual([]);
+        });
+
+        it('should handle batch fetch errors', async () => {
+            supabase.then.mockImplementationOnce(f => f({ error: { message: 'Fetch Fail' } }));
+            const response = await request(app).get('/api/ideas/weekly-batches');
+            expect(response.status).toBe(500);
         });
     });
 
