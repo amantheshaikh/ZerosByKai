@@ -26,18 +26,3 @@ export const getLastMonday = (date = new Date()) => {
     currentMonday.setUTCDate(currentMonday.getUTCDate() - 7);
     return currentMonday.toISOString().split('T')[0];
 };
-
-/**
- * Returns the effective "cutoff date" for visibility.
- * If current time is before cutoffHour (UTC), returns Yesterday.
- * Else returns Today.
- * Used to ensure ideas released on Monday 9 AM don't show up at Monday 0 AM.
- */
-export const getVisibilityCutoffDate = (cutoffHour = 9) => {
-    const now = new Date();
-    // If we are before the release hour, shift strict cutoff to yesterday
-    if (now.getUTCHours() < cutoffHour) {
-        now.setUTCDate(now.getUTCDate() - 1);
-    }
-    return now.toISOString().split('T')[0];
-};

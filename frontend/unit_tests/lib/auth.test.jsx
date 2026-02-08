@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthProvider, useAuth, getApiUrl, getRedirectUrl } from '../../lib/auth';
 import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 
@@ -49,6 +49,10 @@ describe('Auth Library', () => {
             hash: '',
             href: 'http://localhost:3000',
         };
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     describe('getApiUrl', () => {

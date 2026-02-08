@@ -277,22 +277,94 @@ router.post('/signout', async (req, res, next) => {
   }
 });
 
-// GET /api/auth/unsubscribe
-router.get('/unsubscribe', async (req, res, next) => {
+// GET /api/auth/unsubscribe - Verify token validity ONLY
+router.get('/unsubscribe', tokenLimiter, async (req, res, next) => {
   try {
     const { email, token } = req.query;
+
     if (!email) return res.status(400).json({ error: 'Email required' });
 
     const decoded = verifyEmailToken(token);
+
+    if (decoded.email !== email) {
+      console.warn(`Unsubscribe token mismatch for email: ${email}`);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if already unsubscribed
+    const { data: subscriber, error } = await supabaseAdmin
+      .from('subscribers')
+      .select('unsubscribed_at')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) console.error('Supabase error checking subscription status:', error);
+
+    res.json({
+      valid: true,
+      email,
+      isUnsubscribed: !!subscriber?.unsubscribed_at
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/auth/unsubscribe - Perform unsubscription with reason
+router.post('/unsubscribe', async (req, res, next) => {
+  try {
+    const { email, token, reason } = req.body;
+
+    if (!email || !token) return res.status(400).json({ error: 'Email and token required' });
+
+    // Verify again for security
+    const decoded = verifyEmailToken(token);
+
     if (decoded.email !== email) return res.status(401).json({ error: 'Invalid token' });
 
-    await supabaseAdmin.from('subscribers')
-      .update({ unsubscribed_at: new Date().toISOString() })
+    // Check if already unsubscribed to avoid redundant DB updates
+    const { data: existing } = await supabaseAdmin
+      .from('subscribers')
+      .select('unsubscribed_at')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existing?.unsubscribed_at) {
+      return res.json({ message: 'Already unsubscribed' });
+    }
+
+    // Update Supabase
+    const { error } = await supabaseAdmin.from('subscribers')
+      .update({
+        unsubscribed_at: new Date().toISOString(),
+        unsubscribe_reason: reason || null // Assuming column exists or we just log it for now
+      })
       .eq('email', email);
 
+    if (error) {
+      // If column doesn't exist, just update unsubscribed_at
+      // This is a failsafe in case the user hasn't run migrations for a new column
+      // PGRST204: PostgREST error for missing column
+      // 42703: Postgres error for undefined column
+      if (error.code === '42703' || error.code === 'PGRST204') {
+        console.warn('unsubscribe_reason column missing, skipping reason storage');
+        await supabaseAdmin.from('subscribers')
+          .update({ unsubscribed_at: new Date().toISOString() })
+          .eq('email', email);
+      } else {
+        throw error;
+      }
+    }
+
+    // Log the reason internally nicely
+    console.log(`User ${email} unsubscribed. Reason: ${reason || 'No reason provided'}`);
+
+    // Sync with Brevo
     blocklistContact(email).catch(err => console.error('Brevo Blocklist Error:', err.message));
+
     res.json({ message: 'Unsubscribed successfully' });
   } catch (error) {
+    console.error('Unsubscribe error:', error);
     next(error);
   }
 });

@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
   welcomed BOOLEAN DEFAULT FALSE,
   subscribed_at TIMESTAMPTZ DEFAULT NOW(),
   unsubscribed_at TIMESTAMPTZ,
+  unsubscribe_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

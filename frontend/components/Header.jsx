@@ -35,9 +35,12 @@ export default function Header({ variant = 'landing' }) {
     setIsMenuOpen(false);
   };
 
-  // Handle "THIS WEEK" link - navigate to landing page first if not there
+  // Handle "ZEROS THIS WEEK" link - navigate to landing page first if not there
   const handleThisWeekClick = (e) => {
     e.preventDefault();
+    // Close any open modals
+    closeAuthModal();
+    closeSubscribeModal();
     if (router.pathname === '/') {
       // Already on landing page, just scroll
       scrollToAnchor('#ideas-section');
@@ -86,13 +89,12 @@ export default function Header({ variant = 'landing' }) {
         <a
           href="#ideas-section"
           onClick={handleThisWeekClick}
-          className={`px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm transition-colors ${
-            isActive('ideas-section')
+          className={`px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm transition-colors ${isActive('ideas-section')
               ? 'text-rose-700 border-b-2 border-rose-700'
               : 'text-black hover:text-rose-700'
-          }`}
+            }`}
         >
-          THIS WEEK
+          ZEROS THIS WEEK
         </a>
         {isLoading ? null : user ? (
           <>
@@ -186,7 +188,11 @@ export default function Header({ variant = 'landing' }) {
           >
             <Link
               href="/story"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                closeAuthModal();
+                closeSubscribeModal();
+                setIsMenuOpen(false);
+              }}
               className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
             >
               KAI&apos;S STORY
@@ -194,11 +200,10 @@ export default function Header({ variant = 'landing' }) {
             <a
               href="#ideas-section"
               onClick={handleThisWeekClick}
-              className={`text-center comic-title text-2xl transition-colors ${
-                isActive('ideas-section') ? 'text-rose-700' : 'text-black hover:text-rose-700'
-              }`}
+              className={`text-center comic-title text-2xl transition-colors ${isActive('ideas-section') ? 'text-rose-700' : 'text-black hover:text-rose-700'
+                }`}
             >
-              THIS WEEK
+              ZEROS THIS WEEK
             </a>
 
             <div className="w-full h-px bg-gray-200 my-2" />

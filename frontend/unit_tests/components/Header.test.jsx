@@ -77,7 +77,7 @@ describe('Header Component', () => {
             render(<Header />);
 
             expect(screen.getByText("KAI'S STORY")).toBeInTheDocument();
-            expect(screen.getByText('THIS WEEK')).toBeInTheDocument();
+            expect(screen.getByText('ZEROS THIS WEEK')).toBeInTheDocument();
         });
 
         it('shows sign in and subscribe buttons when not authenticated', () => {
@@ -199,7 +199,7 @@ describe('Header Component', () => {
             render(<Header />);
 
             const storyLink = screen.getByRole('link', { name: "KAI'S STORY" });
-            const thisWeekLink = screen.getByRole('link', { name: 'THIS WEEK' });
+            const thisWeekLink = screen.getByRole('link', { name: 'ZEROS THIS WEEK' });
 
             expect(storyLink).toHaveAttribute('href', '/story');
             expect(thisWeekLink).toHaveAttribute('href', '#ideas-section');

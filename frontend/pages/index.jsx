@@ -108,7 +108,7 @@ const ZerosByKaiLanding = () => {
         try {
             const data = await castVote(ideaId, session);
             const votedIdea = displayIdeas.find((i) => i.id === ideaId);
-            
+
             setVoteConfirmation({
                 ideaName: votedIdea?.name || 'Idea',
                 changed: data.changedFrom !== null,
@@ -119,12 +119,12 @@ const ZerosByKaiLanding = () => {
             console.error('Voting error:', err);
             const errorMsg = err.message || 'Failed to cast vote. Please try again.';
             setVoteError(errorMsg);
-            
+
             // Clear previous timeout if exists
             if (errorTimeoutRef.current) {
                 clearTimeout(errorTimeoutRef.current);
             }
-            
+
             errorTimeoutRef.current = setTimeout(() => {
                 setVoteError(null);
                 errorTimeoutRef.current = null;
@@ -136,7 +136,7 @@ const ZerosByKaiLanding = () => {
 
     const getVoteButtonProps = (ideaId) => {
         const defaultStyle = 'bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black';
-        
+
         if (!user || !isRealData) {
             return { label: 'VOTE FOR THIS', style: defaultStyle };
         }
@@ -484,6 +484,7 @@ const ZerosByKaiLanding = () => {
                                             src={tier.img}
                                             alt={tier.title}
                                             fill
+                                            sizes="(max-width: 640px) 80px, 96px"
                                             className="drop-shadow-2xl filter brightness-110 mix-blend-screen object-contain"
                                         />
                                         {/* Reflection effect */}
@@ -492,6 +493,7 @@ const ZerosByKaiLanding = () => {
                                                 src={tier.img}
                                                 alt=""
                                                 fill
+                                                sizes="(max-width: 640px) 80px, 96px"
                                                 className="mix-blend-screen object-contain"
                                             />
                                         </div>

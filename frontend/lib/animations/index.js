@@ -15,4 +15,4 @@ export {
 
 // Hooks
 export { useReveal, useRevealMotionProps, useRevealAnimation } from './useReveal';
-export { useCountUp, easeOutExpo, easeOutQuart, easeInOutCubic, linear } from './useCountUp';
+

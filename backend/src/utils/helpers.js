@@ -3,19 +3,6 @@
  */
 
 /**
- * Helper to wait for a specific amount of time
- */
-export const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Human-like delay with variation
- */
-export const humanDelay = (baseMs = 2000) => {
-    const variation = Math.random() * baseMs;
-    return wait(baseMs + variation);
-};
-
-/**
  * Helper to mask email for PII-safe logging
  */
 export const maskEmail = (email) => {

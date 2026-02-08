@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getMonday, getLastMonday, getVisibilityCutoffDate } from '../../src/utils/dateUtils.js';
+import { getMonday, getLastMonday } from '../../src/utils/dateUtils.js';
 
 describe('dateUtils.js', () => {
     beforeEach(() => {
@@ -54,28 +54,6 @@ describe('dateUtils.js', () => {
             // So getLastMonday should return 2025-01-06
             const date = new Date('2025-01-12T13:00:00Z');
             expect(getLastMonday(date)).toBe('2025-01-06');
-        });
-    });
-
-    describe('getVisibilityCutoffDate()', () => {
-        it('should return today if it is after the cutoff hour', () => {
-            // Wednesday 2025-01-08, 10:00 UTC, Cutoff 9:00 UTC
-            const mockDate = new Date('2025-01-08T10:00:00Z');
-            vi.setSystemTime(mockDate);
-            expect(getVisibilityCutoffDate(9)).toBe('2025-01-08');
-        });
-
-        it('should return yesterday if it is before the cutoff hour', () => {
-            // Wednesday 2025-01-08, 08:00 UTC, Cutoff 9:00 UTC
-            const mockDate = new Date('2025-01-08T08:00:00Z');
-            vi.setSystemTime(mockDate);
-            expect(getVisibilityCutoffDate(9)).toBe('2025-01-07');
-        });
-
-        it('should use default cutoff of 9 if not provided', () => {
-            const mockDate = new Date('2025-01-08T10:00:00Z');
-            vi.setSystemTime(mockDate);
-            expect(getVisibilityCutoffDate()).toBe('2025-01-08');
         });
     });
 });

@@ -4,10 +4,7 @@ const path = require('path');
 const nextConfig = {
     reactStrictMode: true,
     compress: true,
-    output: 'standalone',
-    turbopack: {
-        root: __dirname,
-    },
+    // output: 'standalone',
     images: {
         formats: ['image/avif', 'image/webp'],
     },

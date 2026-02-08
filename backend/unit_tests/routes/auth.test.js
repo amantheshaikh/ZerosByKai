@@ -212,17 +212,56 @@ describe('auth.js routes', () => {
         });
     });
 
-    describe('GET /api/auth/unsubscribe', () => {
+    describe('POST /api/auth/unsubscribe', () => {
         it('should unsubscribe user with valid token', async () => {
             verifyEmailToken.mockReturnValue({ email: 'test@example.com' });
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: [{ email: 'test@example.com' }], error: null }).then(f));
+            // First call: check if already unsubscribed (not unsubscribed)
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: null }, error: null }).then(f));
+            // Second call: update to unsubscribe
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
-                .get('/api/auth/unsubscribe')
-                .query({ email: 'test@example.com', token: 'valid' });
+                .post('/api/auth/unsubscribe')
+                .send({ email: 'test@example.com', token: 'valid', reason: 'Too many emails' });
 
             expect(res.status).toBe(200);
-            expect(blocklistContact).toHaveBeenCalled();
+            expect(res.body.message).toBe('Unsubscribed successfully');
+            expect(blocklistContact).toHaveBeenCalledWith('test@example.com');
+        });
+
+        it('should return early if user is already unsubscribed', async () => {
+            verifyEmailToken.mockReturnValue({ email: 'test@example.com' });
+            // User is already unsubscribed
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: '2025-01-01T00:00:00Z' }, error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/unsubscribe')
+                .send({ email: 'test@example.com', token: 'valid', reason: 'Too many emails' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Already unsubscribed');
+            // Should NOT call blocklistContact since already unsubscribed
+            expect(blocklistContact).not.toHaveBeenCalled();
+        });
+
+        it('should return 401 if token email does not match', async () => {
+            verifyEmailToken.mockReturnValue({ email: 'other@example.com' });
+
+            const res = await request(app)
+                .post('/api/auth/unsubscribe')
+                .send({ email: 'test@example.com', token: 'valid' });
+
+            expect(res.status).toBe(401);
+            expect(res.body.error).toBe('Invalid token');
+        });
+
+        it('should return 400 if email or token is missing', async () => {
+            const res = await request(app)
+                .post('/api/auth/unsubscribe')
+                .send({ email: 'test@example.com' }); // No token
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toBe('Email and token required');
         });
     });
 
