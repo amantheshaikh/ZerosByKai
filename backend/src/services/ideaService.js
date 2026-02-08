@@ -2,13 +2,15 @@ import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { getMonday } from '../utils/dateUtils.js';
 
 /**
- * Get the latest week that has published ideas or is current
+ * Get the latest week that has been fully processed (email sent).
+ * This ensures leaderboard only shows weeks where the Monday job has run.
  */
 export const getLatestActiveWeek = async () => {
     const { data } = await supabaseAdmin
         .from('weekly_batches')
         .select('week_start_date')
         .not('week_start_date', 'is', null)
+        .not('email_sent_at', 'is', null)  // Only consider batches where email was sent
         .gt('week_start_date', '2025-01-01')
         .lte('week_start_date', getMonday())
         .order('week_start_date', { ascending: false })
