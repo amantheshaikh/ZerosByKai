@@ -1,8 +1,8 @@
-import { generateEmailWrapper, generateEmailHeader, generateEmailFooter, emailStyles } from './shared.js';
+import { generateEmailWrapper, generateEmailHeader, generateEmailFooter, emailStyles, escapeHtml } from './shared.js';
 import { config } from '../../config/env.js';
 
 export function generateWelcomeEmail({ name, email, token }) {
-  const displayName = name || 'there';
+  const displayName = name ? escapeHtml(name) : 'there';
 
   const content = `
     ${generateEmailHeader({ title: 'Welcome to the Hunt' })}
@@ -22,7 +22,7 @@ export function generateWelcomeEmail({ name, email, token }) {
         In the meantime, check out what's live right now:
       </p>
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${process.env.FRONTEND_URL}?utm_source=welcome_email"
+        <a href="${config.frontendUrl}?utm_source=welcome_email"
            style="${emailStyles.button}">
           BROWSE THIS WEEK'S IDEAS
         </a>
@@ -30,7 +30,7 @@ export function generateWelcomeEmail({ name, email, token }) {
     </div>
 
     ${generateEmailFooter({
-    unsubscribeLink: `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`
+    unsubscribeLink: `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`
   })}
   `;
 
