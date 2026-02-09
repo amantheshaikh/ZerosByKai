@@ -270,7 +270,7 @@ export async function sendWeeklyDigest() {
     const PAGE_SIZE = 500; // Fetch 500 at a time
     const SEND_BATCH_SIZE = 50; // Send to Brevo in batches of 50
 
-    console.log(`🚀 Sending via templateId=${templateId}, subject="${emailSubject}", ideas=${ideas.length}`);
+    console.log(`🚀 Sending via templateId=${templateId} (is3=${templateId === 3}, type=${typeof templateId}), subject="${emailSubject}", ideas=${ideas.length}`);
     console.log(`🚀 Sending emails to subscribers in groups of ${PAGE_SIZE}...`);
 
     while (true) {
