@@ -79,7 +79,7 @@ describe('weekly.js', () => {
         it('should calculate winner and award badges correctly', async () => {
             const mockIdeas = [{ id: '1', name: 'Idea 1', title: 'Title 1' }];
             const mockVotes = [{ idea_id: '1' }, { idea_id: '1' }, { idea_id: '1' }]; // 3 votes for Idea 1
-            const mockVoters = [{ user_id: 'user1' }];
+            const mockVoters = [{ user_id: 'u1' }, { user_id: 'u2' }, { user_id: 'u3' }];
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
@@ -94,7 +94,7 @@ describe('weekly.js', () => {
             const result = await calculateWinner();
 
             expect(result.winner.id).toBe('1');
-            expect(result.badgeCount).toBe(1);
+            expect(result.badgeCount).toBe(3);
         });
 
         it('should handle "no winner" case when there are no votes', async () => {
@@ -134,6 +134,15 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)); // ideas
+
+            const result = await sendWeeklyDigest();
+            expect(result).toBeUndefined();
+        });
+
+        it('should skip if email already sent', async () => {
+            supabaseAdmin.then.mockImplementationOnce(f =>
+                Promise.resolve({ data: { id: 'b1', email_sent_at: '2025-01-01T00:00:00Z' }, error: null }).then(f)
+            );
 
             const result = await sendWeeklyDigest();
             expect(result).toBeUndefined();
@@ -202,7 +211,7 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
                 .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
-                .mockImplementationOnce(f => Promise.resolve({ data: null, error: new Error('Subs Fetch Failed') }).then(f)); // subs
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ email: 'test@ex.com' }], error: new Error('Subs Fetch Failed') }).then(f)); // subs (Needs some data to pass null check if error check was somehow bypassed, though it shouldn't be)
 
             await expect(sendWeeklyDigest()).rejects.toThrow('Subs Fetch Failed');
         });

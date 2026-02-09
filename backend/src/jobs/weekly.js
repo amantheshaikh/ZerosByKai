@@ -176,12 +176,17 @@ export async function sendWeeklyDigest() {
   try {
     const weekStart = getMonday();
 
-    // 1. Get this week's batch metadata first (checks for pre-defined subject)
+    // 1. Get this week's batch metadata first (checks for pre-defined subject and duplicate send)
     const { data: currentBatch } = await supabaseAdmin
       .from('weekly_batches')
-      .select('id, subject_line, winner_idea_id')
+      .select('id, subject_line, winner_idea_id, email_sent_at')
       .eq('week_start_date', weekStart)
       .maybeSingle();
+
+    if (currentBatch?.email_sent_at) {
+      console.log(`⏭️  Weekly digest already sent for ${weekStart}. Skipping to prevent duplicates.`);
+      return;
+    }
 
     // 2. Publication Step: Transition 'scheduled' -> 'published'
     // This makes them visible on the website immediately before we send the email.
@@ -252,6 +257,11 @@ export async function sendWeeklyDigest() {
 
     if (subsError) throw subsError;
 
+    if (!emailList || emailList.length === 0) {
+      console.log('No active subscribers found.');
+      return;
+    }
+
     console.log(`📡 Preparing digest for ${emailList.length} active subscribers via Brevo...`);
 
     const threadCount = 2100 + Math.floor(Math.random() * 450);
@@ -269,75 +279,74 @@ export async function sendWeeklyDigest() {
       id: weekStart
     });
 
-    // 6. Construct Batch Payloads
-    const emailQueue = [];
+    // 6. Process in batches to minimize memory usage (OOM prevention)
+    const BATCH_SIZE = 50;
     const plainTextTemplate = `Hi {{name}}!\n\nKai's Zeros - Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}\n\n10 new startup opportunities are waiting for you.\n\nView & vote on this week's opportunities: {{voteUrl}}\n\nUnsubscribe: {{unsubscribeUrl}}`;
 
-    for (const subscriber of emailList) {
-      // Secure token for unsubscribe
-      const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
-
-      // Generate auth token for authenticated users
-      let voteUrl = `${config.frontendUrl}?utm_source=email`;
-      if (subscriber.user_id) {
-        const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
-        voteUrl += `&token=${authToken}`;
-      }
-
-      const personalHtml = baseHtml
-        .replace(
-          `href="${config.frontendUrl}?utm_source=email"`,
-          `href="${voteUrl}"`
-        )
-        .replace('{{email}}', subscriber.email)
-        .replace('{{token}}', token)
-        .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there');
-
-      const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
-
-      // Personalize plain text with name and URLs
-      const personalPlainText = plainTextTemplate
-        .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there')
-        .replace('{{voteUrl}}', voteUrl)
-        .replace('{{unsubscribeUrl}}', unsubscribeUrl);
-
-      emailQueue.push({
-        to: subscriber.email,
-        subject: emailSubject,
-        html: personalHtml,
-        text: personalPlainText
-      });
-    }
-
-    // 7. Send in Batches of 50
-    const BATCH_SIZE = 50;
     let successCount = 0;
     let failCount = 0;
+    const totalSubscribers = emailList.length;
+    const totalBatches = Math.ceil(totalSubscribers / BATCH_SIZE);
 
-    console.log(`🚀 Sending ${emailQueue.length} emails in batches of ${BATCH_SIZE}...`);
+    console.log(`🚀 Sending emails to ${totalSubscribers} subscribers in batches of ${BATCH_SIZE}...`);
 
-    for (let i = 0; i < emailQueue.length; i += BATCH_SIZE) {
-      const chunk = emailQueue.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < totalSubscribers; i += BATCH_SIZE) {
+      const subscriberChunk = emailList.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(emailQueue.length / BATCH_SIZE);
-      console.log(`   Sending batch ${batchNum}/${totalBatches} (${chunk.length} emails)...`);
+      const emailBatch = [];
 
-      const { success, error } = await sendBatchEmails(chunk, {
+      console.log(`   Preparing batch ${batchNum}/${totalBatches} (${subscriberChunk.length} emails)...`);
+
+      for (const subscriber of subscriberChunk) {
+        // Secure token for unsubscribe
+        const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
+
+        // Generate auth token for authenticated users
+        let voteUrl = `${config.frontendUrl}?utm_source=email`;
+        if (subscriber.user_id) {
+          const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
+          voteUrl += `&token=${authToken}`;
+        }
+
+        const personalHtml = baseHtml
+          .replace(
+            `href="${config.frontendUrl}?utm_source=email"`,
+            `href="${voteUrl}"`
+          )
+          .replace('{{email}}', subscriber.email)
+          .replace('{{token}}', token)
+          .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there');
+
+        const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
+
+        // Personalize plain text with name and URLs
+        const personalPlainText = plainTextTemplate
+          .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there')
+          .replace('{{voteUrl}}', voteUrl)
+          .replace('{{unsubscribeUrl}}', unsubscribeUrl);
+
+        emailBatch.push({
+          to: subscriber.email,
+          subject: emailSubject,
+          html: personalHtml,
+          text: personalPlainText
+        });
+      }
+
+      console.log(`   🚀 Sending batch ${batchNum}/${totalBatches}...`);
+
+      const { success, error } = await sendBatchEmails(emailBatch, {
         tags: ['weekly-digest'],
         headers: {
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-          // List-Unsubscribe header is tricky in batch if URLs differ per user. 
-          // Brevo handles unsubscribe links automatically if using their template, but here we do custom.
-          // V3 API supports params but headers are usually shared.
-          // However, we embedded the unsubscribe link in HTML body which is safe.
         }
       });
 
       if (success) {
-        successCount += chunk.length;
+        successCount += subscriberChunk.length;
         console.log(`      ✅ Batch ${batchNum} sent successfully`);
       } else {
-        failCount += chunk.length;
+        failCount += subscriberChunk.length;
         console.error(`      ❌ Batch ${batchNum} failed: ${error?.message || 'Unknown error'}`);
       }
 
@@ -345,11 +354,11 @@ export async function sendWeeklyDigest() {
       await new Promise(r => setTimeout(r, 200));
     }
 
-    console.log(`📊 Final Result: ${successCount}/${emailQueue.length} sent, ${failCount} failed.`);
+    console.log(`📊 Final Result: ${successCount}/${totalSubscribers} sent, ${failCount} failed.`);
 
     // Alert if significant failure rate
-    if (failCount > 0 && failCount > emailQueue.length * 0.1) {
-      console.warn(`⚠️  WARNING: >10% failure rate (${failCount}/${emailQueue.length}). Check Brevo API.`);
+    if (failCount > 0 && failCount > totalSubscribers * 0.1) {
+      console.warn(`⚠️  WARNING: >10% failure rate (${failCount}/${totalSubscribers}). Check Brevo API.`);
     }
 
     // Update batch status
