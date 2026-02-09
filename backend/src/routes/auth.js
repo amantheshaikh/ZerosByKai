@@ -283,8 +283,14 @@ router.get('/unsubscribe', tokenLimiter, async (req, res, next) => {
     const { email, token } = req.query;
 
     if (!email) return res.status(400).json({ error: 'Email required' });
+    if (!token) return res.status(400).json({ error: 'Token required' });
 
-    const decoded = verifyEmailToken(token);
+    let decoded;
+    try {
+      decoded = verifyEmailToken(token);
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
 
     if (decoded.email !== email) {
       console.warn(`Unsubscribe token mismatch for email: ${email}`);
@@ -318,7 +324,12 @@ router.post('/unsubscribe', async (req, res, next) => {
     if (!email || !token) return res.status(400).json({ error: 'Email and token required' });
 
     // Verify again for security
-    const decoded = verifyEmailToken(token);
+    let decoded;
+    try {
+      decoded = verifyEmailToken(token);
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
 
     if (decoded.email !== email) return res.status(401).json({ error: 'Invalid token' });
 
