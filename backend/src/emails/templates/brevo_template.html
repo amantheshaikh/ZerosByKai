@@ -70,8 +70,24 @@
         border-color: #FCD933 !important;
       }
 
+      /* Ensure title is legible in dark mode (Gold -> Gold/Yellow) */
       .winner-label {
         color: #FCD933 !important;
+      }
+
+      /* CTA Box Dark Mode */
+      .cta-box {
+        background-color: #1a1a1a !important;
+        border-color: #be123c !important;
+      }
+
+      /* Explicitly set CTA text to white/yellow for dark mode */
+      .cta-title {
+        color: #FCD933 !important;
+      }
+
+      .cta-text {
+        color: #ffffff !important;
       }
 
       /* problem/solution Badge Dark Mode - Invert for visibility */
@@ -79,6 +95,36 @@
         background-color: #FCD933 !important;
         color: #000000 !important;
       }
+    }
+
+    /* Force Dark Mode styles for Outlook/Gmail App (pseudo-classes) */
+    [data-ogsc] .body-bg {
+      background-color: #111111 !important;
+      color: #eeeeee !important;
+    }
+
+    [data-ogsc] .winner-card {
+      background: #1a1a1a !important;
+      background-image: none !important;
+      border-color: #FCD933 !important;
+    }
+
+    [data-ogsc] .cta-box {
+      background-color: #1a1a1a !important;
+      border-color: #be123c !important;
+    }
+
+    [data-ogsc] .label-badge {
+      background-color: #FCD933 !important;
+      color: #000000 !important;
+    }
+
+    [data-ogsc] .cta-title {
+      color: #FCD933 !important;
+    }
+
+    [data-ogsc] .cta-text {
+      color: #ffffff !important;
     }
   </style>
 </head>
@@ -213,11 +259,11 @@
     <!-- CTA Section -->
     <div class="cta-box"
       style="margin: 48px 0; padding: 32px 24px; background: #be123c; border: 3px solid #000; box-shadow: 8px 8px 0 #000; text-align: center;">
-      <div class="font-comic"
+      <div class="font-comic cta-title"
         style="font-family: 'Bangers', Impact, Charcoal, 'Arial Black', sans-serif; font-size: 28px; color: #FCD933; letter-spacing: 1px; margin-bottom: 16px; text-shadow: 2px 2px 0 #000;">
         ENOUGH READING. TIME TO JUDGE.
       </div>
-      <p
+      <p class="cta-text"
         style="font-family: 'Courier Prime', monospace; font-size: 16px; color: #fff; margin-bottom: 24px; line-height: 1.6; font-weight: 700;">
         Think you can spot the unicorn in this pile?<br>
         Cast your vote. Pick the winner. Earn the badge.

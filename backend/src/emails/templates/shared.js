@@ -46,36 +46,45 @@ export const emailStyles = {
         .footer-text { color: #888888 !important; }
         .footer-link { color: #cccccc !important; }
         
-        .comic-shadow { box-shadow: 6px 6px 0 #222222 !important; }
-        .comic-shadow-sm { box-shadow: 3px 3px 0 #222222 !important; }
-
-        /* Winner Card Dark Mode */
-        .winner-card {
-          background: #1a1a1a !important;
-          background-image: none !important;
-          border-color: #FCD933 !important;
-        }
-        .winner-label {
-          color: #FCD933 !important;
-        }
-
-        /* CTA Box Dark Mode */
-        .cta-box {
-          background-color: #1a1a1a !important;
-          border-color: #be123c !important; 
-        }
-
-        /* problem/solution Badge Dark Mode - Invert for visibility */
-        .label-badge {
-          background-color: #FCD933 !important;
-          color: #000000 !important;
-        }
-
-        /* Prevent auto-inversion for specific containers using gradient tech */
-        .no-invert {
-           background-image: linear-gradient(#111111, #111111) !important;
-        }
+      /* Winner Card Dark Mode */
+      .winner-card {
+        background: #1a1a1a !important;
+        background-image: none !important;
+        border-color: #FCD933 !important;
       }
+      /* Ensure title is legible in dark mode (Gold -> Gold/Yellow) */
+      .winner-label {
+        color: #FCD933 !important;
+      }
+      
+      /* CTA Box Dark Mode */
+      .cta-box {
+        background-color: #1a1a1a !important;
+        border-color: #be123c !important; 
+      }
+      
+      /* Explicitly set CTA text to white/yellow for dark mode */
+      .cta-title {
+        color: #FCD933 !important;
+      }
+      .cta-text {
+        color: #ffffff !important;
+      }
+
+      /* problem/solution Badge Dark Mode - Invert for visibility */
+      .label-badge {
+        background-color: #FCD933 !important;
+        color: #000000 !important;
+      }
+    }
+
+    /* Force Dark Mode styles for Outlook/Gmail App (pseudo-classes) */
+    [data-ogsc] .body-bg { background-color: #111111 !important; color: #eeeeee !important; }
+    [data-ogsc] .winner-card { background: #1a1a1a !important; background-image: none !important; border-color: #FCD933 !important; }
+    [data-ogsc] .cta-box { background-color: #1a1a1a !important; border-color: #be123c !important; }
+    [data-ogsc] .label-badge { background-color: #FCD933 !important; color: #000000 !important; }
+    [data-ogsc] .cta-title { color: #FCD933 !important; }
+    [data-ogsc] .cta-text { color: #ffffff !important; }
 
       /* Outlook/Win10 overrides */
       [data-ogsc] .body-bg { background-color: #000000 !important; }
