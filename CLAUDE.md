@@ -93,13 +93,17 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`unit_tests/`** - React component & lib tests
 
 ## Recent Major Changes (Feb 9, 2026)
-- ✅ **Email Migration**: Weekly digest now uses Brevo-hosted template (params only, no server-side HTML).
-- ✅ **GitHub Actions**: Monday digest triggered via `.github/workflows/weekly-digest.yml`, server cron removed.
+- ✅ **Security**: Unsubscribe links now use backend-generated secure tokens to prevent 401 errors.
+- ✅ **Frontend Redesign**: New Hero section with Kai's image, overlay text, and scroll-triggered animations.
+- ✅ **UX Improvements**: "This Week" renamed to "Zeros This Week", subscribe modal name field removed, auto-closing modals on nav.
+- ✅ **Mirror Link**: Mirror links in email digests now point to a dedicated frontend route instead of backend endpoint.
+- ✅ **Dev Experience**: Resolved Turbopack cache corruption and Parallax import issues (stable `npm run dev`).
+- ✅ **Cleanup**: Removed legacy server-side HTML generation for weekly digests; fully reliant on Brevo templates.
+- ✅ **Testing**: Fixed backend unit tests (`weekly.test.js`, `newsletterService.test.js`) and Vitest worker timeouts.
+- ✅ **Email Stability**: Fixed "Empty Email" issue in GitHub Action script and blocked list discrepancies.
+- ✅ **Infrastructure**: Validated `/deploy_production` workflow and created SQL reset script for Monday jobs.
 - ✅ **RFC 8058**: Per-subscriber `List-Unsubscribe` + `List-Unsubscribe-Post` headers for one-click unsubscribe.
 - ✅ **Subject Override**: Email subject from Supabase `weekly_batches.subject_line` passed via Brevo API.
-- ✅ **Accurate Metrics**: Per-email success/fail counting in batch sends.
-- ✅ **Testing**: Comprehensive unit test suite using Vitest (100+ tests passing).
-- ✅ **Architecture**: Hardened "Scheduled" state machine to prevent content leaks.
 
 ## Documentation Hierarchy
 - **Tier 1 (Foundation):** This file - Master context

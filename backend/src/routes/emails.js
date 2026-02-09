@@ -20,7 +20,8 @@ router.get('/view/:type/:id?', async (req, res) => {
         if (type === 'welcome') {
             html = generateWelcomeEmail({
                 name: 'there',
-                email: 'yours@example.com'
+                email: 'yours@example.com',
+                token: 'preview-token'
             });
         } else if (type === 'magic-link') {
             html = generateMagicLinkEmail({

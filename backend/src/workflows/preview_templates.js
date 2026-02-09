@@ -19,7 +19,7 @@ async function previewTemplates() {
     await sendEmail({
         to: targetEmail,
         subject: '[Preview] Welcome to ZerosByKai',
-        html: generateWelcomeEmail({ name: 'Preview User' }),
+        html: generateWelcomeEmail({ name: 'Preview User', email: targetEmail, token: 'preview-token' }),
         tags: ['preview', 'welcome']
     });
 

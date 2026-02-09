@@ -38,6 +38,7 @@ export function generateWelcomeEmail({ name, email, token }) {
     title: 'Welcome to ZerosByKai',
     preheader: 'You\'re in. 10 startup opportunities analyzed from real complaints every Monday.',
     content,
-    mirrorLinkUrl: `${config.backendUrl}/api/emails/view/welcome`
+    mirrorLinkUrl: `${config.frontendUrl}/view/welcome`
   });
+
 }

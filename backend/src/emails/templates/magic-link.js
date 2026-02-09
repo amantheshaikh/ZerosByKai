@@ -43,6 +43,7 @@ export function generateMagicLinkEmail({ email: _email, actionLink, name }) {
     title: 'Login to ZerosByKai',
     preheader: 'Here is your magic link to log in to ZerosByKai.',
     content,
-    mirrorLinkUrl: `${config.backendUrl}/api/emails/view/magic-link`
+    mirrorLinkUrl: `${config.frontendUrl}/view/magic-link`
   });
+
 }

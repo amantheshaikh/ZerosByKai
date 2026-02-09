@@ -265,6 +265,21 @@ describe('auth.js routes', () => {
         });
     });
 
+    it('should fail unsubscribe with invalid token format (base64 email)', async () => {
+        // Mock verifyEmailToken to throw for invalid format, simulating real behavior
+        verifyEmailToken.mockImplementationOnce(() => { throw new Error('Invalid token'); });
+
+        const invalidToken = Buffer.from('test@example.com').toString('base64');
+        const res = await request(app)
+            .post('/api/auth/unsubscribe')
+            .send({
+                email: 'test@example.com',
+                token: invalidToken
+            });
+
+        expect(res.status).toBe(401);
+    });
+
     describe('DELETE /api/auth/user', () => {
         it('should delete user account', async () => {
             supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'test@t.com' } }, error: null });
