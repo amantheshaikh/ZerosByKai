@@ -12,7 +12,6 @@ vi.mock('../../src/config/supabase.js', () => {
         in: vi.fn().mockReturnThis(),
         is: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        group_by: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         upsert: vi.fn().mockReturnThis(),
         single: vi.fn().mockReturnThis(),
@@ -79,13 +78,13 @@ describe('weekly.js', () => {
 
         it('should calculate winner and award badges correctly', async () => {
             const mockIdeas = [{ id: '1', name: 'Idea 1', title: 'Title 1' }];
-            const mockVotes = [{ idea_id: '1', count: 10 }];
+            const mockVotes = [{ idea_id: '1' }, { idea_id: '1' }, { idea_id: '1' }]; // 3 votes for Idea 1
             const mockVoters = [{ user_id: 'user1' }];
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ data: mockVotes, error: null }).then(f)) // getVotes
+                .mockImplementationOnce(f => Promise.resolve({ data: mockVotes, error: null }).then(f)) // getVotes (unaggregated)
                 .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // batch upsert
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // update winner flag
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // archive all
@@ -121,7 +120,7 @@ describe('weekly.js', () => {
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ data: [{ idea_id: '1', count: 5 }], error: null }).then(f)) // getVotes
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ idea_id: '1' }], error: null }).then(f)) // getVotes
                 .mockImplementationOnce(f => Promise.resolve({ data: { id: 'b' }, error: null }).then(f)) // upsert batch
                 .mockImplementationOnce(f => Promise.resolve({ error: new Error('Update Failed') }).then(f)); // update winner flag
 

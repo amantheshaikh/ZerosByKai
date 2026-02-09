@@ -52,19 +52,19 @@ export async function calculateWinner() {
       return;
     }
 
-    // 2 & 3. Get vote counts and find winner (optimized with Postgres aggregation)
-    const { data: voteCountByIdea, error: countError } = await supabaseAdmin
+    // 2 & 3. Get vote counts and find winner (in-memory aggregation since group_by is not a JS client function)
+    const { data: allVotes, error: countError } = await supabaseAdmin
       .from('votes')
-      .select('idea_id, count()', { count: 'exact', head: false })
-      .in('idea_id', ideas.map(i => i.id))
-      .group_by('idea_id');
+      .select('idea_id')
+      .in('idea_id', ideas.map(i => i.id));
 
     if (countError) throw countError;
 
-    // Map vote counts to ideas (O(n) lookup instead of O(n*m) filter)
-    const voteCountMap = new Map(
-      (voteCountByIdea || []).map(v => [v.idea_id, v.count || 0])
-    );
+    // Use a Map for in-memory counting
+    const voteCountMap = new Map();
+    (allVotes || []).forEach(v => {
+      voteCountMap.set(v.idea_id, (voteCountMap.get(v.idea_id) || 0) + 1);
+    });
 
     const ideaVotes = ideas.map(idea => ({
       ...idea,
