@@ -305,7 +305,7 @@ export async function sendWeeklyDigest() {
         let voteUrl = `${config.frontendUrl}?utm_source=email`;
         if (subscriber.user_id) {
           const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
-          voteUrl += `&token=${authToken}`;
+          voteUrl += `&token=${encodeURIComponent(authToken)}`;
         }
 
         const personalHtml = baseHtml
@@ -317,7 +317,7 @@ export async function sendWeeklyDigest() {
           .replace('{{token}}', token)
           .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there');
 
-        const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${token}`;
+        const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${encodeURIComponent(token)}`;
 
         // Personalize plain text with name and URLs
         const personalPlainText = plainTextTemplate

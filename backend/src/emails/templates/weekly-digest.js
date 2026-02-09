@@ -29,7 +29,7 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
     const tagsList = getTags(idea);
 
     return `
-    <div style="margin-bottom: 48px; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; background: #ffffff;">
+    <div class="card-bg comic-shadow" style="margin-bottom: 48px; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; background: #ffffff;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
         <tr>
           <td valign="middle">
@@ -39,6 +39,7 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
           </td>
           <td valign="middle" align="right">
              <a href="${process.env.FRONTEND_URL}?utm_source=email" 
+                class="font-mono comic-shadow-sm"
                 style="font-family: 'Courier Prime', monospace; font-size: 11px; color: #000; text-decoration: none; font-weight: 700; background: #FCD933; border: 2px solid #000; padding: 6px 10px; box-shadow: 3px 3px 0 #000; display: inline-block;">
                BET ON THIS
              </a>
@@ -46,14 +47,14 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
         </tr>
       </table>
       
-      <h3 style="font-family: 'Courier Prime', monospace; font-size: 22px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;">
+      <h3 class="font-mono text-main" style="font-family: 'Courier Prime', monospace; font-size: 22px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;">
         ${safeName}
       </h3>
-      <p style="font-size: 14px; color: #444; margin-bottom: 16px; font-style: italic;">${safeTitle}</p>
+      <p class="text-muted" style="font-size: 14px; color: #444; margin-bottom: 16px; font-style: italic;">${safeTitle}</p>
       
-      <div style="margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 8px;">
+      <div class="divider-main" style="margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 8px;">
         ${tagsList.map(t => `
-          <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
+          <span class="text-main" style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
             ${escapeHtml(t)}
           </span>
         `).join('')}
@@ -61,12 +62,12 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
 
       <div style="margin-bottom: 16px;">
         <div style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">THE PROBLEM</div>
-        <p style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">${safeProblem}</p>
+        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">${safeProblem}</p>
       </div>
 
       <div style="margin: 0;">
         <div style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">THE SOLUTION</div>
-        <p style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">${safeSolution}</p>
+        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">${safeSolution}</p>
       </div>
     </div>
   `;
@@ -77,9 +78,9 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
       <div style="font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
         🏆 LAST WEEK'S WINNER
       </div>
-      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">${winner.name}</h3>
-      <p style="font-size: 13px; color: #666; margin-bottom: 12px;">${winner.title}</p>
-      <p style="font-size: 13px; color: #333; margin-bottom: 16px;">
+      <h3 class="text-main" style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">${winner.name}</h3>
+      <p class="text-muted" style="font-size: 13px; color: #666; margin-bottom: 12px;">${winner.title}</p>
+      <p class="text-main" style="font-size: 13px; color: #333; margin-bottom: 16px;">
         Did you pick the winner? Check your profile to find out.
       </p>
       <div style="text-align: center; margin-bottom: 12px;">
@@ -112,7 +113,7 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
     ${winnerHtml}
 
     <!-- Section Title -->
-    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 24px; text-transform: uppercase;">
+    <h2 class="text-main" style="font-size: 18px; font-weight: 700; margin-bottom: 24px; text-transform: uppercase;">
       THIS WEEK'S OPPORTUNITIES
     </h2>
 
@@ -127,7 +128,7 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
     <!-- Edgy Instruction / CTA -->
     <div style="margin: 48px 0; padding: 32px 24px; background: #be123c; border: 3px solid #000; box-shadow: 8px 8px 0 #000; text-align: center;">
       
-      <div style="font-family: 'Bangers', cursive; font-size: 28px; color: #FCD933; letter-spacing: 1px; margin-bottom: 16px; text-shadow: 2px 2px 0 #000;">
+      <div class="font-comic" style="font-family: 'Bangers', Impact, Charcoal, 'Arial Black', sans-serif; font-size: 28px; color: #FCD933; letter-spacing: 1px; margin-bottom: 16px; text-shadow: 2px 2px 0 #000;">
         ENOUGH READING. TIME TO JUDGE.
       </div>
 
@@ -144,7 +145,8 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
       
       <div>
         <a href="${process.env.FRONTEND_URL}?utm_source=email" 
-          style="display: inline-block; background: #000; color: #FCD933; font-family: 'Bangers', cursive; font-size: 24px; text-decoration: none; padding: 12px 32px; border: 2px solid #FCD933; box-shadow: 4px 4px 0 #000; transform: rotate(1deg);">
+          class="font-comic comic-shadow"
+          style="display: inline-block; background: #000; color: #FCD933; font-family: 'Bangers', Impact, Charcoal, 'Arial Black', sans-serif; font-size: 24px; text-decoration: none; padding: 12px 32px; border: 2px solid #FCD933; box-shadow: 4px 4px 0 #000; transform: rotate(1deg);">
           PROVE IT NOW &rarr;
         </a>
       </div>
@@ -152,13 +154,13 @@ export const generateWeeklyDigestEmail = ({ ideas, winner, threadCount, weekDate
     </div>
 
     ${generateEmailFooter({
-    unsubscribeLink: `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent('{{email}}')}&token={{token}}`
+    unsubscribeLink: `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent('{{email}}')}&token={{token}}`
   })}
   `;
 
   const mirrorLinkUrl = id
-    ? `${config.backendUrl}/api/emails/view/weekly/${id}`
-    : `${config.backendUrl}/api/emails/view/weekly`;
+    ? `${config.frontendUrl}/view/weekly/${id}`
+    : `${config.frontendUrl}/view/weekly`;
 
   return generateEmailWrapper({
     title: `ZerosByKai - ${weekDate}`,

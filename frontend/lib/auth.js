@@ -10,7 +10,7 @@ const AuthContext = createContext(null);
 export function getApiUrl() {
   // Server-side: use env var
   if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return process.env.NEXT_PUBLIC_API_URL || 'https://zerosbykai-api-prod.fly.dev';
   }
 
   // Client-side: check hostname for localhost
@@ -18,7 +18,7 @@ export function getApiUrl() {
     return 'http://localhost:3001';
   }
 
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://zerosbykai-api-prod.fly.dev';
 }
 
 /**

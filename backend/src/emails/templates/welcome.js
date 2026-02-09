@@ -10,16 +10,16 @@ export function generateWelcomeEmail({ name, email }) {
 
     <!-- Main Content -->
     <div style="margin-bottom: 32px;">
-      <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 16px;">Welcome, ${displayName}.</h2>
-      <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
+      <h2 class="text-main" style="font-size: 22px; font-weight: 700; margin-bottom: 16px;">Welcome, ${displayName}.</h2>
+      <p class="text-main" style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
         You're now on the list. Every Monday, you'll get:
       </p>
-      <div style="background: #fafafa; border-left: 3px solid #fbbf24; padding: 16px; margin-bottom: 24px;">
-        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;"><strong>10 startup opportunities</strong> analyzed from thousands of people complaining on Reddit</p>
-        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;">Real problems. Real opportunities. No AI fluff.</p>
-        <p style="margin: 0; font-size: 14px; line-height: 1.6;">Vote on your favorites and earn badges for spotting winners.</p>
+      <div class="summary-box" style="background: #fafafa; border-left: 3px solid #fbbf24; padding: 16px; margin-bottom: 24px;">
+        <p class="text-main" style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;"><strong>10 startup opportunities</strong> analyzed from thousands of people complaining on Reddit</p>
+        <p class="text-main" style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.6;">Real problems. Real opportunities. No AI fluff.</p>
+        <p class="text-main" style="margin: 0; font-size: 14px; line-height: 1.6;">Vote on your favorites and earn badges for spotting winners.</p>
       </div>
-      <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 24px;">
+      <p class="text-main" style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 24px;">
         In the meantime, check out what's live right now:
       </p>
       <div style="text-align: center; margin: 32px 0;">

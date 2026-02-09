@@ -101,6 +101,28 @@ export async function fetchArchiveBatches(page = 1, limit = 20) {
 }
 
 /**
+ * Fetch a specific weekly batch (ideas + metadata)
+ * @param {string} date - ISO date string (YYYY-MM-DD)
+ */
+export async function fetchWeeklyBatch(date) {
+    try {
+        const url = `${getApiUrl()}/api/ideas/weekly-batch/${date}`;
+        const res = await fetchWithTimeout(url);
+        if (!res.ok) throw new Error('Failed to fetch weekly batch');
+        const data = await res.json();
+
+        return {
+            ...data,
+            winner: normalizeIdea(data.winner),
+            ideas: (data.ideas || []).map(normalizeIdea)
+        };
+    } catch (error) {
+        console.error('Error fetching weekly batch:', error.message);
+        throw error;
+    }
+}
+
+/**
  * Cast a vote for an idea
  */
 export async function castVote(ideaId, session) {

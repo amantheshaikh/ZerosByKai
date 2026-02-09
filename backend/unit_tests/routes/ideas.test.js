@@ -151,27 +151,5 @@ describe('ideas.js routes', () => {
         });
     });
 
-    describe('GET /api/ideas/:id', () => {
-        it('should return a single idea with vote count', async () => {
-            const mockIdea = { id: '123', title: 'Idea 123', voteCount: 5 };
-            ideaService.getIdeaWithVoteCount.mockResolvedValue(mockIdea);
-
-            const response = await request(app).get('/api/ideas/123');
-
-            expect(response.status).toBe(200);
-            expect(response.body.id).toBe('123');
-        });
-    });
-
-    describe('GET /api/ideas/winner/:week', () => {
-        it('should return winner for specific week', async () => {
-            const mockBatch = { id: 'b1', winner: { id: 'w1' } };
-            ideaService.getWinnerByWeek.mockResolvedValue(mockBatch);
-
-            const response = await request(app).get('/api/ideas/winner/2025-02-03');
-
-            expect(response.status).toBe(200);
-            expect(response.body.batch.winner.id).toBe('w1');
-        });
-    });
+    // Note: GET /api/ideas/:id and GET /api/ideas/winner/:week are currently not implemented in ideas.js
 });

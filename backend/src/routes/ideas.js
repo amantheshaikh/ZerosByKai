@@ -123,23 +123,42 @@ router.get('/weekly-batches', async (req, res, next) => {
   }
 });
 
-// GET /api/ideas/:id - Get single idea with vote count
-router.get('/:id', async (req, res, next) => {
+// GET /api/ideas/weekly-batch/:date - Get complete batch for a specific week
+router.get('/weekly-batch/:date', async (req, res, next) => {
   try {
-    const idea = await ideaService.getIdeaWithVoteCount(req.params.id);
-    res.json(idea);
+    const { date } = req.params;
+
+    // 1. Fetch batch info
+    const { data: batch, error: batchError } = await supabase
+      .from('weekly_batches')
+      .select(`
+        *,
+        winner:ideas!fk_weekly_batches_winner_idea (*)
+      `)
+      .eq('week_start_date', date)
+      .maybeSingle();
+
+    if (batchError) throw batchError;
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    // 2. Fetch ideas for that week
+    const { data: ideas, error: ideasError } = await supabase
+      .from('ideas')
+      .select('*')
+      .eq('week_published', date)
+      .order('created_at', { ascending: true });
+
+    if (ideasError) throw ideasError;
+
+    res.json({
+      ...batch,
+      ideas: ideas || []
+    });
   } catch (error) {
     next(error);
   }
 });
 
-// GET /api/ideas/winner/:week - Get winner for specific week
-router.get('/winner/:week', async (req, res, next) => {
-  try {
-    const batch = await ideaService.getWinnerByWeek(req.params.week);
-    res.json({ batch });
-  } catch (error) {
-    next(error);
-  }
-});
 export default router;
