@@ -4,8 +4,11 @@ import { sendBatchEmails } from '../utils/emailService.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
 import { config } from '../config/env.js';
 
-
-
+function formatTags(tags) {
+  if (!tags) return [];
+  if (Array.isArray(tags)) return tags;
+  return [];
+}
 
 /**
  * Pull-based Publishing: Selects 10 opportunities from the backlog and 
@@ -270,8 +273,7 @@ export async function sendWeeklyDigest() {
     const PAGE_SIZE = 500; // Fetch 500 at a time
     const SEND_BATCH_SIZE = 50; // Send to Brevo in batches of 50
 
-    console.log(`🚀 Sending via templateId=${templateId} (is3=${templateId === 3}, type=${typeof templateId}), subject="${emailSubject}", ideas=${ideas.length}`);
-    console.log(`🚀 Sending emails to subscribers in groups of ${PAGE_SIZE}...`);
+    console.log(`🚀 Sending emails via Brevo template (${ideas.length} ideas) to subscribers in groups of ${PAGE_SIZE}...`);
 
     while (true) {
       const { data: subscriberPage, error: pageError } = await supabaseAdmin
@@ -320,7 +322,7 @@ export async function sendWeeklyDigest() {
                 problem: idea.problem,
                 solution: idea.solution,
                 index_plus_one: idx + 1,
-                tags: idea.tags || {}
+                tags: formatTags(idea.tags)
               }))
             },
             headers: {

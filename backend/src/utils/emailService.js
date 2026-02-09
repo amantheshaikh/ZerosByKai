@@ -92,9 +92,6 @@ export async function sendBatchEmails(chunk, options = {}) {
         // We'll use Promise.allSettled for now to ensure 
         // individual parameters like 'token' and 'name' are correctly mapped.
 
-        const sendPath = options.templateId ? 'TEMPLATE' : 'HTML';
-        console.log(`📧 sendBatchEmails: path=${sendPath}, templateId=${options.templateId}, chunk=${chunk.length}, paramsKeys=${chunk[0] ? Object.keys(chunk[0].params || {}).join(',') : 'none'}`);
-
         const results = await Promise.allSettled(
             chunk.map(recipient => {
                 if (options.templateId) {

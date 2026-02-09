@@ -167,18 +167,12 @@
         }}</p>
 
       <div class="divider-main" style="margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 8px;">
-        {% if idea.tags.region %}
+        {% for tag in idea.tags %}
         <span class="text-main"
           style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
-          📍 {{ idea.tags.region }}
+          🏷️ {{ tag }}
         </span>
-        {% endif %}
-        {% if idea.tags.category %}
-        <span class="text-main"
-          style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
-          🏷️ {{ idea.tags.category }}
-        </span>
-        {% endif %}
+        {% endfor %}
       </div>
 
       <div style="margin-bottom: 16px;">
