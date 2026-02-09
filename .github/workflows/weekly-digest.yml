@@ -30,7 +30,15 @@ jobs:
         run: npm ci
 
       - name: Run Weekly Digest Script
-        run: node src/jobs/weekly.js --scheduled
+        # Only pass --scheduled flag if triggered by cron schedule.
+        # This allows manual workflow_dispatch to bypass the "Monday Only" check.
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            node src/jobs/weekly.js --scheduled
+          else
+            echo "Manual trigger detected: Running immediately (bypassing Monday check)..."
+            node src/jobs/weekly.js
+          fi
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
