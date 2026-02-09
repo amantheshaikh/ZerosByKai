@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { generateEmailToken } from '../utils/emailToken.js';
-import { sendBatchEmailsWithTemplate } from '../utils/emailService.js';
+import { sendBatchEmails } from '../utils/emailService.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
 import { config } from '../config/env.js';
 
@@ -258,12 +258,9 @@ export async function sendWeeklyDigest() {
     console.log(`📡 Preparing digest for ${totalSubscribers} active subscribers...`);
 
     const threadCount = 2100 + Math.floor(Math.random() * 450);
-
-
     const templateId = config.brevo.weeklyDigestTemplateId;
     if (!templateId) {
-      console.error('❌ BREVO_WEEKLY_DIGEST_TEMPLATE_ID is missing. Cannot send weekly digest.');
-      throw new Error('Missing Brevo Template ID');
+      throw new Error('Missing BREVO_WEEKLY_DIGEST_TEMPLATE_ID in environment');
     }
 
     // 6. Paginate through active subscribers (OOM prevention)
@@ -332,7 +329,7 @@ export async function sendWeeklyDigest() {
           };
         });
 
-        const result = await sendBatchEmailsWithTemplate(chunkParams, {
+        const result = await sendBatchEmails(chunkParams, {
           templateId,
           subject: emailSubject,
           tags: ['weekly-digest']

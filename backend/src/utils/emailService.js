@@ -13,7 +13,7 @@ import { config } from '../config/env.js';
  * @param {Object} [params.headers] - Optional custom headers
  * @returns {Promise<{success: boolean, data?: any, error?: any}>}
  */
-export async function sendEmail({ to, subject, html, text, tags, headers }) {
+export async function sendEmail({ to, subject, html, text, tags, headers, params }) {
     try {
         const sendSmtpEmail = {
             to: [{ email: to }],
@@ -25,7 +25,8 @@ export async function sendEmail({ to, subject, html, text, tags, headers }) {
             htmlContent: html,
             ...(text && { textContent: text }),
             ...(tags && { tags }),
-            ...(headers && { headers })
+            ...(headers && { headers }),
+            ...(params && { params })
         };
 
         const data = await brevoClient.sendTransacEmail(sendSmtpEmail);
@@ -67,16 +68,15 @@ export async function sendEmailWithTemplate({ to, templateId, params, subject, t
 }
 
 /**
- * Sends a batch of personalized emails using a Brevo TEMPLATE.
- * This is the most efficient way to send personalized bulk emails.
+ * Sends a batch of personalized emails using either a Template ID or direct HTML.
  * 
  * @param {Array} chunk - Array of { to, params }
- * @param {Object} options - Shared options like templateId, tags, headers
+ * @param {Object} options - Shared options like templateId, htmlContent, tags, headers
  * @returns {Promise<{success: boolean, error?: any}>}
  */
-export async function sendBatchEmailsWithTemplate(chunk, options = {}) {
-    if (!options.templateId) {
-        throw new Error('sendBatchEmailsWithTemplate: Missing templateId');
+export async function sendBatchEmails(chunk, options = {}) {
+    if (!options.templateId && !options.htmlContent) {
+        throw new Error('sendBatchEmails: Missing templateId or htmlContent');
     }
 
     try {
@@ -89,24 +89,37 @@ export async function sendBatchEmailsWithTemplate(chunk, options = {}) {
 
         // Note: The standard SDK might not have a direct 'sendBatch' that supports individual params 
         // in a single call in older versions, but the API itself does.
-        // We'll use Promise.allSettled with sendEmailWithTemplate for now to ensure 
+        // We'll use Promise.allSettled for now to ensure 
         // individual parameters like 'token' and 'name' are correctly mapped.
 
         const results = await Promise.allSettled(
-            chunk.map(recipient => sendEmailWithTemplate({
-                to: recipient.to,
-                templateId: options.templateId,
-                params: recipient.params,
-                subject: options.subject,
-                tags: options.tags,
-                headers: recipient.headers || options.headers
-            }))
+            chunk.map(recipient => {
+                if (options.templateId) {
+                    return sendEmailWithTemplate({
+                        to: recipient.to,
+                        templateId: options.templateId,
+                        params: recipient.params,
+                        subject: options.subject,
+                        tags: options.tags,
+                        headers: recipient.headers || options.headers
+                    });
+                } else {
+                    return sendEmail({
+                        to: recipient.to,
+                        html: options.htmlContent,
+                        subject: options.subject,
+                        params: recipient.params,
+                        tags: options.tags,
+                        headers: recipient.headers || options.headers
+                    });
+                }
+            })
         );
 
         const failures = results.filter(r => r.status === 'rejected' || !r.value.success);
 
         if (failures.length > 0) {
-            console.warn(`⚠️ Template Batch had ${failures.length} failures out of ${chunk.length}`);
+            console.warn(`⚠️ Batch had ${failures.length} failures out of ${chunk.length}`);
         }
 
         return {
@@ -115,7 +128,7 @@ export async function sendBatchEmailsWithTemplate(chunk, options = {}) {
             failCount: failures.length
         };
     } catch (error) {
-        console.error('❌ Brevo sendBatchEmailsWithTemplate error:', error.message);
+        console.error('❌ Brevo sendBatchEmails error:', error.message);
         return { success: false, successCount: 0, failCount: chunk.length, error: error.message };
     }
 }

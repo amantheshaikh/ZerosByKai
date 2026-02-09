@@ -1,25 +1,40 @@
-import { sendBatchEmailsWithTemplate } from '../utils/emailService.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { sendBatchEmails } from '../utils/emailService.js';
 import { config } from '../config/env.js';
 
-async function testBrevoTemplate() {
-    console.log('🧪 Starting Brevo Template Verification Test...');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    const templateId = config.brevo.weeklyDigestTemplateId;
-    if (!templateId) {
-        console.error('❌ Error: BREVO_WEEKLY_DIGEST_TEMPLATE_ID is not set in environment.');
+async function testBrevoTemplate() {
+    console.log('🧪 Starting Brevo HTML Content Verification Test...');
+
+    const templatePath = path.join(__dirname, '../emails/templates/brevo_template.html');
+    if (!fs.existsSync(templatePath)) {
+        console.error(`❌ Template file not found at ${templatePath}`);
         process.exit(1);
     }
 
-    console.log(`📡 Using Template ID: ${templateId}`);
+    let htmlContent = fs.readFileSync(templatePath, 'utf8');
+
+    // Sanitize: Ensure no newlines within {{ }} tags
+    htmlContent = htmlContent.replace(/\{\{([\s\S]*?)\}\}/g, (match, p1) => {
+        return `{{${p1.replace(/\s+/g, ' ').trim()}}}`;
+    });
+
+    console.log(`TYPE: Local HTML Template (Size: ${htmlContent.length} bytes)`);
 
     const testRecipients = [
         {
             to: config.admin.email || 'test@example.com',
+            // Structure params exactly as weekly.js does
             params: {
                 name: 'Tester',
+                subject: 'Test: ' + new Date().toISOString(),
                 weekDate: 'February 9, 2026',
                 threadCount: '2,500',
-                ideasCount: 3,
+                ideasCount: 2,
                 voteUrl: 'https://zerosbykai.com?token=test-token',
                 unsubscribeUrl: 'https://zerosbykai.com/unsubscribe?email=test@example.com&token=test-token',
                 mirrorLinkUrl: 'https://zerosbykai.com/view/weekly/2026-02-09',
@@ -51,9 +66,10 @@ async function testBrevoTemplate() {
     ];
 
     try {
-        console.log('📤 Sending test email to Brevo...');
-        const result = await sendBatchEmailsWithTemplate(testRecipients, {
-            templateId,
+        console.log('📤 Sending test email to Brevo with HTML content...');
+        const result = await sendBatchEmails(testRecipients, {
+            htmlContent,
+            subject: "Test - Direct HTML Send",
             tags: ['test-verification']
         });
 

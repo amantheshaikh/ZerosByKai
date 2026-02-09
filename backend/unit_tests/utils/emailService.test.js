@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendEmail, sendEmailWithTemplate, sendBatchEmailsWithTemplate } from '../../src/utils/emailService.js';
+import { sendEmail, sendEmailWithTemplate, sendBatchEmails } from '../../src/utils/emailService.js';
 import { brevoClient } from '../../src/config/brevo.js';
 import { config } from '../../src/config/env.js';
 
@@ -174,21 +174,21 @@ describe('emailService.js', () => {
         });
     });
 
-    describe('sendBatchEmailsWithTemplate()', () => {
+    describe('sendBatchEmails()', () => {
         const chunk = [
             { to: 'u1@example.com', params: { name: 'User1' } },
             { to: 'u2@example.com', params: { name: 'User2' } }
         ];
 
         it('should throw if templateId is missing', async () => {
-            await expect(sendBatchEmailsWithTemplate(chunk, {}))
-                .rejects.toThrow('Missing templateId');
+            await expect(sendBatchEmails(chunk, {}))
+                .rejects.toThrow('Missing templateId or htmlContent');
         });
 
         it('should send all emails in batch successfully', async () => {
             brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
 
-            const result = await sendBatchEmailsWithTemplate(chunk, { templateId: 5 });
+            const result = await sendBatchEmails(chunk, { templateId: 5 });
 
             expect(result.success).toBe(true);
             expect(result.successCount).toBe(2);
@@ -201,7 +201,7 @@ describe('emailService.js', () => {
                 .mockRejectedValueOnce(new Error('fail'))
                 .mockResolvedValueOnce({ messageId: 'ok' });
 
-            const result = await sendBatchEmailsWithTemplate(chunk, { templateId: 5 });
+            const result = await sendBatchEmails(chunk, { templateId: 5 });
 
             expect(result.success).toBe(true);
             expect(result.successCount).toBe(1);
@@ -211,7 +211,7 @@ describe('emailService.js', () => {
         it('should return success false if all emails fail', async () => {
             brevoClient.sendTransacEmail.mockRejectedValue(new Error('down'));
 
-            const result = await sendBatchEmailsWithTemplate(chunk, { templateId: 5 });
+            const result = await sendBatchEmails(chunk, { templateId: 5 });
 
             expect(result.success).toBe(false);
             expect(result.successCount).toBe(0);
@@ -221,7 +221,7 @@ describe('emailService.js', () => {
         it('should pass subject and tags from options', async () => {
             brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
 
-            await sendBatchEmailsWithTemplate(chunk, {
+            await sendBatchEmails(chunk, {
                 templateId: 5,
                 subject: 'Weekly Subject',
                 tags: ['weekly-digest']
@@ -244,7 +244,7 @@ describe('emailService.js', () => {
                 }
             ];
 
-            await sendBatchEmailsWithTemplate(chunkWithHeaders, {
+            await sendBatchEmails(chunkWithHeaders, {
                 templateId: 5,
                 headers: { 'X-Global': 'fallback' }
             });
@@ -261,7 +261,7 @@ describe('emailService.js', () => {
                 { to: 'u1@example.com', params: { name: 'User1' } }
             ];
 
-            await sendBatchEmailsWithTemplate(chunkNoHeaders, {
+            await sendBatchEmails(chunkNoHeaders, {
                 templateId: 5,
                 headers: { 'X-Global': 'value' }
             });

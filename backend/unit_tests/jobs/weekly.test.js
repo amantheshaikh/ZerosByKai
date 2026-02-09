@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calculateWinner, sendWeeklyDigest } from '../../src/jobs/weekly.js';
 import { supabaseAdmin } from '../../src/config/supabase.js';
-import { sendBatchEmailsWithTemplate } from '../../src/utils/emailService.js';
+import { sendBatchEmails } from '../../src/utils/emailService.js';
 
 // Mock all internal dependencies
 vi.mock('../../src/config/supabase.js', () => {
@@ -30,7 +30,7 @@ vi.mock('../../src/utils/emailToken.js', () => ({
 }));
 
 vi.mock('../../src/utils/emailService.js', () => ({
-    sendBatchEmailsWithTemplate: vi.fn(() => Promise.resolve({ success: true, successCount: 1, failCount: 0 }))
+    sendBatchEmails: vi.fn(() => Promise.resolve({ success: true, successCount: 1, failCount: 0 }))
 }));
 
 vi.mock('../../src/utils/dateUtils.js', () => ({
@@ -163,7 +163,7 @@ describe('weekly.js', () => {
             const result = await sendWeeklyDigest();
 
             expect(result.sent).toBe(1);
-            expect(sendBatchEmailsWithTemplate).toHaveBeenCalledWith(
+            expect(sendBatchEmails).toHaveBeenCalledWith(
                 expect.arrayContaining([
                     expect.objectContaining({
                         to: 'sub@example.com',
@@ -209,7 +209,7 @@ describe('weekly.js', () => {
         it('should log warning if failCount > 10%', async () => {
             const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
             const mockSubscribers = [{ email: 'f@e.com' }, { email: 'f2@e.com' }];
-            sendBatchEmailsWithTemplate.mockResolvedValueOnce({ success: false, successCount: 0, failCount: 2, error: { message: 'Brevo Down' } });
+            sendBatchEmails.mockResolvedValueOnce({ success: false, successCount: 0, failCount: 2, error: { message: 'Brevo Down' } });
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
