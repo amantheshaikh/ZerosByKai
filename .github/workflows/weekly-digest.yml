@@ -1,0 +1,41 @@
+name: Weekly Digest Email
+
+on:
+  schedule:
+    # Runs at 14:00 UTC every Monday (9:00 AM EST / 6:00 AM PST)
+    - cron: '0 14 * * 1'
+  workflow_dispatch: # Allows manual triggering from GitHub UI for testing
+
+jobs:
+  send-digest:
+    name: Send Weekly Digest
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./backend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Weekly Digest Script
+        run: node src/jobs/weekly.js --scheduled
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BREVO_WEEKLY_DIGEST_TEMPLATE_ID: ${{ secrets.BREVO_WEEKLY_DIGEST_TEMPLATE_ID }}
+          EMAIL_TOKEN_SECRET: ${{ secrets.EMAIL_TOKEN_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
