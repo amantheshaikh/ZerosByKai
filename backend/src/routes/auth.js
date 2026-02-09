@@ -88,7 +88,7 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
     syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
 
     const token = generateEmailToken(email, email);
-    const welcomeHtml = generateWelcomeEmail({ name: name || null, email });
+    const welcomeHtml = generateWelcomeEmail({ name: name || null, email, token });
     sendEmail({
       to: email,
       subject: "Welcome to ZerosByKai",
@@ -188,7 +188,7 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
     syncContact({ email: user.email, name: userName }).catch(err => console.error('Brevo Sync Error:', err.message));
 
     const token = generateEmailToken(user.id, user.email);
-    const welcomeHtml = generateWelcomeEmail({ name: userName, email: user.email });
+    const welcomeHtml = generateWelcomeEmail({ name: userName, email: user.email, token });
 
     const { success } = await sendEmail({
       to: user.email,

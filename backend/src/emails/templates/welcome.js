@@ -1,9 +1,8 @@
 import { generateEmailWrapper, generateEmailHeader, generateEmailFooter, emailStyles } from './shared.js';
 import { config } from '../../config/env.js';
 
-export function generateWelcomeEmail({ name, email }) {
+export function generateWelcomeEmail({ name, email, token }) {
   const displayName = name || 'there';
-  const token = Buffer.from(email).toString('base64');
 
   const content = `
     ${generateEmailHeader({ title: 'Welcome to the Hunt' })}
