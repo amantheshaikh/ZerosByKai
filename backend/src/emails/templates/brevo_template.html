@@ -62,6 +62,23 @@
       .comic-shadow-sm {
         box-shadow: 3px 3px 0 #333333 !important;
       }
+
+      /* Winner Card Dark Mode */
+      .winner-card {
+        background: #1a1a1a !important;
+        background-image: none !important;
+        border-color: #FCD933 !important;
+      }
+
+      .winner-label {
+        color: #FCD933 !important;
+      }
+
+      /* problem/solution Badge Dark Mode - Invert for visibility */
+      .label-badge {
+        background-color: #FCD933 !important;
+        color: #000000 !important;
+      }
     }
   </style>
 </head>
@@ -110,9 +127,9 @@
 
     <!-- Last Week's Winner -->
     {% if params.winner %}
-    <div
+    <div class="winner-card"
       style="padding: 24px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #fbbf24; border-radius: 8px; margin-bottom: 32px;">
-      <div
+      <div class="winner-label"
         style="font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
         🏆 LAST WEEK'S WINNER
       </div>
@@ -145,7 +162,7 @@
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
         <tr>
           <td valign="middle">
-            <span
+            <span class="label-badge"
               style="background: #000; color: #fff; font-size: 12px; font-weight: 700; padding: 4px 8px; text-transform: uppercase; letter-spacing: 1px;">
               #{{ idea.index_plus_one }}
             </span>
@@ -176,14 +193,14 @@
       </div>
 
       <div style="margin-bottom: 16px;">
-        <div
+        <div class="label-badge"
           style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">
           THE PROBLEM</div>
         <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{ idea.problem }}</p>
       </div>
 
       <div style="margin: 0;">
-        <div
+        <div class="label-badge"
           style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">
           THE SOLUTION</div>
         <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{ idea.solution }}</p>
@@ -194,7 +211,7 @@
     <hr style="border: none; border-top: 1px solid #000; margin: 32px 0;">
 
     <!-- CTA Section -->
-    <div
+    <div class="cta-box"
       style="margin: 48px 0; padding: 32px 24px; background: #be123c; border: 3px solid #000; box-shadow: 8px 8px 0 #000; text-align: center;">
       <div class="font-comic"
         style="font-family: 'Bangers', Impact, Charcoal, 'Arial Black', sans-serif; font-size: 28px; color: #FCD933; letter-spacing: 1px; margin-bottom: 16px; text-shadow: 2px 2px 0 #000;">

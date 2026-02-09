@@ -49,6 +49,28 @@ export const emailStyles = {
         .comic-shadow { box-shadow: 6px 6px 0 #222222 !important; }
         .comic-shadow-sm { box-shadow: 3px 3px 0 #222222 !important; }
 
+        /* Winner Card Dark Mode */
+        .winner-card {
+          background: #1a1a1a !important;
+          background-image: none !important;
+          border-color: #FCD933 !important;
+        }
+        .winner-label {
+          color: #FCD933 !important;
+        }
+
+        /* CTA Box Dark Mode */
+        .cta-box {
+          background-color: #1a1a1a !important;
+          border-color: #be123c !important; 
+        }
+
+        /* problem/solution Badge Dark Mode - Invert for visibility */
+        .label-badge {
+          background-color: #FCD933 !important;
+          color: #000000 !important;
+        }
+
         /* Prevent auto-inversion for specific containers using gradient tech */
         .no-invert {
            background-image: linear-gradient(#111111, #111111) !important;
