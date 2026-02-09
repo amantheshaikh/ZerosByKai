@@ -46,23 +46,27 @@ listIds: [2] // <-- Change this if your list ID is different
 
 ## 3. Email Templates
 
-Currently, your email templates (`welcome.js`, `weekly-digest.js`) are **coded in JavaScript**.
-- **Pros:** Full control over dynamic data (lists of ideas), version controlled (Git).
-- **Cons:** Harder to edit design visually.
+### Weekly Digest — Brevo-Hosted Template
+The weekly digest uses a **Brevo-hosted template** (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`). The backend sends only data params to Brevo; Brevo renders the HTML.
+
+- **Template HTML source:** `backend/src/emails/templates/brevo_template.html`
+- **Template creation script:** `node backend/src/scripts/create_weekly_template.js`
+- **Test script:** `node backend/src/tests/test_brevo_template.js`
+- **Params sent:** `name`, `subject`, `weekDate`, `threadCount`, `ideasCount`, `voteUrl`, `unsubscribeUrl`, `mirrorLinkUrl`, `frontendUrl`, `winner`, `ideas[]`
+
+### Welcome & Magic Link — Server-Generated HTML
+These templates are coded in JavaScript and rendered server-side:
+- `backend/src/emails/templates/welcome.js`
+- `backend/src/emails/templates/magic-link.js`
 
 ### Previewing Templates
-You can send test emails to yourself without migrating to Brevo's builder:
 ```bash
-# Run from project root
+# Welcome + Magic Link previews
 node backend/src/workflows/preview_templates.js your@email.com
-```
 
-### Migrating to Brevo Drag-and-Drop (Optional)
-If you prefer to design emails in Brevo:
-1. Create a template in Brevo Design Tool.
-2. Use variables like `{{ params.name }}` or `{{ params.ideas }}`.
-3. Get the **Template ID** (e.g., 5).
-4. Update `emailService.js` to use `templateId: 5` instead of `htmlContent`.
+# Weekly Digest preview (uses Brevo template)
+node backend/src/tests/test_brevo_template.js
+```
 
 ## 4. Webhooks (Advanced)
 

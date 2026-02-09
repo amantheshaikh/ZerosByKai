@@ -48,15 +48,17 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 
 ## 5. Step 5: Execution (Monday Morning)
 **Goal**: Deliver the email.
-**Running**: Automatically on **Monday 9 AM UTC**.
+**Running**: GitHub Actions (`.github/workflows/weekly-digest.yml`) — **Monday 14:00 UTC (9 AM EST)**.
+**Command**: `node src/jobs/weekly.js --scheduled`
 **Logic**:
-1. **Calculate Winner**: Looks at the *Previous Week's* batch. Counts votes. Determine winner. 
+1. **Calculate Winner**: Looks at the *Previous Week's* batch. Counts votes. Determines winner.
    - Awards badges and **archives** last week's ideas.
 2. **Publish**: Finds ideas scheduled for *this week* and flips status `scheduled` -> `published`.
    - *Now they receive public visibility on the site.*
 3. **Send Digest**:
-   - Compiles the email with the winner and the 10 new ideas.
-   - **Optimization**: Sends in batches of 50 via Brevo Transactional Batch API. (Personalized with Unsubscribe/Login tokens).
+   - Sends per-subscriber params to **Brevo-hosted template** (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`). No server-side HTML generation.
+   - **Optimization**: Sends in batches of 50 via `sendBatchEmailsWithTemplate()`. Each email gets personalized unsubscribe/login tokens and `List-Unsubscribe` headers.
+   - Subject line pulled from `weekly_batches.subject_line` (Supabase) or uses default.
    - If NO scheduled batch is found: **Stops**. Sends nothing.
 
 ---
@@ -69,4 +71,4 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 | **2. Approve** | Review | Supabase Dashboard | *Manual UI Action* |
 | **3. Schedule** | Pick & Lock | `backend/src/services/newsletterService.js` | `npm run schedule` |
 | **4. Check** | Monitor | `backend/src/jobs/backlog_check.js` | `0 9 * * 0,3,5` |
-| **5. Execute** | Publish & Send | `backend/src/jobs/weekly.js` | `0 9 * * 1` |
+| **5. Execute** | Publish & Send | `backend/src/jobs/weekly.js` | GitHub Actions (`0 14 * * 1`) |

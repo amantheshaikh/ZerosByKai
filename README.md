@@ -138,11 +138,11 @@ zerosbykai/
 - **Unicorn Hunter**: 20+ winning picks
 
 ### Weekly Cycle
-- **Sunday 10 AM UTC**: Reddit scraping → 10 ideas generated (status: `backlog`)
-- **Monday 9 AM UTC**: 
-  1. Auto-publish backlog ideas
-  2. Calculate last week's winner
-  3. Send weekly digest emails (with auto-login tokens)
+- **Sunday**: Multi-source scraping → ideas generated (status: `backlog`)
+- **Monday (GitHub Actions, 14:00 UTC)**:
+  1. Calculate last week's winner & award badges
+  2. Publish scheduled ideas (`scheduled` → `published`)
+  3. Send weekly digest via Brevo template (with auto-login tokens)
 
 ---
 
@@ -165,9 +165,9 @@ See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
 - **Reply-To**: `kai@zerosbykai.com`
 
 ### Email Types:
-1. **Weekly Digest** - Sent every Monday to all subscribers
-2. **Welcome Email** - Sent to new subscribers
-3. **Magic Link** - Sent for passwordless authentication
+1. **Weekly Digest** - Sent every Monday via Brevo template (params-only, no server-side HTML)
+2. **Welcome Email** - Server-generated HTML, sent on signup
+3. **Magic Link** - Server-generated HTML, sent for passwordless auth
 
 ### Auto-Login Feature:
 - Authenticated users receive weekly digest with `?token=<jwt>` in URL

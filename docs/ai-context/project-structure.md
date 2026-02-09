@@ -52,12 +52,11 @@ ZerosByKai/
 │   │   │   ├── backlog_check.js        # Health check job
 │   │   │   └── weekly.js               # Monday: publish, winner, digest (Brevo)
 │   │   ├── emails/                     # Email templates
-│   │   │   ├── templates.js            # Re-exports all templates
 │   │   │   └── templates/
 │   │   │       ├── shared.js           # Shared components & styles
-│   │   │       ├── weekly-digest.js    # Weekly digest email
-│   │   │       ├── welcome.js          # Welcome email
-│   │   │       └── magic-link.js       # Magic link email
+│   │   │       ├── brevo_template.html # Weekly digest (Brevo-hosted template)
+│   │   │       ├── welcome.js          # Welcome email (server-generated)
+│   │   │       └── magic-link.js       # Magic link email (server-generated)
 │   │   ├── utils/
 │   │   │   ├── emailToken.js           # JWT utilities
 │   │   │   ├── emailService.js         # Brevo email service wrapper

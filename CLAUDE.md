@@ -48,15 +48,17 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **Generate:** Multi-source scraping → Gemini AI → `backlog` ideas (`npm run scrape:local`)
 - **Approve:** Admin reviews `backlog` → marks as `approved` in Supabase
 - **Schedule:** Select 10 oldest approved ideas → Lock for next week (`npm run schedule`)
-- **Monday 9 AM UTC (Automated):** 
+- **Monday (GitHub Actions, `.github/workflows/weekly-digest.yml`):**
     1. Calculate last week's winner & award badges
     2. Publish *scheduled* batch (`scheduled` -> `published`)
-    3. Send digest (Brevo Batch API)
+    3. Send digest via Brevo Template API (params only, no server-side HTML)
 
 ### Email System
-- **Provider:** Brevo (Transaction & Contacts Sync)
-- **Templates:** Separated into `backend/src/emails/templates/`
+- **Provider:** Brevo (Transactional + Contacts Sync)
+- **Weekly Digest:** Brevo-hosted template (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`), data sent as params
+- **Welcome / Magic Link:** Server-generated HTML in `backend/src/emails/templates/`
 - **Auto-Login:** JWT tokens in email URLs for seamless voting
+- **Trigger:** GitHub Actions cron (Monday 14:00 UTC / 9 AM EST)
 
 ## Weekly Workflow
 
@@ -71,14 +73,14 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **Command:** `npm run schedule -- --weeks 1`
 - **Action:** Assigns next Monday's date to 10 ideas and sets status to `scheduled`.
 
-### 4. Execute (Monday 9 AM UTC)
-- **Action:** `jobs/weekly.js` runs.
-- **Result:** Winner calculated, bits flipped to `published`, emails sent in batches.
+### 4. Execute (Monday, GitHub Actions)
+- **Trigger:** `.github/workflows/weekly-digest.yml` runs `node src/jobs/weekly.js --scheduled`
+- **Result:** Winner calculated, ideas flipped to `published`, digest sent via Brevo template.
 
 ## File Organization
 
 ### Backend (`backend/src/`)
-- **`server.js`** - Entry point, cron scheduling
+- **`server.js`** - Entry point, health check cron (backlog only)
 - **`routes/`** - API endpoints (ideas, votes, auth)
 - **`services/`** - Core business logic (brevo, ai, newsletter)
 - **`jobs/`** - Production cron jobs
@@ -90,13 +92,14 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`lib/auth.js`** - Auth context
 - **`unit_tests/`** - React component & lib tests
 
-## Recent Major Changes (Feb 6, 2026)
-- ✅ **Testing**: Implemented comprehensive unit testing suite using Vitest (~100% logic coverage).
-- ✅ **Cleanup**: Consolidated all test files into dedicated `unit_tests/` directories.
-- ✅ **Refactoring**: Modularized backend routes and services for better maintainability.
-- ✅ **Auth**: Enhanced `AuthModal` validation logic and user signup flows.
+## Recent Major Changes (Feb 9, 2026)
+- ✅ **Email Migration**: Weekly digest now uses Brevo-hosted template (params only, no server-side HTML).
+- ✅ **GitHub Actions**: Monday digest triggered via `.github/workflows/weekly-digest.yml`, server cron removed.
+- ✅ **RFC 8058**: Per-subscriber `List-Unsubscribe` + `List-Unsubscribe-Post` headers for one-click unsubscribe.
+- ✅ **Subject Override**: Email subject from Supabase `weekly_batches.subject_line` passed via Brevo API.
+- ✅ **Accurate Metrics**: Per-email success/fail counting in batch sends.
+- ✅ **Testing**: Comprehensive unit test suite using Vitest (100+ tests passing).
 - ✅ **Architecture**: Hardened "Scheduled" state machine to prevent content leaks.
-- ✅ **Email**: Fully migrated to Brevo Batch API and Contact Sync.
 
 ## Documentation Hierarchy
 - **Tier 1 (Foundation):** This file - Master context
