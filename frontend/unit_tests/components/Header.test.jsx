@@ -136,6 +136,25 @@ describe('Header Component', () => {
             expect(openAuthModal).toHaveBeenCalledWith('signin');
         });
 
+        it('calls openSubscribeModal when subscribe is clicked', () => {
+            const openSubscribeModal = vi.fn();
+            useAuth.mockReturnValue({
+                user: null,
+                isLoading: false,
+                signOut: vi.fn(),
+                openAuthModal: vi.fn(),
+                closeAuthModal: vi.fn(),
+                openSubscribeModal,
+                closeSubscribeModal: vi.fn(),
+            });
+
+            render(<Header />);
+
+            fireEvent.click(screen.getByText('SUBSCRIBE'));
+
+            expect(openSubscribeModal).toHaveBeenCalled();
+        });
+
         it('calls signOut when sign out is clicked', () => {
             const signOut = vi.fn();
             useAuth.mockReturnValue({

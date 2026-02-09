@@ -531,7 +531,7 @@ export function AuthProvider({ children }) {
    * @returns {Promise<{message: string}>}
    * @throws {Error} Subscription error
    */
-  const subscribeNewsletter = useCallback(async (email, name = null) => {
+  const subscribeNewsletter = useCallback(async (email) => {
     if (!email || typeof email !== 'string') {
       throw new Error('Valid email is required');
     }
@@ -547,7 +547,7 @@ export function AuthProvider({ children }) {
         method: 'POST',
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
-          name: name?.trim() || null
+
         })
       });
 

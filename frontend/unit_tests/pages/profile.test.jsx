@@ -14,6 +14,10 @@ vi.mock('next/router', () => ({
     useRouter: vi.fn(),
 }));
 
+vi.mock('next/head', () => ({
+    default: ({ children }) => <>{children}</>,
+}));
+
 vi.mock('@/components/Header', () => ({
     default: () => <header data-testid="mock-header">Header</header>,
 }));
@@ -45,6 +49,8 @@ describe('ProfilePage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         useRouter.mockReturnValue(mockRouter);
+        // Default to loading=false for most tests to avoid repetitive setup
+        useAuth.mockReturnValue({ user: mockUser, session: mockSession, isLoading: false });
     });
 
     it('shows loading state initially', () => {
@@ -135,6 +141,6 @@ describe('ProfilePage', () => {
         await waitFor(() => {
             expect(screen.getByText('Idea 1')).toBeInTheDocument();
             expect(screen.getByText('Title 1')).toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
     });
 });

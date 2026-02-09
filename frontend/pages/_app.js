@@ -11,6 +11,9 @@ import { Analytics } from '@vercel/analytics/react'
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
     loading: () => null,
 })
+const SubscribeModal = dynamic(() => import('@/components/SubscribeModal'), {
+    loading: () => null,
+})
 
 const bangers = Bangers({
     weight: '400',
@@ -80,6 +83,7 @@ export default function App({ Component, pageProps }) {
                 <main className={`${bangers.variable} ${courierPrime.variable} font-sans`}>
                     <Component {...pageProps} />
                     <AuthModal />
+                    <SubscribeModal />
                     <Analytics />
                     <div id="mobile-menu-portal" />
                 </main>
