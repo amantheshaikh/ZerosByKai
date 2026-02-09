@@ -122,26 +122,25 @@ fly logs
 
 ---
 
-## Cron Jobs
+## Scheduled Jobs
 
-Automatically runs via `node-cron`:
+### Server Cron (node-cron, Fly.io)
 
-### Sunday 10 AM UTC
-- **Multi-source Scraping** (`jobs/scrapers/run_scrapers.js`) (via GitHub Actions)
-  - Scrapes 20+ sources (Reddit, HN, IH, X)
-  - Generates 10 ideas via Gemini AI
-  - Saves as `status: 'backlog'`
-
-### Wed/Fri/Sun 9 AM UTC
+**Wed/Fri/Sun 9 AM UTC**
 - **Schedule Health Check** (`jobs/backlog_check.js`)
   - Verifies if next week's newsletter is scheduled.
   - Alerts Admin if actionable work is needed.
 
-### Monday 9 AM UTC
-- **Auto-Publish & Send** (`jobs/weekly.js`)
-  - Flips `scheduled` ideas -> `published`.
-  - Calculates last week's winner.
-  - Sends weekly digest via Brevo Batch API (50/req).
+### GitHub Actions
+
+**Sunday** — Multi-source Scraping
+- Scrapes 20+ sources (Reddit, HN, IH, X)
+- Generates ideas via Gemini AI → `status: 'backlog'`
+
+**Monday 14:00 UTC (9 AM EST)** — Weekly Digest (`.github/workflows/weekly-digest.yml`)
+- Calculates last week's winner & awards badges.
+- Flips `scheduled` ideas → `published`.
+- Sends digest via Brevo Template API (50/batch, per-subscriber params).
 
 ---
 
@@ -166,10 +165,9 @@ backend/
 │   │   ├── brevoService.js           # CRM Logic
 │   │   └── newsletterService.js      # Scheduling Logic
 │   ├── emails/                       # Email templates
-│   │   ├── templates.js              # Re-exports all templates
 │   │   └── templates/
 │   │       ├── shared.js             # Shared components
-│   │       ├── weekly-digest.js      # Weekly digest email
+│   │       ├── brevo_template.html   # Weekly digest (Brevo-hosted template)
 │   │       ├── welcome.js            # Welcome email
 │   │       └── magic-link.js         # Magic link email
 │   ├── utils/                        # Utilities
@@ -280,4 +278,4 @@ Use Supabase Dashboard:
 
 ---
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-09

@@ -18,6 +18,11 @@ export const emailStyles = {
     <meta name="color-scheme" content="light dark">
     <meta name="supported-color-schemes" content="light dark">
     <style type="text/css">
+      :root {
+        color-scheme: light dark;
+        supported-color-schemes: light dark;
+      }
+
       @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
       @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
       
@@ -31,20 +36,28 @@ export const emailStyles = {
 
       /* Dark Mode Overrides */
       @media (prefers-color-scheme: dark) {
-        .body-bg { background-color: #111111 !important; color: #eeeeee !important; }
-        .card-bg { background-color: #1a1a1a !important; border-color: #444444 !important; }
-        .text-main { color: #eeeeee !important; }
-        .text-muted { color: #aaaaaa !important; }
-        .border-main { border-color: #444444 !important; }
-        .divider-main { border-top-color: #333333 !important; }
-        .summary-box { background-color: #222222 !important; border-left-color: #FCD933 !important; }
-        .footer-text { color: #999999 !important; }
-        .footer-link { color: #bbbbbb !important; }
+        .body-bg { background-color: #000000 !important; color: #ffffff !important; }
+        .card-bg { background-color: #111111 !important; border-color: #333333 !important; }
+        .text-main { color: #ffffff !important; }
+        .text-muted { color: #999999 !important; }
+        .border-main { border-color: #333333 !important; }
+        .divider-main { border-top-color: #222222 !important; }
+        .summary-box { background-color: #0a0a0a !important; border-left-color: #FCD933 !important; }
+        .footer-text { color: #888888 !important; }
+        .footer-link { color: #cccccc !important; }
         
-        /* Ensure comic shadow remains visible */
-        .comic-shadow { box-shadow: 6px 6px 0 #333333 !important; }
-        .comic-shadow-sm { box-shadow: 3px 3px 0 #333333 !important; }
+        .comic-shadow { box-shadow: 6px 6px 0 #222222 !important; }
+        .comic-shadow-sm { box-shadow: 3px 3px 0 #222222 !important; }
+
+        /* Prevent auto-inversion for specific containers using gradient tech */
+        .no-invert {
+           background-image: linear-gradient(#111111, #111111) !important;
+        }
       }
+
+      /* Outlook/Win10 overrides */
+      [data-ogsc] .body-bg { background-color: #000000 !important; }
+      [data-ogsc] .text-main { color: #ffffff !important; }
     </style>
   `,
 

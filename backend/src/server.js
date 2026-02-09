@@ -17,7 +17,6 @@ import emailsRouter from './routes/emails.js';
 import { config } from './config/env.js';
 
 // Jobs
-import { calculateWinner, sendWeeklyDigest } from './jobs/weekly.js';
 import { checkScheduleHealth } from './jobs/backlog_check.js';
 
 const app = express();
@@ -125,35 +124,8 @@ app.post('/api/subscribe', (req, res, next) => {
 });
 
 // Cron Jobs
+// Monday weekly digest: Triggered via GitHub Actions (.github/workflows/weekly-digest.yml)
 // Sunday scraping is run manually to populate backlog
-
-// Monday 9 AM UTC: Calculate winner, send weekly digest (sequential)
-cron.schedule('0 9 * * 1', async () => {
-  console.log('Running weekly Monday workflow...');
-  console.log('Running weekly winner calculation...');
-  try {
-    const winnerResult = await calculateWinner();
-    console.log('Winner calculated successfully');
-
-    // If winner calculation returned falsy (unexpected), abort sending digest
-    if (!winnerResult) {
-      console.error('Aborting weekly digest: winner calculation returned no result');
-      return;
-    }
-  } catch (error) {
-    console.error('Error calculating winner:', error);
-    // Abort the digest send to avoid sending incomplete or incorrect data
-    return;
-  }
-
-  console.log('Sending weekly digest...');
-  try {
-    await sendWeeklyDigest();
-    console.log('Weekly digest sent successfully');
-  } catch (error) {
-    console.error('Error sending weekly digest:', error);
-  }
-});
 
 // Wed, Fri, and Sunday 9 AM UTC: Check Schedule Health
 cron.schedule('0 9 * * 0,3,5', async () => {
@@ -183,5 +155,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ZerosByKai API running on port ${PORT}`);
-  console.log(`📧 Cron jobs scheduled for weekly digest`);
+  console.log(`📧 Cron jobs scheduled (backlog health check)`);
 });

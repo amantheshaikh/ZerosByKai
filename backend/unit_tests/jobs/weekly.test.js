@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calculateWinner, sendWeeklyDigest } from '../../src/jobs/weekly.js';
 import { supabaseAdmin } from '../../src/config/supabase.js';
-import { sendBatchEmails } from '../../src/utils/emailService.js';
+import { sendBatchEmailsWithTemplate } from '../../src/utils/emailService.js';
 
 // Mock all internal dependencies
 vi.mock('../../src/config/supabase.js', () => {
@@ -12,6 +12,7 @@ vi.mock('../../src/config/supabase.js', () => {
         in: vi.fn().mockReturnThis(),
         is: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         upsert: vi.fn().mockReturnThis(),
         single: vi.fn().mockReturnThis(),
@@ -24,16 +25,12 @@ vi.mock('../../src/config/supabase.js', () => {
     return { supabaseAdmin: mock };
 });
 
-vi.mock('../../src/emails/templates/weekly-digest.js', () => ({
-    generateWeeklyDigestEmail: vi.fn(() => '<html>Email Body</html>')
-}));
-
 vi.mock('../../src/utils/emailToken.js', () => ({
     generateEmailToken: vi.fn(() => 'mock-token')
 }));
 
 vi.mock('../../src/utils/emailService.js', () => ({
-    sendBatchEmails: vi.fn(() => Promise.resolve({ success: true }))
+    sendBatchEmailsWithTemplate: vi.fn(() => Promise.resolve({ success: true, successCount: 1, failCount: 0 }))
 }));
 
 vi.mock('../../src/utils/dateUtils.js', () => ({
@@ -44,7 +41,7 @@ vi.mock('../../src/utils/dateUtils.js', () => ({
 vi.mock('../../src/config/env.js', () => ({
     config: {
         frontendUrl: 'http://localhost:3000',
-        brevoApiKey: 'mock-key'
+        brevo: { weeklyDigestTemplateId: 99 }
     }
 }));
 
@@ -78,13 +75,12 @@ describe('weekly.js', () => {
 
         it('should calculate winner and award badges correctly', async () => {
             const mockIdeas = [{ id: '1', name: 'Idea 1', title: 'Title 1' }];
-            const mockVotes = [{ idea_id: '1' }, { idea_id: '1' }, { idea_id: '1' }]; // 3 votes for Idea 1
             const mockVoters = [{ user_id: 'u1' }, { user_id: 'u2' }, { user_id: 'u3' }];
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ data: mockVotes, error: null }).then(f)) // getVotes (unaggregated)
+                .mockImplementationOnce(f => Promise.resolve({ count: 3, error: null }).then(f)) // per-idea vote count (for Idea 1)
                 .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // batch upsert
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // update winner flag
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // archive all
@@ -102,7 +98,7 @@ describe('weekly.js', () => {
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // getVotes (0 votes)
+                .mockImplementationOnce(f => Promise.resolve({ count: 0, error: null }).then(f)) // per-idea vote count (0 votes)
                 .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // upsert batch
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // archive
 
@@ -120,7 +116,7 @@ describe('weekly.js', () => {
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ data: [{ idea_id: '1' }], error: null }).then(f)) // getVotes
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // vote count
                 .mockImplementationOnce(f => Promise.resolve({ data: { id: 'b' }, error: null }).then(f)) // upsert batch
                 .mockImplementationOnce(f => Promise.resolve({ error: new Error('Update Failed') }).then(f)); // update winner flag
 
@@ -159,15 +155,37 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // update status
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // fetch ideas
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeekBatch
-                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subscribers
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total subscriber count
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subscribers (page 1)
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // subscribers (empty page 2 ends loop)
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch status update
 
             const result = await sendWeeklyDigest();
 
             expect(result.sent).toBe(1);
-            expect(sendBatchEmails).toHaveBeenCalled();
-            // Verify subject line was passed correctly - we can't easily check chunk subject without more spies, 
-            // but we know it reached this point.
+            expect(sendBatchEmailsWithTemplate).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        to: 'sub@example.com',
+                        params: expect.objectContaining({
+                            name: 'Sub',
+                            subject: 'Custom Subject',
+                            ideasCount: 1,
+                            unsubscribeUrl: expect.stringContaining('/unsubscribe?email='),
+                            voteUrl: expect.stringContaining('token=')
+                        }),
+                        headers: expect.objectContaining({
+                            'List-Unsubscribe': expect.stringContaining('/unsubscribe?email='),
+                            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                        })
+                    })
+                ]),
+                expect.objectContaining({
+                    templateId: 99,
+                    subject: 'Custom Subject',
+                    tags: ['weekly-digest']
+                })
+            );
         });
 
         it('should use default subject if no subject_line in DB', async () => {
@@ -179,7 +197,9 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
-                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subscribers
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total subscriber count
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subscribers (page 1)
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // subscribers (page 2)
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch status update
 
             const result = await sendWeeklyDigest();
@@ -189,15 +209,17 @@ describe('weekly.js', () => {
         it('should log warning if failCount > 10%', async () => {
             const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
             const mockSubscribers = [{ email: 'f@e.com' }, { email: 'f2@e.com' }];
-            sendBatchEmails.mockResolvedValueOnce({ success: false, error: { message: 'Brevo Down' } });
+            sendBatchEmailsWithTemplate.mockResolvedValueOnce({ success: false, successCount: 0, failCount: 2, error: { message: 'Brevo Down' } });
 
             supabaseAdmin.then
-                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // batch
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
-                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subs
-                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch update
+                .mockImplementationOnce(f => Promise.resolve({ count: 2, error: null }).then(f)) // total
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // page 1
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // page 2
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // update
 
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
             await sendWeeklyDigest();
@@ -211,7 +233,8 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
                 .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
-                .mockImplementationOnce(f => Promise.resolve({ data: [{ email: 'test@ex.com' }], error: new Error('Subs Fetch Failed') }).then(f)); // subs (Needs some data to pass null check if error check was somehow bypassed, though it shouldn't be)
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // count
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: new Error('Subs Fetch Failed') }).then(f)); // fetch page 1 fails
 
             await expect(sendWeeklyDigest()).rejects.toThrow('Subs Fetch Failed');
         });

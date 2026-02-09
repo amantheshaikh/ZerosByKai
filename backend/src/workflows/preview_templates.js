@@ -1,6 +1,5 @@
 import { generateWelcomeEmail } from '../emails/templates/welcome.js';
 import { generateMagicLinkEmail } from '../emails/templates/magic-link.js';
-import { generateWeeklyDigestEmail } from '../emails/templates/weekly-digest.js';
 import { sendEmail } from '../utils/emailService.js';
 import { config } from '../config/env.js';
 import { ADMIN_CONFIG } from '../utils/helpers.js';
@@ -37,26 +36,7 @@ async function previewTemplates() {
         tags: ['preview', 'magic-link']
     });
 
-    // 3. Weekly Digest
-    console.log('Sending Weekly Digest...');
-    // Mock data for weekly digest
-    const mockIdeas = [
-        { title: 'AI-Powered T-Shirt Folder', name: 'FoldAI' },
-        { title: 'Uber for Dog Walking in Rain', name: 'DryPaws' },
-        { title: 'LinkedIn for Cats', name: 'MeowLink' }
-    ];
-    await sendEmail({
-        to: targetEmail,
-        subject: '[Preview] Weekly Digest: 3 New Ideas',
-        html: generateWeeklyDigestEmail({
-            ideas: mockIdeas,
-            weekDate: new Date().toLocaleDateString(),
-            winner: { title: 'Last Week Winner', name: 'WinApp', vote_count: 42 },
-            badgeCount: 5,
-            name: 'Preview User'
-        }),
-        tags: ['preview', 'weekly-digest']
-    });
+    // Weekly Digest: Use test_brevo_template.js instead (Brevo-hosted template)
 
     console.log('✅ All previews sent! Check your inbox.');
 }

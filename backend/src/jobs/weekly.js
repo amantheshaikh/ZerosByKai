@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '../config/supabase.js';
-import { generateWeeklyDigestEmail } from '../emails/templates/weekly-digest.js';
 import { generateEmailToken } from '../utils/emailToken.js';
-import { sendBatchEmails } from '../utils/emailService.js';
+import { sendBatchEmailsWithTemplate } from '../utils/emailService.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
 import { config } from '../config/env.js';
 
@@ -22,7 +21,8 @@ export async function calculateWinner() {
     const currentMonday = getMonday();
     const weekStart = getLastMonday(new Date(currentMonday));
 
-    console.log(`🏆 Calculating winner for week ${weekStart} (preceding current week ${currentMonday})...`);
+    const memStart = process.memoryUsage().heapUsed / 1024 / 1024;
+    console.log(`🏆 Calculating winner for week ${weekStart} (preceding current week ${currentMonday})... [Mem: ${memStart.toFixed(1)}MB]`);
 
     // Check if winner already calculated this week (prevents race condition)
     const { data: existingBatch, error: checkError } = await supabaseAdmin
@@ -52,24 +52,17 @@ export async function calculateWinner() {
       return;
     }
 
-    // 2 & 3. Get vote counts and find winner (in-memory aggregation since group_by is not a JS client function)
-    const { data: allVotes, error: countError } = await supabaseAdmin
-      .from('votes')
-      .select('idea_id')
-      .in('idea_id', ideas.map(i => i.id));
+    // 2 & 3. Get vote counts for each idea (doing it sequentially to avoid parallel memory spikes on small machines)
+    const ideaVotes = [];
+    for (const idea of ideas) {
+      const { count, error } = await supabaseAdmin
+        .from('votes')
+        .select('*', { count: 'exact', head: true })
+        .eq('idea_id', idea.id);
 
-    if (countError) throw countError;
-
-    // Use a Map for in-memory counting
-    const voteCountMap = new Map();
-    (allVotes || []).forEach(v => {
-      voteCountMap.set(v.idea_id, (voteCountMap.get(v.idea_id) || 0) + 1);
-    });
-
-    const ideaVotes = ideas.map(idea => ({
-      ...idea,
-      voteCount: voteCountMap.get(idea.id) || 0
-    }));
+      if (error) throw error;
+      ideaVotes.push({ ...idea, voteCount: count || 0 });
+    }
 
     const totalVotes = ideaVotes.reduce((sum, i) => sum + i.voteCount, 0);
     const maxVotes = Math.max(...ideaVotes.map(i => i.voteCount));
@@ -249,112 +242,114 @@ export async function sendWeeklyDigest() {
       emailSubject = defaultSubject;
     }
 
-    // 5. Get all active subscribers
-    const { data: emailList, error: subsError } = await supabaseAdmin
+    // 5. Get total subscriber count for progress tracking
+    const { count: totalSubscribers, error: countErrorSubs } = await supabaseAdmin
       .from('subscribers')
-      .select('email, name, user_id')
+      .select('*', { count: 'exact', head: true })
       .is('unsubscribed_at', null);
 
-    if (subsError) throw subsError;
+    if (countErrorSubs) throw countErrorSubs;
 
-    if (!emailList || emailList.length === 0) {
+    if (totalSubscribers === 0) {
       console.log('No active subscribers found.');
       return;
     }
 
-    console.log(`📡 Preparing digest for ${emailList.length} active subscribers via Brevo...`);
+    console.log(`📡 Preparing digest for ${totalSubscribers} active subscribers...`);
 
     const threadCount = 2100 + Math.floor(Math.random() * 450);
 
-    // Generate email HTML base
-    const baseHtml = generateWeeklyDigestEmail({
-      ideas,
-      winner: lastWeekBatch?.winner,
-      threadCount,
-      weekDate: new Date(weekStart).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      }),
-      id: weekStart
-    });
 
-    // 6. Process in batches to minimize memory usage (OOM prevention)
-    const BATCH_SIZE = 50;
-    const plainTextTemplate = `Hi {{name}}!\n\nKai's Zeros - Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}\n\n10 new startup opportunities are waiting for you.\n\nView & vote on this week's opportunities: {{voteUrl}}\n\nUnsubscribe: {{unsubscribeUrl}}`;
-
-    let successCount = 0;
-    let failCount = 0;
-    const totalSubscribers = emailList.length;
-    const totalBatches = Math.ceil(totalSubscribers / BATCH_SIZE);
-
-    console.log(`🚀 Sending emails to ${totalSubscribers} subscribers in batches of ${BATCH_SIZE}...`);
-
-    for (let i = 0; i < totalSubscribers; i += BATCH_SIZE) {
-      const subscriberChunk = emailList.slice(i, i + BATCH_SIZE);
-      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const emailBatch = [];
-
-      console.log(`   Preparing batch ${batchNum}/${totalBatches} (${subscriberChunk.length} emails)...`);
-
-      for (const subscriber of subscriberChunk) {
-        // Secure token for unsubscribe
-        const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
-
-        // Generate auth token for authenticated users
-        let voteUrl = `${config.frontendUrl}?utm_source=email`;
-        if (subscriber.user_id) {
-          const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
-          voteUrl += `&token=${encodeURIComponent(authToken)}`;
-        }
-
-        const personalHtml = baseHtml
-          .replace(
-            `href="${config.frontendUrl}?utm_source=email"`,
-            `href="${voteUrl}"`
-          )
-          .replace('{{email}}', subscriber.email)
-          .replace('{{token}}', token)
-          .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there');
-
-        const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${encodeURIComponent(token)}`;
-
-        // Personalize plain text with name and URLs
-        const personalPlainText = plainTextTemplate
-          .replace('{{name}}', subscriber.name ? subscriber.name.split(' ')[0] : 'there')
-          .replace('{{voteUrl}}', voteUrl)
-          .replace('{{unsubscribeUrl}}', unsubscribeUrl);
-
-        emailBatch.push({
-          to: subscriber.email,
-          subject: emailSubject,
-          html: personalHtml,
-          text: personalPlainText
-        });
-      }
-
-      console.log(`   🚀 Sending batch ${batchNum}/${totalBatches}...`);
-
-      const { success, error } = await sendBatchEmails(emailBatch, {
-        tags: ['weekly-digest'],
-        headers: {
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-        }
-      });
-
-      if (success) {
-        successCount += subscriberChunk.length;
-        console.log(`      ✅ Batch ${batchNum} sent successfully`);
-      } else {
-        failCount += subscriberChunk.length;
-        console.error(`      ❌ Batch ${batchNum} failed: ${error?.message || 'Unknown error'}`);
-      }
-
-      // Slight delay between batches to be nice
-      await new Promise(r => setTimeout(r, 200));
+    const templateId = config.brevo.weeklyDigestTemplateId;
+    if (!templateId) {
+      console.error('❌ BREVO_WEEKLY_DIGEST_TEMPLATE_ID is missing. Cannot send weekly digest.');
+      throw new Error('Missing Brevo Template ID');
     }
 
-    console.log(`📊 Final Result: ${successCount}/${totalSubscribers} sent, ${failCount} failed.`);
+    // 6. Paginate through active subscribers (OOM prevention)
+    let successCount = 0;
+    let failCount = 0;
+    let page = 0;
+    const PAGE_SIZE = 500; // Fetch 500 at a time
+    const SEND_BATCH_SIZE = 50; // Send to Brevo in batches of 50
+
+    console.log(`🚀 Sending emails to subscribers in groups of ${PAGE_SIZE}...`);
+
+    while (true) {
+      const { data: subscriberPage, error: pageError } = await supabaseAdmin
+        .from('subscribers')
+        .select('email, name, user_id')
+        .is('unsubscribed_at', null)
+        .order('created_at', { ascending: true })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      if (pageError) throw pageError;
+      if (!subscriberPage || subscriberPage.length === 0) break;
+
+      console.log(`📡 Processing page ${page + 1} (${subscriberPage.length} subscribers)...`);
+
+      for (let i = 0; i < subscriberPage.length; i += SEND_BATCH_SIZE) {
+        const subscriberChunk = subscriberPage.slice(i, i + SEND_BATCH_SIZE);
+
+        const chunkParams = subscriberChunk.map(subscriber => {
+          const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
+          let voteUrl = `${config.frontendUrl}?utm_source=email`;
+          if (subscriber.user_id) {
+            const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
+            voteUrl += `&token=${encodeURIComponent(authToken)}`;
+          }
+          const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${encodeURIComponent(token)}`;
+
+          return {
+            to: subscriber.email,
+            params: {
+              name: subscriber.name ? subscriber.name.split(' ')[0] : 'there',
+              subject: emailSubject,
+              weekDate: new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+              threadCount: threadCount.toLocaleString(),
+              ideasCount: ideas.length,
+              voteUrl,
+              unsubscribeUrl,
+              mirrorLinkUrl: weekStart ? `${config.frontendUrl}/view/weekly/${weekStart}` : `${config.frontendUrl}/view/weekly`,
+              frontendUrl: config.frontendUrl,
+              winner: lastWeekBatch?.winner ? {
+                name: lastWeekBatch.winner.name,
+                title: lastWeekBatch.winner.title
+              } : null,
+              ideas: ideas.map((idea, idx) => ({
+                name: idea.name,
+                title: idea.title,
+                problem: idea.problem,
+                solution: idea.solution,
+                index_plus_one: idx + 1,
+                tags: idea.tags || {}
+              }))
+            },
+            headers: {
+              'List-Unsubscribe': `<${unsubscribeUrl}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            }
+          };
+        });
+
+        const result = await sendBatchEmailsWithTemplate(chunkParams, {
+          templateId,
+          subject: emailSubject,
+          tags: ['weekly-digest']
+        });
+        successCount += result.successCount || 0;
+        failCount += result.failCount || 0;
+        if (result.failCount > 0) {
+          console.error(`      ❌ ${result.failCount}/${subscriberChunk.length} sends failed in chunk`);
+        }
+
+        await new Promise(r => setTimeout(r, 100)); // Be gentle
+      }
+
+      page++;
+    }
+
+    console.log(`📊 Final Result: ${successCount} sent, ${failCount} failed.`);
 
     // Alert if significant failure rate
     if (failCount > 0 && failCount > totalSubscribers * 0.1) {
@@ -369,7 +364,7 @@ export async function sendWeeklyDigest() {
 
     console.log(`✅ Weekly cycle complete for ${weekStart}`);
 
-    return { sent: emailList.length, ideas: ideas.length };
+    return { sent: successCount, ideas: ideas.length };
   } catch (error) {
     console.error('Error sending weekly digest:', error);
     throw error;  // Propagate error so cron handler can see failure
