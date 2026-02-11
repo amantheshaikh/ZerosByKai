@@ -13,37 +13,37 @@ export default function Footer() {
     };
 
     return (
-        <footer className="relative w-full bg-gray-900 text-white py-8 sm:py-10 lg:py-12 px-4 sm:px-6">
-            <div className="max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
+        <footer className="relative w-full bg-gray-900 text-white py-8 sm:py-10 lg:py-12 2xl:py-16 px-4 sm:px-6 border-t-4 border-black">
+            <div className="max-w-6xl 2xl:max-w-screen-2xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 2xl:gap-12 mb-6 sm:mb-8 2xl:mb-12">
                     <div>
-                        <h3 className="comic-title text-xl sm:text-2xl mb-3 sm:mb-4 text-yellow-400">ZEROS BY KAI</h3>
-                        <p className="comic-body text-sm sm:text-base text-gray-400">
+                        <h3 className="comic-title text-xl sm:text-2xl 2xl:text-3xl mb-3 sm:mb-4 text-yellow-400">ZEROS BY KAI</h3>
+                        <p className="comic-body text-sm sm:text-base 2xl:text-lg text-gray-400 leading-relaxed">
                             Startup opportunities mined from the chaos, curated by Kai every Monday.
                         </p>
                     </div>
                     <div>
-                        <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">LINKS</h4>
-                        <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                            <li><a href="#ideas-section" onClick={(e) => handleAnchorClick(e, '#ideas-section')} className="hover:text-yellow-400 cursor-pointer">This Week&apos;s Ideas</a></li>
-                            <li><Link href="/archive" className="hover:text-yellow-400">Archive</Link></li>
-                            <li><Link href="/story" className="hover:text-yellow-400">Kai&apos;s story</Link></li>
-                            <li><Link href="/tools" className="hover:text-yellow-400">Secret Stash</Link></li>
+                        <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base 2xl:text-lg text-white">LINKS</h4>
+                        <ul className="space-y-2 comic-body text-sm sm:text-base 2xl:text-lg text-gray-400">
+                            <li><a href="#ideas-section" onClick={(e) => handleAnchorClick(e, '#ideas-section')} className="hover:text-yellow-400 cursor-pointer transition-colors">This Week&apos;s Ideas</a></li>
+                            <li><Link href="/archive" className="hover:text-yellow-400 transition-colors">Archive</Link></li>
+                            <li><Link href="/story" className="hover:text-yellow-400 transition-colors">Kai&apos;s story</Link></li>
+                            <li><Link href="/tools" className="hover:text-yellow-400 transition-colors">Secret Stash</Link></li>
                         </ul>
                     </div>
                     <div>
-                        <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base">CONNECT</h4>
-                        <ul className="space-y-2 comic-body text-sm sm:text-base text-gray-400">
-                            <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400">kai@zerosbykai.com</a></li>
+                        <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base 2xl:text-lg text-white">CONNECT</h4>
+                        <ul className="space-y-2 comic-body text-sm sm:text-base 2xl:text-lg text-gray-400">
+                            <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400 transition-colors">kai@zerosbykai.com</a></li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 comic-body text-gray-500 text-xs sm:text-sm">
+                <div className="border-t border-gray-800 pt-6 sm:pt-8 2xl:pt-10 flex flex-col sm:flex-row justify-between items-center gap-4 comic-body text-gray-500 text-xs sm:text-sm 2xl:text-base">
                     <p>&copy; 2026 Zeros By Kai. Find the right zero.</p>
                     <div className="flex gap-4 sm:gap-6">
-                        <Link href="/terms" className="hover:text-yellow-400 underline">Terms & Guidelines</Link>
-                        <Link href="/privacy" className="hover:text-yellow-400 underline">Privacy Policy</Link>
+                        <Link href="/terms" className="hover:text-yellow-400 underline transition-colors">Terms & Guidelines</Link>
+                        <Link href="/privacy" className="hover:text-yellow-400 underline transition-colors">Privacy Policy</Link>
                     </div>
                 </div>
             </div>

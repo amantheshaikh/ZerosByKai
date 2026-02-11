@@ -165,7 +165,6 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
                 <meta name="twitter:image" content="https://zerosbykai.com/kai-hero.jpg" />
                 <link rel="canonical" href="https://zerosbykai.com/" />
             </Head>
-
             <HeroSection />
             <SignalTicker />
 
@@ -174,11 +173,9 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
                 <div className="max-w-6xl 2xl:max-w-7xl mx-auto">
                     <div className="text-center mb-6 sm:mb-6">
                         <div className="inline-block bg-black text-white px-4 sm:px-6 py-2 comic-title text-base sm:text-xl mb-4 transform -rotate-1">
-                            FIND THE RIGHT <span className="text-yellow-400 inline-block">
-                                <TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100} startOnView={false}>ZER</TypingAnimation>O
-                            </span>
+                            THIS WEEK&apos;S <span className="text-yellow-400 inline-block">ZEROS</span>
                         </div>
-                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">THIS WEEK&apos;S ZEROS</h2>
+                        <h2 className="comic-title text-4xl sm:text-5xl lg:text-6xl mb-4 sm:mb-6 text-gray-900 drop-shadow-sm">10 Startup Ideas from Real Problems</h2>
                         <p className="comic-body text-base sm:text-lg lg:text-xl text-gray-800 w-full mx-auto leading-relaxed border-l-4 border-yellow-400 pl-4 sm:pl-6 text-left bg-white p-3 sm:p-4 shadow-sm">
                             <span className="font-bold text-black">10 ideas. One vote.</span> Pick the opportunity you&apos;d bet on.
                             If it wins, you earn a badge—and level up your designation.

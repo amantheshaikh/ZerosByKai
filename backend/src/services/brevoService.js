@@ -78,6 +78,33 @@ export async function blocklistContact(email) {
 }
 
 /**
+ * Removes blocklist (unsubscribe) flag from a Brevo contact.
+ * Used when a previously unsubscribed user re-subscribes.
+ *
+ * @param {string} email
+ * @returns {Promise<boolean>}
+ */
+export async function unblockContact(email) {
+    if (!email || typeof email !== 'string' || !email.trim()) {
+        throw new Error('unblockContact: missing required email');
+    }
+
+    try {
+        await contactsApi.updateContact(email, { emailBlacklisted: false });
+        console.log(`✅ Unblocked contact in Brevo: ${maskEmail(email)}`);
+        return true;
+    } catch (error) {
+        if (error?.response?.status === 404 || error?.status === 404) {
+            console.log(`ℹ️ Contact ${maskEmail(email)} not found in Brevo, skipping unblock.`);
+            return true;
+        }
+        const errorBody = error?.response?.body || error?.body || error.message;
+        console.error('⚠️ Failed to unblock contact in Brevo:', JSON.stringify(errorBody, null, 2));
+        return false;
+    }
+}
+
+/**
  * Deletes a contact from Brevo.
  * 
  * @param {string} email 

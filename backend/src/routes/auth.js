@@ -6,7 +6,7 @@ import { generateMagicLinkEmail } from '../emails/templates/magic-link.js';
 import { sendEmail } from '../utils/emailService.js';
 import rateLimit from 'express-rate-limit';
 import { generateEmailToken } from '../utils/emailToken.js';
-import { syncContact, blocklistContact, deleteContact } from '../services/brevoService.js';
+import { syncContact, blocklistContact, unblockContact, deleteContact } from '../services/brevoService.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { verifyEmailToken } from '../utils/emailToken.js';
 
@@ -75,27 +75,28 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
       return res.status(503).json({ error: 'Subscription service unavailable' });
     }
 
-    // Check for existing subscriber and welcomed status
+    // Check for existing subscriber
     const { data: subscriber, error: fetchError } = await supabaseAdmin
       .from('subscribers')
-      .select('welcomed')
+      .select('welcomed, unsubscribed_at')
       .eq('email', email)
       .maybeSingle();
 
     if (fetchError) throw fetchError;
 
+    const wasUnsubscribed = !!subscriber?.unsubscribed_at;
+
     const { error: upsertError } = await supabaseAdmin
       .from('subscribers')
       .upsert(
-        { email, name: name || null, subscribed_at: new Date().toISOString(), unsubscribed_at: null },
+        { email, name: name || null, subscribed_at: new Date().toISOString(), unsubscribed_at: null, unsubscribe_reason: null },
         { onConflict: 'email' }
       );
 
     if (upsertError) throw upsertError;
 
-    // Only send welcome email if never sent before
     if (!subscriber?.welcomed) {
-      // Async tasks
+      // New subscriber: sync + welcome email
       syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
 
       const token = generateEmailToken(email, email);
@@ -117,6 +118,10 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
       } else {
         console.error('Welcome Email failed to send during subscription');
       }
+    } else if (wasUnsubscribed) {
+      // Re-subscriber: re-sync + unblock in Brevo, no duplicate welcome email
+      syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
+      unblockContact(email).catch(err => console.error('Brevo Unblock Error:', err.message));
     }
 
     res.json({ message: "You're in!" });
@@ -187,7 +192,7 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
     while (retries > 0) {
       const { data, error } = await supabaseAdmin
         .from('subscribers')
-        .select('welcomed, name, created_at')
+        .select('welcomed, name, created_at, unsubscribed_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -199,7 +204,27 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
       retries--;
     }
 
-    if (!subscriber) return res.status(404).json({ error: 'Subscriber record not found' });
+    // If trigger didn't fire (e.g. Supabase reactivated a soft-deleted user), create the record
+    if (!subscriber) {
+      const userName = user.user_metadata?.name || user.user_metadata?.full_name || '';
+      await supabaseAdmin
+        .from('subscribers')
+        .upsert(
+          { user_id: user.id, email: user.email, name: userName || null, unsubscribed_at: null, unsubscribe_reason: null },
+          { onConflict: 'email' }
+        );
+      subscriber = { welcomed: false, name: userName || null, created_at: new Date().toISOString() };
+    }
+
+    // Creating an account implies re-engagement — clear any previous unsubscribe
+    if (subscriber.unsubscribed_at) {
+      await supabaseAdmin.from('subscribers')
+        .update({ unsubscribed_at: null, unsubscribe_reason: null })
+        .eq('user_id', user.id);
+      syncContact({ email: user.email, name: subscriber.name }).catch(err => console.error('Brevo Sync Error:', err.message));
+      unblockContact(user.email).catch(err => console.error('Brevo Unblock Error:', err.message));
+    }
+
     if (subscriber.welcomed) return res.json({ isNewUser: false });
 
     // Check if this is actually a new signup or an old one without the welcomed flag set
@@ -415,7 +440,13 @@ router.delete('/user', requireAuth, async (req, res, next) => {
     const user = req.user;
     deleteContact(user.email).catch(err => console.error('Brevo Delete Error:', err.message));
 
-    await supabaseAdmin.from('subscribers').delete().eq('user_id', user.id);
+    // Dissociate votes/badges before deletion (ON DELETE SET NULL may not fire on soft delete)
+    await Promise.all([
+      supabaseAdmin.from('votes').update({ user_id: null }).eq('user_id', user.id),
+      supabaseAdmin.from('user_badges').update({ user_id: null }).eq('user_id', user.id),
+      supabaseAdmin.from('subscribers').delete().eq('user_id', user.id),
+    ]);
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
     if (error) throw error;
 
@@ -440,7 +471,12 @@ router.delete('/admin/user', requireAdminKey, async (req, res, next) => {
       .maybeSingle();
 
     if (subscriber?.user_id) {
-      await supabaseAdmin.from('subscribers').delete().eq('user_id', subscriber.user_id);
+      // Dissociate votes/badges before deletion (ON DELETE SET NULL may not fire on soft delete)
+      await Promise.all([
+        supabaseAdmin.from('votes').update({ user_id: null }).eq('user_id', subscriber.user_id),
+        supabaseAdmin.from('user_badges').update({ user_id: null }).eq('user_id', subscriber.user_id),
+        supabaseAdmin.from('subscribers').delete().eq('user_id', subscriber.user_id),
+      ]);
       await supabaseAdmin.auth.admin.deleteUser(subscriber.user_id);
     } else {
       await supabaseAdmin.from('subscribers').delete().eq('email', email);

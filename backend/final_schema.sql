@@ -187,6 +187,8 @@ CREATE TRIGGER tr_sync_winner_calculated
 BEFORE INSERT OR UPDATE OF winner_idea_id ON weekly_batches
 FOR EACH ROW EXECUTE FUNCTION public.sync_winner_calculated_flag();
 
+-- Trigger function to sync new auth users to the subscribers table
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     final_name TEXT;
