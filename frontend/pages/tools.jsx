@@ -559,6 +559,6 @@ export default function SecretStash() {
       </main>
 
       <Footer />
-    </div >
+    </div>
   );
 }

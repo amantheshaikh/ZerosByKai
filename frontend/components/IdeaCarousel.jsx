@@ -12,8 +12,6 @@ export default function IdeaCarousel({
     onVote,
     getVoteButtonProps
 }) {
-    if (!ideas || ideas.length === 0) return null;
-
     const [currentIndex, setCurrentIndex] = useState(0);
     const [direction, setDirection] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
@@ -26,9 +24,10 @@ export default function IdeaCarousel({
     }, []);
 
     const paginate = useCallback((newDirection) => {
+        if (!ideas || ideas.length === 0) return;
         setDirection(newDirection);
         setCurrentIndex((prevIndex) => (prevIndex + newDirection + ideas.length) % ideas.length);
-    }, [ideas.length]);
+    }, [ideas?.length]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -39,6 +38,8 @@ export default function IdeaCarousel({
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [paginate]);
+
+    if (!ideas || ideas.length === 0) return null;
 
     const getCardIndex = (offset) => {
         return (currentIndex + offset + ideas.length) % ideas.length;

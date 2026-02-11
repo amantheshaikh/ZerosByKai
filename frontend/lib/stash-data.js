@@ -363,6 +363,7 @@ export const TOOLS = [
     keyDifferentiator: 'Deepest integration with GitHub and the most widely used AI coding tool in the industry.'
   },
   {
+    id: 18,
     name: 'Google Antigravity',
     category: 'Vibe Coding',
     hook: 'Experience liftoff with the next-generation IDE.',

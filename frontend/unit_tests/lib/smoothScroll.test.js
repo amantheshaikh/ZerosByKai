@@ -14,12 +14,14 @@ vi.mock('next/router', () => ({
 
 vi.mock('lenis', () => {
     return {
-        default: vi.fn().mockImplementation(() => ({
-            scrollTo: vi.fn(),
-            on: vi.fn(),
-            raf: vi.fn(),
-            destroy: vi.fn(),
-        })),
+        default: vi.fn().mockImplementation(function () {
+            return {
+                scrollTo: vi.fn(),
+                on: vi.fn(),
+                raf: vi.fn(),
+                destroy: vi.fn(),
+            };
+        }),
     };
 });
 
@@ -33,12 +35,14 @@ describe('SmoothScrollProvider', () => {
         rafCallbacks = [];
 
         // Mock Lenis instance
-        Lenis.mockImplementation(() => ({
-            scrollTo: mockScrollTo,
-            on: vi.fn(),
-            raf: vi.fn(),
-            destroy: vi.fn(),
-        }));
+        Lenis.mockImplementation(function () {
+            return {
+                scrollTo: mockScrollTo,
+                on: vi.fn(),
+                raf: vi.fn(),
+                destroy: vi.fn(),
+            };
+        });
 
         // Mock browser APIs needed by SmoothScrollProvider
         global.window.scrollTo = mockWindowScrollTo;

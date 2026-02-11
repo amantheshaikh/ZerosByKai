@@ -48,6 +48,8 @@ export function SmoothScrollProvider({ children }) {
     const lenisRef = useRef(null);
     const rafRef = useRef(null);
     const router = useRouter(); // Initialize router
+    const [lenisReady, setLenisReady] = useState(false);
+    const isInitialMount = useRef(true);
     const [scrollState, setScrollState] = useState({
         velocity: 0,
         direction: 0,
@@ -59,19 +61,26 @@ export function SmoothScrollProvider({ children }) {
 
     // Reset scroll on route change
     useEffect(() => {
-        if (!lenisRef.current) return;
+        // Skip scroll reset on initial mount to allow native restoration and hash navigation
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        if (!lenisReady || !lenisRef.current) return;
 
         // Immediate scroll to top without animation to feel like a fresh page load
         lenisRef.current.scrollTo(0, { immediate: true });
 
         // Also ensure window scroll is reset for native behavior compatibility
         window.scrollTo(0, 0);
-    }, [router.pathname]); // Trigger on pathname change
+    }, [router.pathname, lenisReady]); // Trigger on pathname change or when Lenis becomes ready
 
     // Initialize Lenis with premium configuration
     useEffect(() => {
         // Skip smooth scroll if user prefers reduced motion
         if (prefersReducedMotion()) {
+            setLenisReady(true); // Still set to ready so other logic can proceed
             return;
         }
 
@@ -91,6 +100,7 @@ export function SmoothScrollProvider({ children }) {
         });
 
         lenisRef.current = lenis;
+        setLenisReady(true);
 
         // Scroll event handler with velocity tracking
         const handleScroll = ({ velocity, direction, progress, isScrolling }) => {
