@@ -31,7 +31,7 @@ export default function HeroSection() {
                             <span className="text-rose-700">REAL STARTUP IDEAS.</span>
                         </h1>
 
-                        <div className="comic-panel p-4 sm:p-6 lg:p-8 bg-white max-w-xl 2xl:max-w-2xl border-l-4 sm:border-l-8 border-black">
+                        <div className="comic-panel p-4 sm:p-4 lg:p-4 bg-white max-w-xl 2xl:max-w-2xl border-l-4 sm:border-l-8 border-black">
                             <p className="comic-body text-sm sm:text-lg lg:text-xl 2xl:text-2xl leading-relaxed text-black">
                                 &quot;In a world where <span className="font-bold bg-yellow-200 px-1 transform -rotate-1 inline-block whitespace-nowrap">0 → 1</span> has become super easy,
                                 find the <span className="font-bold bg-rose-700 text-white px-2 transform rotate-1 inline-flex items-center whitespace-nowrap">right&nbsp;<TypingAnimation showCursor={false} loop={true} delay={400} typeSpeed={100} deleteSpeed={100} startOnView={false}>ZER</TypingAnimation>O.</span>&quot;
@@ -67,11 +67,11 @@ export default function HeroSection() {
                                 <Image
                                     src="/kai-hero.jpg"
                                     alt="Kai - AI-powered startup idea curator finding validated business opportunities from the internet's noise"
-                                    width={546}
-                                    height={820}
+                                    width={450}
+                                    height={675}
                                     className="w-full h-auto border-2 sm:border-4 border-black"
                                     style={{ filter: 'contrast(1.1) brightness(1.05)' }}
-                                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 450px"
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 380px, 450px"
                                     priority
                                 />
                             </div>

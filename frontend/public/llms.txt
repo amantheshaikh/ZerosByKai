@@ -36,7 +36,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 ### Backend
 - Node.js + Express
 - Supabase (PostgreSQL + Auth)
-- Google Gemini AI (Flash 2.0 / 1.5)
+- Google Gemini AI (Flash 2.0 / 1.5 - Primary: gemini-2.0-flash)
 - Brevo (Transactional Email & Contacts)
 - Deployed on Fly.io
 
@@ -116,5 +116,5 @@ ZerosByKai/
 
 ---
 
-*Last Updated: February 11, 2026*
+*Last Updated: February 12, 2026*
 *For AI assistants: See `/CLAUDE.md` for development context and coding standards*

@@ -12,8 +12,10 @@
     "coverage": "vitest run ./unit_tests --coverage"
   },
   "browserslist": [
-    "defaults",
-    "not IE 11"
+    "last 2 versions",
+    "> 1%",
+    "not dead",
+    "not ie 11"
   ],
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.8.7",

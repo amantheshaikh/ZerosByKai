@@ -2,26 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let getLatestActiveWeek, getVotingWeek, getLeaderboardForWeek, getIdeasByWeek;
 import { supabase, supabaseAdmin } from '../../src/config/supabase.js';
 
-vi.mock('../../src/config/supabase.js', () => {
-    const mockClient = {
-        from: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        gt: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        single: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        or: vi.fn().mockReturnThis(),
-    };
-    return {
-        supabase: mockClient,
-        supabaseAdmin: mockClient
-    };
-});
+vi.mock('../../src/config/supabase.js', () => import('../mocks/supabase.js'));
 
 vi.mock('../../src/utils/dateUtils.js', () => ({
     getMonday: vi.fn(() => '2025-02-10')

@@ -13,16 +13,17 @@ import {
     getUserVote
 } from '@/lib/ideas';
 
-import IdeaCarousel from '@/components/IdeaCarousel';
-import Leaderboard from '@/components/Leaderboard';
-import HeroSection from '@/components/sections/HeroSection';
-import SignalTicker from '@/components/sections/SignalTicker';
-import HowItWorks from '@/components/sections/HowItWorks';
-import DesignationTiers from '@/components/sections/DesignationTiers';
-import WhyKaiSection from '@/components/sections/WhyKaiSection';
-import FAQSection from '@/components/sections/FAQSection';
-import FinalCTA from '@/components/sections/FinalCTA';
 import { TypingAnimation } from '@/components/ui/typing-animation';
+import HeroSection from '@/components/sections/HeroSection';
+
+const SignalTicker = dynamic(() => import('@/components/sections/SignalTicker'), { ssr: true });
+const HowItWorks = dynamic(() => import('@/components/sections/HowItWorks'), { ssr: true });
+const DesignationTiers = dynamic(() => import('@/components/sections/DesignationTiers'), { ssr: true });
+const WhyKaiSection = dynamic(() => import('@/components/sections/WhyKaiSection'), { ssr: true });
+const FAQSection = dynamic(() => import('@/components/sections/FAQSection'), { ssr: true });
+const FinalCTA = dynamic(() => import('@/components/sections/FinalCTA'), { ssr: true });
+const Leaderboard = dynamic(() => import('@/components/Leaderboard'), { ssr: true });
+const IdeaCarousel = dynamic(() => import('@/components/IdeaCarousel'), { ssr: true });
 
 const VoteConfirmation = dynamic(() => import('@/components/ui/vote-confirmation'), {
     loading: () => null,
@@ -80,10 +81,19 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
+
+        // Validation
+        const emailToSubmit = (user && profile?.unsubscribed_at) ? user.email : email;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailToSubmit || !emailRegex.test(emailToSubmit)) {
+            setSubscribeError('Kai needs a real email to transmit data.');
+            setSubscribeStatus('error');
+            return;
+        }
+
         setSubscribeStatus('loading');
         setSubscribeError(null);
-
-        const emailToSubmit = (user && profile?.unsubscribed_at) ? user.email : email;
 
         try {
             await subscribeNewsletter(emailToSubmit);
@@ -239,6 +249,7 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
                     onSubscribe={handleSubscribe}
                     onOpenAuth={() => openAuthModal()}
                     isResubscribe={!!(user && profile?.unsubscribed_at)}
+                    noValidate
                 />
             )}
 

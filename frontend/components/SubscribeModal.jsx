@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/router';
-import { ArrowRight, Mail } from 'lucide-react';
+import { ArrowRight, Mail, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,7 +56,10 @@ export default function SubscribeModal() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!EMAIL_REGEX.test(email) || status === 'sending') {
+        if (status === 'sending') return;
+
+        if (!EMAIL_REGEX.test(email)) {
+            setErrorMsg('Kai needs a real email to transmit data.');
             return;
         }
 
@@ -81,6 +84,14 @@ export default function SubscribeModal() {
                 className="comic-panel bg-white p-6 sm:p-8 max-w-md w-full comic-shadow"
                 onClick={(e) => e.stopPropagation()}
             >
+                <button
+                    onClick={closeSubscribeModal}
+                    className="absolute top-3 right-3 p-1.5 hover:bg-gray-100 rounded-full transition-colors z-10"
+                    aria-label="Close modal"
+                >
+                    <X className="w-5 h-5 text-black" />
+                </button>
+
                 <AnimatePresence mode="wait">
                     {step === 'success' ? (
                         <motion.div
@@ -115,7 +126,7 @@ export default function SubscribeModal() {
                                 10 validated startup ideas. Once a week. No fluff.
                             </p>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                                 <div className="relative">
                                     <input
                                         type="email"
@@ -129,14 +140,14 @@ export default function SubscribeModal() {
                                 </div>
 
                                 {errorMsg && (
-                                    <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm">
-                                        {errorMsg}
+                                    <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm font-bold">
+                                        ⚠️ {errorMsg}
                                     </div>
                                 )}
 
                                 <button
                                     type="submit"
-                                    disabled={status === 'sending' || !EMAIL_REGEX.test(email)}
+                                    disabled={status === 'sending'}
                                     className="w-full px-6 py-4 bg-black text-yellow-400 comic-title text-lg hover:bg-gray-900 transition-all comic-shadow disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {status === 'sending' ? 'ADDING YOU...' : (

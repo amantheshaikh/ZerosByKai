@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { useScrollActions, scrollEasings } from '@/lib/smoothScroll';
+import { useAuth } from '@/lib/auth';
 
 export default function Footer() {
     const { scrollToElement } = useScrollActions();
+    const { openFeedbackModal } = useAuth();
 
     const handleAnchorClick = (e, selector) => {
         e.preventDefault();
@@ -35,6 +37,7 @@ export default function Footer() {
                         <h4 className="comic-body font-bold mb-3 sm:mb-4 text-sm sm:text-base 2xl:text-lg text-white">CONNECT</h4>
                         <ul className="space-y-2 comic-body text-sm sm:text-base 2xl:text-lg text-gray-400">
                             <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400 transition-colors">kai@zerosbykai.com</a></li>
+                            <li><button onClick={openFeedbackModal} className="hover:text-yellow-400 transition-colors text-left">Feedback</button></li>
                         </ul>
                     </div>
                 </div>

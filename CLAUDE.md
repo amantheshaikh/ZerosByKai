@@ -10,7 +10,8 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 
 ## Quick Reference
 - **Dev:** `npm run dev` in `frontend/` (port 3000) and `backend/` (port 3001)
-- **Test:** `npm test` in either directory (Vitest)
+- **Test:** `npm test` in either directory (Vitest - isolation enabled)
+14: - **Mocks:** Use centralized mocks in `frontend/unit_tests/__mocks__` and `backend/unit_tests/test_utils.js`
 - **Build:** `npm run build` in `frontend/`
 - **Structure:** See `docs/ai-context/project-structure.md` for full file tree
 - **Docs:** See `docs/ai-context/docs-overview.md` for 3-tier doc system
@@ -94,15 +95,19 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`lib/auth.js`** - Auth context
 - **`unit_tests/`** - React component & lib tests
 
-## Recent Major Changes (Feb 11, 2026)
+## Recent Major Changes (Feb 12, 2026)
 
-### Routes Optimization & Cleanup (Feb 11)
-- ✅ **Security**: Fixed admin delete (`DELETE /admin/user`) with targeted subscriber lookup; secured Brevo webhook auth; added rate limiter to `POST /unsubscribe`.
-- ✅ **Auth**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation; removed name field from subscribe modal; enforced name entry only for new users.
-- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL); added `Cache-Control` headers to all read endpoints; parallelized sequential DB calls.
+### Routes Optimization & Refinement (Feb 12)
+- ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for all read endpoints.
+- ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation.
+- ✅ **Auth**: Enforced name entry only for new users; removed redundant name field from subscribe modal.
 - ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching via Clearbit API.
-- ✅ **Cleanup**: Removed dead endpoints (`GET /api/ideas`, `GET /api/votes`), dead service exports, and unused imports across the backend.
-- ✅ **Tests**: Updated all backend and frontend test suites to reflect architectural changes.
+- ✅ **Tests**: Refactored frontend test suite with centralized utilities and mocks for faster, isolated testing.
+- ✅ **Cleanup**: Removed dead endpoints and unused services across the backend.
+
+### Previous (Feb 11)
+- ✅ **Security**: Secured Brevo webhook auth; added rate limiter to `POST /unsubscribe`.
+- ✅ **Cache**: In-memory cache for `getVotingWeek()` (60s TTL).
 
 
 ### Previous (Feb 9)

@@ -95,6 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_badges_user ON user_badges(user_id);
 CREATE INDEX IF NOT EXISTS idx_weekly_batches_date ON weekly_batches(week_start_date);
 CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
 CREATE INDEX IF NOT EXISTS idx_subscribers_user_id ON subscribers(user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
 
 -- 4. SECURITY (RLS)
 ALTER TABLE ideas ENABLE ROW LEVEL SECURITY;
@@ -102,6 +103,7 @@ ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weekly_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 
 -- 5. POLICIES (Drop existing to ensure clean slate if re-running)
 
@@ -136,6 +138,13 @@ CREATE POLICY "Users can view own subscriber record" ON subscribers FOR SELECT U
 
 DROP POLICY IF EXISTS "Users can update own subscriber record" ON subscribers;
 CREATE POLICY "Users can update own subscriber record" ON subscribers FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Feedback
+DROP POLICY IF EXISTS "Anyone can insert feedback" ON feedback;
+CREATE POLICY "Anyone can insert feedback" ON feedback FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Only service role can view feedback" ON feedback;
+CREATE POLICY "Only service role can view feedback" ON feedback FOR SELECT USING (auth.role() = 'service_role');
 
 -- 6. FUNCTIONS & TRIGGERS
 

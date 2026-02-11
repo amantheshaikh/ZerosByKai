@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ZerosByKaiLanding from '../../pages/index';
@@ -44,6 +45,60 @@ vi.mock('@/components/RotatingText', () => ({
 vi.mock('@/components/ui/typing-animation', () => ({
     TypingAnimation: ({ words }) => <div data-testid="mock-typing-animation">{words ? words.join(', ') : ''}</div>,
 }));
+vi.mock('@/components/IdeaCarousel', () => ({
+    default: ({ ideas, onVote, getVoteButtonProps }) => (
+        <div data-testid="mock-idea-carousel">
+            {ideas?.map(idea => {
+                const props = getVoteButtonProps(idea.id);
+                return (
+                    <div key={idea.id}>
+                        <h3>{idea.title}</h3>
+                        <button onClick={() => onVote(idea.id)}>
+                            {props.label} (VOTE)
+                        </button>
+                    </div>
+                );
+            })}
+        </div>
+    ),
+}));
+vi.mock('@/components/sections/SignalTicker', () => ({
+    default: () => <div data-testid="mock-signal-ticker">SignalTicker</div>,
+}));
+vi.mock('@/components/sections/HowItWorks', () => ({
+    default: () => <div data-testid="mock-how-it-works">HowItWorks</div>,
+}));
+vi.mock('@/components/sections/WhyKaiSection', () => ({
+    default: () => <div data-testid="mock-why-kai">WhyKaiSection</div>,
+}));
+vi.mock('@/components/sections/DesignationTiers', () => ({
+    default: () => <div data-testid="mock-designation-tiers">DesignationTiers</div>,
+}));
+vi.mock('@/components/sections/FAQSection', () => ({
+    default: () => <div data-testid="mock-faq">FAQSection</div>,
+}));
+
+vi.mock('@/components/sections/FinalCTA', () => {
+    return {
+        default: ({ email, setEmail, subscribeStatus, subscribeError, onSubscribe }) => (
+            <div data-testid="mock-final-cta">
+                {subscribeStatus === 'success' ? (
+                    <div>YOU'RE IN!</div>
+                ) : (
+                    <form onSubmit={onSubscribe}>
+                        <input
+                            placeholder="your@email.com"
+                            value={email || ''}
+                            onChange={e => setEmail(e.target.value)}
+                        />
+                        {subscribeError && <div>{subscribeError}</div>}
+                        <button type="submit">SUBSCRIBE FREE</button>
+                    </form>
+                )}
+            </div>
+        )
+    };
+});
 
 describe('ZerosByKaiLanding', () => {
     const mockUser = { id: 'user1', email: 'test@example.com' };
@@ -128,6 +183,29 @@ describe('ZerosByKaiLanding', () => {
         await waitFor(() => {
             expect(subscribeNewsletter).toHaveBeenCalledWith('tester@example.com');
             expect(screen.getAllByText(/YOU'RE IN!/i)[0]).toBeInTheDocument();
+        });
+    });
+
+    it('shows branded error for invalid email on subscribe', async () => {
+        useAuth.mockReturnValue({
+            user: null,
+            session: null,
+            isLoading: false,
+            openAuthModal: vi.fn(),
+            subscribeNewsletter: vi.fn(),
+        });
+
+        render(<ZerosByKaiLanding />);
+
+        const emailInput = screen.getAllByPlaceholderText(/your@email.com/i)[0];
+        const subscribeButton = screen.getAllByRole('button', { name: /SUBSCRIBE FREE/i })[0];
+
+        // Partially valid/invalid
+        fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+        fireEvent.click(subscribeButton);
+
+        await waitFor(() => {
+            expect(screen.getAllByText(/Kai needs a real email to transmit data/i)[0]).toBeInTheDocument();
         });
     });
 

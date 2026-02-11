@@ -1,54 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import express from 'express';
 import request from 'supertest';
 import ideasRouter from '../../src/routes/ideas.js';
 import * as ideaService from '../../src/services/ideaService.js';
 import { supabase } from '../../src/config/supabase.js';
+import { createTestApp } from '../utils/testHelpers.js';
 
 vi.mock('../../src/services/ideaService.js');
-vi.mock('../../src/config/supabase.js', () => {
-    const mock = {
-        from: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        or: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        gt: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        range: vi.fn().mockReturnThis(),
-        single: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockReturnThis(),
-        then: vi.fn()
-    };
-    return {
-        supabase: mock,
-        supabaseAdmin: mock
-    };
-});
+vi.mock('../../src/config/supabase.js', () => import('../mocks/supabase.js'));
 
-const app = express();
-app.use(express.json());
-app.use('/api/ideas', ideasRouter);
-app.use((err, req, res, next) => {
-    res.status(err.status || err.statusCode || 500).json({ error: err.message });
-});
+const app = createTestApp(ideasRouter, '/api/ideas');
 
 describe('ideas.js routes', () => {
     beforeEach(() => {
-        vi.resetAllMocks();
-
-        // Setup implementations that should persist per test
-        [supabase, ideaService].forEach(m => {
-            Object.values(m).forEach(method => {
-                if (vi.isMockFunction(method)) method.mockReturnThis();
-            });
-        });
-
+        vi.clearAllMocks();
         // Specific overrides
-        supabase.then.mockImplementation(f => f); // Default no-op
         ideaService.getLatestActiveWeek.mockResolvedValue('2025-02-03');
     });
 

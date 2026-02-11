@@ -25,3 +25,26 @@ export const requireAuth = async (req, res, next) => {
         res.status(401).json({ error: 'Authentication failed' });
     }
 };
+
+/**
+ * Middleware to optionally verify JWT token from Supabase
+ * Attaches the user object to req.user if valid, but doesn't block if missing/invalid
+ */
+export const optionalAuth = async (req, res, next) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+        return next();
+    }
+
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+            req.user = user;
+        }
+        next();
+    } catch (error) {
+        // Silent fail for optional auth
+        next();
+    }
+};

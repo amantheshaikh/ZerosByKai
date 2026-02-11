@@ -109,10 +109,11 @@ zerosbykai/
 │   └── migrations/                   # SQL migration tracking
 │
 ├── frontend/                         # Next.js 14 (Vercel)
-│   ├── pages/                        # Routes (index, story, tools, profile, archive)
+│   ├── pages/                        # Routes (index, story, tools, profile, archive, unsubscribe)
 │   ├── components/                   # UI (AuthModal, Carousel, Leaderboard)
 │   ├── lib/                          # Auth context, API fetching, Stash data
 │   ├── unit_tests/                   # React Testing Library suite
+│   ├── unit_tests/__mocks__/         # Centralized frontend mocks
 │   └── public/                       # Assets & SEO files
 │
 ├── docs/                             # Tiered Documentation
@@ -187,10 +188,10 @@ See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
 - **Output**: ~300+ posts scraped from multiple platforms
 
 ### AI Idea Generation (Google Gemini)
-- **Model**: `gemini-3-flash-preview` (with `gemini-2.5-flash` fallback)
-- **Input**: Scraped Reddit posts
-- **Output**: 10 startup ideas
-- **Retry Logic**: Up to 3 workflow retries to ensure 10 ideas
+- **Model**: `gemini-2.0-flash` (Primary) with fallback to `gemini-flash-latest`
+- **Input**: Scraped content from multiple sources
+- **Output**: 10 high-quality startup ideas
+- **Retry Logic**: Automated model fallback and synthesis to ensure quality output.
 
 ---
 
@@ -280,14 +281,20 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-11)
+## 📝 Recent Changes (2026-02-12)
 
-### Routes Optimization & Cleanup (Feb 11)
-- ✅ **Security**: Fixed admin delete scalability (subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
-- ✅ **Auth**: Updated `verify-email-token` to use magic link generation + verification for session creation; removed name field from subscribe modal.
-- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls.
-- ✅ **Features**: Added **Tools** page (`/tools`) for curated startup resources with dynamic logo fetching.
-- ✅ **Cleanup**: Removed dead endpoints, service exports, and unused imports across the API.
+### Routes Optimization & Refinement (Feb 12)
+- ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for all read endpoints.
+- ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation.
+- ✅ **Auth**: Enforced name entry only for new users; removed redundant name field from subscribe modal.
+- ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching via Clearbit API.
+- ✅ **Tests**: Refactored frontend test suite with centralized utilities and mocks for faster, isolated testing.
+- ✅ **Cleanup**: Removed dead endpoints and unused services across the API.
+
+
+### Previous (Feb 11)
+- ✅ **Security**: Secured Brevo webhook auth; added rate limiter to `POST /unsubscribe`.
+- ✅ **Cache**: In-memory cache for `getVotingWeek()` (60s TTL).
 
 
 ### Previous (Feb 9)

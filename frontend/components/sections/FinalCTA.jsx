@@ -1,7 +1,7 @@
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
 import { RevealContainer, RevealItem } from '@/components/animations/Reveal';
 
-export default function FinalCTA({ email, setEmail, subscribeStatus, subscribeError, onSubscribe, onOpenAuth }) {
+export default function FinalCTA({ email, setEmail, subscribeStatus, subscribeError, onSubscribe, onOpenAuth, noValidate }) {
     return (
         <section id="final-cta" className="bg-gradient-to-br from-yellow-400 to-amber-400 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 relative overflow-hidden">
             <div className="absolute inset-0 halftone"></div>
@@ -54,7 +54,7 @@ export default function FinalCTA({ email, setEmail, subscribeStatus, subscribeEr
                                 <p className="comic-body text-gray-700">First email drops Monday.</p>
                             </div>
                         ) : (
-                            <form onSubmit={onSubscribe} className="space-y-4">
+                            <form onSubmit={onSubscribe} className="space-y-4" noValidate={noValidate}>
                                 <input
                                     type="email"
                                     value={email}

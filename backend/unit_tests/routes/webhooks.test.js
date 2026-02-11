@@ -1,35 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import express from 'express';
 import webhooksRouter from '../../src/routes/webhooks.js';
 import { supabaseAdmin } from '../../src/config/supabase.js';
+import { createTestApp } from '../utils/testHelpers.js';
 
-// Create a test app
-const app = express();
-app.use(express.json());
-app.use('/api/webhooks', webhooksRouter);
+// Create a test app using the helper
+const app = createTestApp(webhooksRouter, '/api/webhooks');
 
-// Mock dependencies
-const mockClient = vi.hoisted(() => ({
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-    auth: {
-        admin: {
-            deleteUser: vi.fn().mockResolvedValue({ error: null })
-        }
-    },
-    then: vi.fn(function (resolve) {
-        return Promise.resolve({ data: null, error: null }).then(resolve);
-    })
-}));
-
-vi.mock('../../src/config/supabase.js', () => ({
-    supabaseAdmin: mockClient
-}));
+// Mock dependencies centrally
+vi.mock('../../src/config/supabase.js', () => import('../mocks/supabase.js'));
 
 vi.mock('../../src/config/env.js', () => ({
     config: {
@@ -56,7 +35,7 @@ describe('webhooks.js routes', () => {
         });
 
         it('should handle unsubscribed event', async () => {
-            mockClient.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
                 .post('/api/webhooks/brevo')
@@ -64,17 +43,17 @@ describe('webhooks.js routes', () => {
                 .send({ event: 'unsubscribed', email: 'test@t.com' });
 
             expect(res.status).toBe(200);
-            expect(mockClient.from).toHaveBeenCalledWith('subscribers');
-            expect(mockClient.update).toHaveBeenCalledWith(expect.objectContaining({
+            expect(supabaseAdmin.from).toHaveBeenCalledWith('subscribers');
+            expect(supabaseAdmin.update).toHaveBeenCalledWith(expect.objectContaining({
                 unsubscribed_at: expect.any(String)
             }));
         });
 
         it('should handle contactDeleted event (with user_id)', async () => {
             // Mock lookup
-            mockClient.maybeSingle.mockResolvedValueOnce({ data: { user_id: 'u1' } });
+            supabaseAdmin.maybeSingle.mockResolvedValueOnce({ data: { user_id: 'u1' } });
             // Mock delete terminal (thenable)
-            mockClient.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
                 .post('/api/webhooks/brevo')
@@ -82,15 +61,15 @@ describe('webhooks.js routes', () => {
                 .send({ event: 'contactDeleted', email: 'test@t.com' });
 
             expect(res.status).toBe(200);
-            expect(mockClient.auth.admin.deleteUser).toHaveBeenCalledWith('u1');
-            expect(mockClient.delete).toHaveBeenCalled();
+            expect(supabaseAdmin.auth.admin.deleteUser).toHaveBeenCalledWith('u1');
+            expect(supabaseAdmin.delete).toHaveBeenCalled();
         });
 
         it('should handle contactDeleted event (newsletter only)', async () => {
             // Mock lookup - no user_id
-            mockClient.maybeSingle.mockResolvedValueOnce({ data: null });
+            supabaseAdmin.maybeSingle.mockResolvedValueOnce({ data: null });
             // Mock delete terminal (thenable)
-            mockClient.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
                 .post('/api/webhooks/brevo')
@@ -98,8 +77,8 @@ describe('webhooks.js routes', () => {
                 .send({ event: 'contactDeleted', email: 'test@t.com' });
 
             expect(res.status).toBe(200);
-            expect(mockClient.auth.admin.deleteUser).not.toHaveBeenCalled();
-            expect(mockClient.delete).toHaveBeenCalled();
+            expect(supabaseAdmin.auth.admin.deleteUser).not.toHaveBeenCalled();
+            expect(supabaseAdmin.delete).toHaveBeenCalled();
         });
 
         it('should return 400 if email is missing', async () => {

@@ -12,7 +12,7 @@ import HamburgerMenu from './HamburgerMenu';
 
 export default function Header({ variant = 'landing' }) {
   const router = useRouter();
-  const { user, profile, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal } = useAuth();
+  const { user, profile, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal, openFeedbackModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -113,6 +113,12 @@ export default function Header({ variant = 'landing' }) {
         >
           ZEROS THIS WEEK
         </a>
+        <button
+          onClick={openFeedbackModal}
+          className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors uppercase"
+        >
+          Feedback
+        </button>
         {isLoading ? null : user && !profile?.unsubscribed_at ? (
           <>
             <BadgeDisplay />
@@ -230,6 +236,15 @@ export default function Header({ variant = 'landing' }) {
           >
             ZEROS THIS WEEK
           </a>
+          <button
+            onClick={() => {
+              openFeedbackModal();
+              setIsMenuOpen(false);
+            }}
+            className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors uppercase"
+          >
+            Feedback
+          </button>
 
           <div className="w-full h-px bg-gray-200 my-2" />
 

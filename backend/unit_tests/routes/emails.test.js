@@ -3,6 +3,8 @@ import request from 'supertest';
 import express from 'express';
 import emailsRouter from '../../src/routes/emails.js';
 
+import { createTestApp } from '../utils/testHelpers.js';
+
 // Mock dependencies
 vi.mock('../../src/emails/templates/welcome.js', () => ({
     generateWelcomeEmail: vi.fn(() => '<html>Welcome</html>')
@@ -12,9 +14,8 @@ vi.mock('../../src/emails/templates/magic-link.js', () => ({
     generateMagicLinkEmail: vi.fn(() => '<html>Magic Link</html>')
 }));
 
-// Create app
-const app = express();
-app.use('/api/emails', emailsRouter);
+// Create app using helper
+const app = createTestApp(emailsRouter, '/api/emails');
 
 describe('emails.js routes', () => {
     describe('GET /api/emails/view/:type', () => {

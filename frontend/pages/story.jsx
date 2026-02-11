@@ -34,6 +34,8 @@ const STATS = [
     { value: '∞', label: 'HOURS WASTED' },
 ];
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const STEPS = [
     { n: 1, title: 'SCRAPES THE CHAOS', body: 'Reddit. Hacker News. X. Indie Hackers. Millions of complaints, wishes, and rants analyzed every week.' },
     { n: 2, title: 'FINDS THE PATTERNS', body: 'AI clusters the pain points. "500 people angry about the same thing" = validated idea.' },
@@ -129,10 +131,17 @@ export default function KaiStory() {
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        setSubscribeStatus('loading');
-        setSubscribeError(null);
 
         const emailToSubmit = (user && profile?.unsubscribed_at) ? user.email : email;
+
+        if (!emailToSubmit || !EMAIL_REGEX.test(emailToSubmit)) {
+            setSubscribeError('Kai needs a real email to transmit data.');
+            setSubscribeStatus('error');
+            return;
+        }
+
+        setSubscribeStatus('loading');
+        setSubscribeError(null);
 
         try {
             await subscribeNewsletter(emailToSubmit);
@@ -479,7 +488,7 @@ export default function KaiStory() {
                                                         </div>
                                                     ) : (
                                                         <div className="w-full">
-                                                            <form onSubmit={handleSubscribe} className="space-y-4">
+                                                            <form onSubmit={handleSubscribe} className="space-y-4" noValidate>
                                                                 <input
                                                                     type="email"
                                                                     value={email || (user && profile?.unsubscribed_at ? user.email : '')}

@@ -11,6 +11,9 @@ vi.mock('@supabase/auth-helpers-nextjs', () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
+// Ensure we use the real lib/auth for its own tests, bypassing the global mock
+vi.unmock('@/lib/auth');
+
 const TestComponent = () => {
     const { user, isLoading, signInWithProvider, sendMagicLink } = useAuth();
     if (isLoading) return <div data-testid="loading">Loading...</div>;

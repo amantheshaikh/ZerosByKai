@@ -1,12 +1,10 @@
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import SubscribeModal from '../../components/SubscribeModal';
 import { useAuth } from '@/lib/auth';
+import { renderWithProviders } from '../utils/renderWithProviders';
 
-// Mock lib/auth
-vi.mock('@/lib/auth', () => ({
-    useAuth: vi.fn(),
-}));
+// Mock lib/auth is handled by renderWithProviders
 
 // Mock next/router
 vi.mock('next/router', () => ({
@@ -15,26 +13,13 @@ vi.mock('next/router', () => ({
     })),
 }));
 
-// Mock handled in setup: framer-motion
-
 describe('SubscribeModal', () => {
-    const mockCloseSubscribeModal = vi.fn();
-    const mockSubscribeNewsletter = vi.fn();
-    const mockOpenAuthModal = vi.fn();
-
     const getFirstByText = (text) => screen.getAllByText(text)[0];
     const getFirstByPlaceholder = (text) => screen.getAllByPlaceholderText(text)[0];
     const getFirstByDisplayValue = (val) => screen.getAllByDisplayValue(val)[0];
 
     beforeEach(() => {
         vi.clearAllMocks();
-        useAuth.mockReturnValue({
-            showSubscribeModal: true,
-            closeSubscribeModal: mockCloseSubscribeModal,
-            subscribeNewsletter: mockSubscribeNewsletter,
-            openAuthModal: mockOpenAuthModal,
-            user: null,
-        });
     });
 
     afterEach(() => {
@@ -42,7 +27,7 @@ describe('SubscribeModal', () => {
     });
 
     it('renders correctly when open', () => {
-        render(<SubscribeModal />);
+        renderWithProviders(<SubscribeModal />, { initialAuthState: { showSubscribeModal: true } });
 
         expect(getFirstByText(/GET THE WEEKLY DROP/i)).toBeInTheDocument();
         expect(getFirstByPlaceholder(/your@email.com/i)).toBeInTheDocument();
@@ -50,43 +35,38 @@ describe('SubscribeModal', () => {
     });
 
     it('pre-fills email if user is logged in', () => {
-        useAuth.mockReturnValue({
-            showSubscribeModal: true,
-            closeSubscribeModal: mockCloseSubscribeModal,
-            subscribeNewsletter: mockSubscribeNewsletter,
-            openAuthModal: mockOpenAuthModal,
-            user: { email: 'test@example.com' },
+        renderWithProviders(<SubscribeModal />, {
+            initialAuthState: { showSubscribeModal: true, user: { email: 'test@example.com' } }
         });
-
-        render(<SubscribeModal />);
         expect(getFirstByDisplayValue('test@example.com')).toBeInTheDocument();
     });
 
     it('does not render when closed', () => {
-        useAuth.mockReturnValue({
-            showSubscribeModal: false,
-            closeSubscribeModal: mockCloseSubscribeModal,
-            subscribeNewsletter: mockSubscribeNewsletter,
-            openAuthModal: mockOpenAuthModal,
-            user: null,
-        });
-
-        const { container } = render(<SubscribeModal />);
+        const { container } = renderWithProviders(<SubscribeModal />, { initialAuthState: { showSubscribeModal: false } });
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('disables submit button for invalid email', () => {
-        render(<SubscribeModal />);
+    it('shows branded error for invalid email on submit', async () => {
+        renderWithProviders(<SubscribeModal />, { initialAuthState: { showSubscribeModal: true } });
 
         const input = getFirstByPlaceholder(/your@email.com/i);
         fireEvent.change(input, { target: { value: 'not-an-email' } });
 
         const submitButton = getFirstByText(/SUBSCRIBE FREE/i).closest('button');
-        expect(submitButton).toBeDisabled();
+
+        // Button should NOT be disabled
+        expect(submitButton).not.toBeDisabled();
+
+        // Try to submit
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Kai needs a real email to transmit data/i)).toBeInTheDocument();
+        });
     });
 
     it('enables submit button for valid email', () => {
-        render(<SubscribeModal />);
+        renderWithProviders(<SubscribeModal />, { initialAuthState: { showSubscribeModal: true } });
 
         const input = getFirstByPlaceholder(/your@email.com/i);
         fireEvent.change(input, { target: { value: 'valid@email.com' } });
@@ -96,38 +76,60 @@ describe('SubscribeModal', () => {
     });
 
     it('shows success state after successful subscription', async () => {
-        mockSubscribeNewsletter.mockResolvedValue({});
-        render(<SubscribeModal />);
+        const subscribeNewsletter = vi.fn().mockResolvedValue({});
+        renderWithProviders(<SubscribeModal />, {
+            initialAuthState: { showSubscribeModal: true, subscribeNewsletter }
+        });
 
         const input = getFirstByPlaceholder(/your@email.com/i);
         fireEvent.change(input, { target: { value: 'test@example.com' } });
-        fireEvent.submit(input.closest('form'));
+
+        const submitButton = getFirstByText(/SUBSCRIBE FREE/i).closest('button');
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
             expect(getFirstByText(/YOU'RE ON THE LIST/i)).toBeInTheDocument();
         });
-        expect(mockSubscribeNewsletter).toHaveBeenCalledWith('test@example.com');
+        expect(subscribeNewsletter).toHaveBeenCalledWith('test@example.com');
     });
 
     it('shows error message on failed subscription', async () => {
-        mockSubscribeNewsletter.mockRejectedValue(new Error('Subscription failed'));
-        render(<SubscribeModal />);
+        const subscribeNewsletter = vi.fn().mockRejectedValue(new Error('Subscription failed'));
+        renderWithProviders(<SubscribeModal />, {
+            initialAuthState: { showSubscribeModal: true, subscribeNewsletter }
+        });
 
         const input = getFirstByPlaceholder(/your@email.com/i);
         fireEvent.change(input, { target: { value: 'test@example.com' } });
-        fireEvent.submit(input.closest('form'));
+
+        const submitButton = getFirstByText(/SUBSCRIBE FREE/i).closest('button');
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Subscription failed')).toBeInTheDocument();
+            expect(screen.getByText(/Subscription failed/i)).toBeInTheDocument();
         });
     });
 
     it('opens auth modal when "Create an account" is clicked', () => {
-        render(<SubscribeModal />);
+        const closeSubscribeModal = vi.fn();
+        const openAuthModal = vi.fn();
+        renderWithProviders(<SubscribeModal />, {
+            initialAuthState: { showSubscribeModal: true, closeSubscribeModal, openAuthModal }
+        });
 
         fireEvent.click(getFirstByText(/Create an account/i));
 
-        expect(mockCloseSubscribeModal).toHaveBeenCalled();
-        expect(mockOpenAuthModal).toHaveBeenCalledWith('signin');
+        expect(closeSubscribeModal).toHaveBeenCalled();
+        expect(openAuthModal).toHaveBeenCalledWith('signin');
+    });
+
+    it('calls closeSubscribeModal when close button is clicked', () => {
+        const closeSubscribeModal = vi.fn();
+        renderWithProviders(<SubscribeModal />, {
+            initialAuthState: { showSubscribeModal: true, closeSubscribeModal }
+        });
+        const closeBtn = screen.getByRole('button', { name: /Close modal/i });
+        fireEvent.click(closeBtn);
+        expect(closeSubscribeModal).toHaveBeenCalled();
     });
 });

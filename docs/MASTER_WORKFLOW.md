@@ -57,8 +57,9 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
    - *Now they receive public visibility on the site.*
 3. **Send Digest**:
    - Sends per-subscriber params to **Brevo-hosted template** (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`). No server-side HTML generation.
-   - **Optimization**: Sends in batches of 50 via `sendBatchEmailsWithTemplate()`. Each email gets personalized unsubscribe/login tokens and `List-Unsubscribe` headers.
-   - Subject line pulled from `weekly_batches.subject_line` (Supabase) or uses default.
+   - **Optimization**: Sends in batches of 50 via `sendBatchEmailsWithTemplate()`. Each email gets personalized unsubscribe/login tokens.
+   - **RFC 8058**: Includes `List-Unsubscribe` and `List-Unsubscribe-Post` headers for one-click unsubscribe support in major clients (Gmail, Outlook).
+   - Subject line pulled from `weekly_batches.subject_line` (Supabase) or uses AI-generated default.
    - If NO scheduled batch is found: **Stops**. Sends nothing.
 
 ---

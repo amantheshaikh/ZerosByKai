@@ -109,6 +109,9 @@ export function AuthProvider({ children }) {
   // Subscribe modal state
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
 
+  // Feedback modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
   // Refs to prevent duplicate operations
   const isInitialized = useRef(false);
   const postLoginProcessed = useRef(new Map()); // Changed from Set to Map for thread-safe dedup
@@ -618,6 +621,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
+   * Open feedback modal
+   */
+  const openFeedbackModal = useCallback(() => {
+    setShowFeedbackModal(true);
+  }, []);
+
+  /**
+   * Close feedback modal
+   */
+  const closeFeedbackModal = useCallback(() => {
+    setShowFeedbackModal(false);
+  }, []);
+
+  /**
    * Clear error state
    */
   const clearError = useCallback(() => {
@@ -650,6 +667,9 @@ export function AuthProvider({ children }) {
     showSubscribeModal,
     openSubscribeModal,
     closeSubscribeModal,
+    showFeedbackModal,
+    openFeedbackModal,
+    closeFeedbackModal,
 
     // Supabase client (for advanced use cases)
     supabase

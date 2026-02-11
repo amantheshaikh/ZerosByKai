@@ -1,35 +1,19 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AuthModal from '../../components/AuthModal';
 import { useAuth, apiFetch } from '@/lib/auth';
-
-// Mock lib/auth
-vi.mock('@/lib/auth', () => ({
-    useAuth: vi.fn(),
-    getApiUrl: vi.fn(() => 'http://localhost:3001'),
-    apiFetch: vi.fn(),
-}));
+import { renderWithProviders } from '../utils/renderWithProviders';
 
 // Mock fetch for any other usage
 global.fetch = vi.fn();
 
-// Mocks handled in setup: framer-motion
-
 describe('AuthModal', () => {
-    const mockCloseAuthModal = vi.fn();
-    const mockSignInWithProvider = vi.fn();
-
     beforeEach(() => {
         vi.clearAllMocks();
-        useAuth.mockReturnValue({
-            showAuthModal: true,
-            closeAuthModal: mockCloseAuthModal,
-            signInWithProvider: mockSignInWithProvider,
-        });
     });
 
     it('renders OAuth buttons', async () => {
-        render(<AuthModal />);
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
         await waitFor(() => {
             expect(screen.getByText(/CONTINUE WITH GOOGLE/i)).toBeInTheDocument();
             expect(screen.getByText(/CONTINUE WITH GITHUB/i)).toBeInTheDocument();
@@ -37,18 +21,21 @@ describe('AuthModal', () => {
     });
 
     it('calls signInWithProvider when Google button is clicked', async () => {
-        render(<AuthModal />);
+        const signInWithProvider = vi.fn();
+        renderWithProviders(<AuthModal />, {
+            initialAuthState: { showAuthModal: true, signInWithProvider }
+        });
 
         const googleBtn = await screen.findByText(/CONTINUE WITH GOOGLE/i);
         fireEvent.click(googleBtn);
 
-        expect(mockSignInWithProvider).toHaveBeenCalledWith('google');
+        expect(signInWithProvider).toHaveBeenCalledWith('google');
     });
 
     it('handles magic link submission', async () => {
         apiFetch.mockResolvedValue({ exists: false, hasName: false });
 
-        render(<AuthModal />);
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
 
         const emailInput = screen.getByPlaceholderText(/your@email.com/i);
         fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
@@ -81,7 +68,7 @@ describe('AuthModal', () => {
         // Mock user check to indicate user exists but has no name
         apiFetch.mockResolvedValue({ exists: true, hasName: false });
 
-        render(<AuthModal />);
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
 
         const emailInput = screen.getByPlaceholderText(/your@email.com/i);
         fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
@@ -91,8 +78,8 @@ describe('AuthModal', () => {
         }, { timeout: 2000 });
     });
 
-    it('keeps submit button disabled for invalid email', async () => {
-        render(<AuthModal />);
+    it('shows branded error for invalid email on submit', async () => {
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
 
         const emailInput = screen.getByPlaceholderText(/your@email.com/i);
         const submitButton = screen.getByRole('button', { name: /^(SIGN IN|CONTINUE)$/i });
@@ -102,18 +89,45 @@ describe('AuthModal', () => {
 
         // Invalid email
         fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-        expect(submitButton).toBeDisabled();
 
-        // Partially valid
-        fireEvent.change(emailInput, { target: { value: 'aman@g' } });
-        expect(submitButton).toBeDisabled();
+        // Button should NOT be disabled now
+        expect(submitButton).not.toBeDisabled();
+
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Kai needs a real email to transmit data/i)).toBeInTheDocument();
+        });
+    });
+
+    it('shows branded error for missing name on submit', async () => {
+        // Mock user check to indicate user exists but has no name
+        apiFetch.mockResolvedValue({ exists: true, hasName: false });
+
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
+
+        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
+        fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText(/Your Name \(Required\)/i)).toBeInTheDocument();
+        }, { timeout: 2000 });
+
+        const submitButton = screen.getByRole('button', { name: /^(SIGN IN|CONTINUE)$/i });
+
+        // Submit without filling name
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Kai needs to know what to call you. Name required/i)).toBeInTheDocument();
+        });
     });
 
     it('resets name when email changes', async () => {
         // 1. Mock first user check (existing user with name)
         apiFetch.mockResolvedValueOnce({ exists: true, hasName: true, name: 'Aman' });
 
-        render(<AuthModal />);
+        renderWithProviders(<AuthModal />, { initialAuthState: { showAuthModal: true } });
 
         const emailInput = screen.getByPlaceholderText(/your@email.com/i);
 
@@ -146,5 +160,15 @@ describe('AuthModal', () => {
         // Verify name field is empty
         const nameInput = screen.getByPlaceholderText(/Your Name \(Required\)/i);
         expect(nameInput.value).toBe('');
+    });
+
+    it('calls closeAuthModal when close button is clicked', () => {
+        const closeAuthModal = vi.fn();
+        renderWithProviders(<AuthModal />, {
+            initialAuthState: { showAuthModal: true, closeAuthModal }
+        });
+        const closeBtn = screen.getByRole('button', { name: /Close modal/i });
+        fireEvent.click(closeBtn);
+        expect(closeAuthModal).toHaveBeenCalled();
     });
 });

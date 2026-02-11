@@ -5,12 +5,6 @@ export default defineConfig({
         globals: true,
         testTimeout: 20000,
         hookTimeout: 20000,
-        pool: 'threads',
-        poolOptions: {
-            threads: {
-                singleThread: true,
-            },
-        },
         reporters: ['verbose'],
     },
 });

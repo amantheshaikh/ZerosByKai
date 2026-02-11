@@ -7,6 +7,8 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './'),
+            'estree-walker': path.resolve(__dirname, 'node_modules/estree-walker/src/index.js'),
+            '@rolldown/pluginutils': path.resolve(__dirname, 'node_modules/@rolldown/pluginutils/dist/index.js'),
         },
     },
     test: {

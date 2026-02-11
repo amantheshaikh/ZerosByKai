@@ -189,6 +189,29 @@ vi.mock('@/components/animations/CountUp', () => ({
 }));
 
 // --- Custom Library Mocks ---
+vi.mock('@/lib/auth', () => ({
+    __esModule: true,
+    AuthProvider: ({ children }) => <>{children}</>,
+    useAuth: vi.fn(() => ({
+        user: null,
+        showAuthModal: false,
+        showSubscribeModal: false,
+        showFeedbackModal: false,
+        openAuthModal: vi.fn(),
+        closeAuthModal: vi.fn(),
+        openSubscribeModal: vi.fn(),
+        closeSubscribeModal: vi.fn(),
+        openFeedbackModal: vi.fn(),
+        closeFeedbackModal: vi.fn(),
+        signInWithProvider: vi.fn(),
+        signOut: vi.fn(),
+        subscribeNewsletter: vi.fn(),
+    })),
+    apiFetch: vi.fn(),
+    getApiUrl: vi.fn(() => 'http://localhost:3001'),
+    getRedirectUrl: vi.fn(() => 'http://localhost:3000/auth/callback'),
+}));
+
 vi.mock('@/lib/smoothScroll', () => ({
     __esModule: true,
     SmoothScrollProvider: ({ children }) => <>{children}</>,

@@ -56,6 +56,20 @@ describe('KaiStory Page', () => {
         expect(screen.getAllByText(/GET THE WEEKLY ZEROS/i)[0]).toBeInTheDocument();
     });
 
+    it('shows branded error for invalid email on submit', async () => {
+        render(<KaiStory />);
+
+        const emailInput = screen.getAllByPlaceholderText(/your@email.com/i)[0];
+        fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+
+        const submitButton = screen.getAllByText(/SUBSCRIBE FREE/i)[0];
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Kai needs a real email to transmit data/i)).toBeInTheDocument();
+        });
+    });
+
     it('handles subscription submission', async () => {
         const mockSubscribe = vi.fn().mockResolvedValue({});
         useAuth.mockReturnValue({
@@ -69,7 +83,6 @@ describe('KaiStory Page', () => {
         const emailInput = screen.getAllByPlaceholderText(/your@email.com/i)[0];
         fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
 
-        // Find the specific button associated with this form if possible, or just the first one
         const submitButton = screen.getAllByText(/SUBSCRIBE FREE/i)[0];
         fireEvent.click(submitButton);
 

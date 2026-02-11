@@ -3,10 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Header from '../../components/Header';
 import { useAuth } from '@/lib/auth';
 
-// Mock auth
-vi.mock('@/lib/auth', () => ({
-    useAuth: vi.fn(),
-}));
+// Mock auth is handled in vitest.setup.jsx
 
 // Mock framer-motion handled in setup
 

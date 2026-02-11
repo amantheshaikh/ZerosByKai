@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, getApiUrl, apiFetch } from '@/lib/auth';
 import { useRouter } from 'next/router';
-import { CheckCircle2, ArrowRight, User } from 'lucide-react';
+import { CheckCircle2, ArrowRight, User, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -107,7 +107,15 @@ export default function AuthModal() {
     const needsName = userStatus.checked && !userStatus.hasName;
     const hasName = name.trim().length > 0;
 
-    if (!isValidEmail || (needsName && !hasName) || status === 'checking' || status === 'sending') {
+    if (status === 'checking' || status === 'sending') return;
+
+    if (!isValidEmail) {
+      setErrorMsg('Kai needs a real email to transmit data.');
+      return;
+    }
+
+    if (needsName && !hasName) {
+      setErrorMsg('Kai needs to know what to call you. Name required.');
       return;
     }
 
@@ -138,6 +146,14 @@ export default function AuthModal() {
         className="comic-panel bg-white p-6 sm:p-8 max-w-md w-full comic-shadow"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          onClick={closeAuthModal}
+          className="absolute top-3 right-3 p-1.5 hover:bg-gray-100 rounded-full transition-colors z-10"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5 text-black" />
+        </button>
+
         <AnimatePresence mode="wait">
           {step === 'success' ? (
             <motion.div
@@ -201,7 +217,7 @@ export default function AuthModal() {
                 <div className="flex-1 border-t-2 border-gray-200"></div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <div className="relative">
                   <input
                     type="email"
@@ -247,8 +263,8 @@ export default function AuthModal() {
                 </AnimatePresence>
 
                 {errorMsg && (
-                  <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm">
-                    {errorMsg}
+                  <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm font-bold">
+                    ⚠️ {errorMsg}
                   </div>
                 )}
 
@@ -256,10 +272,7 @@ export default function AuthModal() {
                   type="submit"
                   disabled={
                     status === 'sending' ||
-                    status === 'checking' ||
-                    !EMAIL_REGEX.test(email) ||
-                    !userStatus.checked ||
-                    (userStatus.checked && !userStatus.hasName && !name.trim())
+                    status === 'checking'
                   }
                   className="w-full px-6 py-4 bg-rose-700 text-white comic-title text-lg hover:bg-rose-800 transition-all comic-shadow disabled:opacity-50 flex items-center justify-center gap-2"
                 >

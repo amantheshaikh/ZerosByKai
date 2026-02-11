@@ -1,61 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import express from 'express';
 import authRouter from '../../src/routes/auth.js';
 import { supabase, supabaseAdmin } from '../../src/config/supabase.js';
 import { sendEmail } from '../../src/utils/emailService.js';
 import { syncContact, blocklistContact, unblockContact, deleteContact } from '../../src/services/brevoService.js';
-import { verifyEmailToken, generateEmailToken } from '../../src/utils/emailToken.js';
+import { verifyEmailToken } from '../../src/utils/emailToken.js';
 import { config } from '../../src/config/env.js';
+import { createTestApp } from '../utils/testHelpers.js';
 
-// Create a test app
-const app = express();
-app.use(express.json());
-app.use('/api/auth', authRouter);
+// Create a test app using the helper
+const app = createTestApp(authRouter, '/api/auth');
 
-// Basic error handler for tests
-app.use((err, req, res, next) => {
-    res.status(err.status || err.statusCode || 500).json({
-        error: err.message || 'Internal Server Error'
-    });
-});
-
-// Mock all dependencies
-vi.mock('../../src/config/supabase.js', () => {
-    const mockClient = {
-        from: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
-        upsert: vi.fn().mockReturnThis(),
-        update: vi.fn().mockReturnThis(),
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockReturnThis(),
-        or: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        gt: vi.fn().mockReturnThis(),
-        range: vi.fn().mockReturnThis(),
-        auth: {
-            getUser: vi.fn(),
-            signOut: vi.fn(),
-            verifyOtp: vi.fn(),
-            admin: {
-                generateLink: vi.fn(),
-                createSession: vi.fn(),
-                deleteUser: vi.fn()
-            }
-        },
-        then: vi.fn(function (resolve) {
-            return Promise.resolve({ data: null, error: null }).then(resolve);
-        })
-    };
-    return {
-        supabase: mockClient,
-        supabaseAdmin: mockClient
-    };
-});
+// Mock all dependencies centrally
+vi.mock('../../src/config/supabase.js', () => import('../mocks/supabase.js'));
 
 vi.mock('../../src/config/env.js', () => ({
     config: {

@@ -153,6 +153,7 @@ export default function IdeaCarousel({
                                 setDirection(i > currentIndex ? 1 : -1);
                                 setCurrentIndex(i);
                             }}
+                            aria-label={`Go to slide ${i + 1}`}
                             className={`w-2.5 h-2.5 rounded-full border-2 border-black transition-all ${i === currentIndex ? 'bg-yellow-400 scale-110' : 'bg-white'
                                 }`}
                         />
@@ -164,6 +165,7 @@ export default function IdeaCarousel({
                     <button
                         onClick={() => paginate(-1)}
                         className="p-3 bg-white border-4 border-black comic-shadow hover:bg-yellow-100 transition-colors group active:translate-y-1"
+                        aria-label="Previous slide"
                     >
                         <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
                     </button>
@@ -177,6 +179,7 @@ export default function IdeaCarousel({
                     <button
                         onClick={() => paginate(1)}
                         className="p-3 bg-white border-4 border-black comic-shadow hover:bg-yellow-100 transition-colors group active:translate-y-1"
+                        aria-label="Next slide"
                     >
                         <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                     </button>

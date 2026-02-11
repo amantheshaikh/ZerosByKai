@@ -13,9 +13,10 @@ The ZerosByKai authentication system supports multiple authentication flows to p
 1. User receives weekly digest email with `?token=<jwt>` in URL
 2. Frontend detects token on page load
 3. Token is verified with backend `/api/auth/verify-email-token`
-4. Backend generates a magic link and immediately verifies it via `supabase.auth.verifyOtp` to create a session
-5. Session is returned to frontend and user is signed in
-6. Token is removed from URL
+4. Backend generates a magic link via `supabaseAdmin.auth.admin.generateLink` and immediately verifies it via `supabase.auth.verifyOtp` to create a session
+5. This multi-step flow ensures robust session creation across different environment configurations.
+6. Session is returned to frontend and user is signed in
+7. Token is removed from URL
 
 
 **Code example:**
@@ -266,7 +267,7 @@ JWT_SECRET            # Used for some legacy lookups
 EMAIL_TOKEN_SECRET    # Used specifically for secure email link tokens
 FRONTEND_URL, PORT, NODE_ENV
 GEMINI_API_KEY
-ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD, BREVO_LIST_ID
+ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD, BREVO_LIST_ID, BREVO_WEBHOOK_SECRET
 ```
 
 ---

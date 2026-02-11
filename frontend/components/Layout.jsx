@@ -12,6 +12,9 @@ const SubscribeModal = dynamic(() => import('@/components/SubscribeModal'), {
 const ScrollToTop = dynamic(() => import('@/components/ScrollToTop'), {
     loading: () => null,
 });
+const FeedbackModal = dynamic(() => import('@/components/FeedbackModal'), {
+    loading: () => null,
+});
 
 export default function Layout({ children, headerVariant }) {
     const showCommon = headerVariant !== 'none';
@@ -23,6 +26,7 @@ export default function Layout({ children, headerVariant }) {
             {showCommon && <Footer />}
             <AuthModal />
             <SubscribeModal />
+            <FeedbackModal />
             <ScrollToTop />
             <Analytics />
             <div id="mobile-menu-portal" />
