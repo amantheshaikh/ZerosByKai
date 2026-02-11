@@ -237,8 +237,20 @@ router.post('/verify-email-token', tokenLimiter, async (req, res, next) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'Token is required' });
 
-    const { userId } = verifyEmailToken(token);
-    const { data, error } = await supabaseAdmin.auth.admin.createSession({ user_id: userId });
+    const { userId, email } = verifyEmailToken(token);
+
+    // As createSession is not available in some SDK versions, we generate a magic link
+    // and immediately verify it to get a session.
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+    });
+    if (linkError) throw linkError;
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: linkData.properties.hashed_token,
+      type: 'magiclink'
+    });
 
     if (error) throw error;
     res.json({ session: data.session, user: data.user });

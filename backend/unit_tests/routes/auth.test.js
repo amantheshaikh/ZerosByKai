@@ -196,8 +196,12 @@ describe('auth.js routes', () => {
 
     describe('POST /api/auth/verify-email-token', () => {
         it('should create session for valid token', async () => {
-            verifyEmailToken.mockReturnValue({ userId: 'u1' });
-            supabaseAdmin.auth.admin.createSession.mockResolvedValue({ data: { session: {}, user: {} }, error: null });
+            verifyEmailToken.mockReturnValue({ userId: 'u1', email: 'test@t.com' });
+            supabaseAdmin.auth.admin.generateLink.mockResolvedValue({
+                data: { properties: { hashed_token: 'hashed' } },
+                error: null
+            });
+            supabase.auth.verifyOtp.mockResolvedValue({ data: { session: {}, user: {} }, error: null });
 
             const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'valid' });
             expect(res.status).toBe(200);
