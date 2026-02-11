@@ -132,4 +132,22 @@ describe('SubscribeModal', () => {
 
         expect(mockCloseSubscribeModal).toHaveBeenCalled();
     });
+
+    it('opens auth modal when "Create an account" link is clicked', () => {
+        const mockOpenAuthModal = vi.fn();
+        useAuth.mockReturnValue({
+            showSubscribeModal: true,
+            closeSubscribeModal: mockCloseSubscribeModal,
+            subscribeNewsletter: mockSubscribeNewsletter,
+            openAuthModal: mockOpenAuthModal,
+        });
+
+        render(<SubscribeModal />);
+
+        const createAccountLink = screen.getByText(/Create an account/i);
+        fireEvent.click(createAccountLink);
+
+        expect(mockCloseSubscribeModal).toHaveBeenCalled();
+        expect(mockOpenAuthModal).toHaveBeenCalledWith('signin');
+    });
 });

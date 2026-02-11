@@ -127,8 +127,7 @@ vi.mock('@/lib/smoothScroll', () => ({
         lenis: null, scrollTo: vi.fn(), stop: vi.fn(), start: vi.fn(),
         getScroll: () => 0, getLimit: () => 0, velocity: 0, direction: 0, progress: 0, isScrolling: false,
     }),
-    useScrollVelocity: () => ({ velocity: 0, rawVelocity: 0, direction: 0, isScrolling: false, intensity: 0 }),
     useAnchorNavigation: () => ({ activeSection: null, scrollToAnchor: vi.fn(), scrollToSection: vi.fn() }),
-    useScrollActions: () => ({ scrollToElement: vi.fn(), scrollToTop: vi.fn(), scrollToSubscribe: vi.fn() }),
+    useScrollActions: () => ({ scrollToElement: vi.fn(), scrollToTop: vi.fn() }),
     scrollEasings: { smooth: (t) => t, snappy: (t) => t, gentle: (t) => t, bounce: (t) => t },
 }));

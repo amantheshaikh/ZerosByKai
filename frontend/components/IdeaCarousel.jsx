@@ -12,6 +12,8 @@ export default function IdeaCarousel({
     onVote,
     getVoteButtonProps
 }) {
+    if (!ideas || ideas.length === 0) return null;
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [direction, setDirection] = useState(0);
     const [isMobile, setIsMobile] = useState(false);

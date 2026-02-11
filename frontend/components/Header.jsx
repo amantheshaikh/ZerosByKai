@@ -86,6 +86,12 @@ export default function Header({ variant = 'landing' }) {
         >
           KAI&apos;S STORY
         </Link>
+        <Link
+          href="/tools"
+          className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors"
+        >
+          SECRET STASH
+        </Link>
         <a
           href="#ideas-section"
           onClick={handleThisWeekClick}
@@ -179,8 +185,6 @@ export default function Header({ variant = 'landing' }) {
       </div >
 
       {/* Mobile Menu Overlay */}
-      {/* Mobile Menu Overlay */}
-      {/* Mobile Menu Overlay */}
       {
         isMenuOpen && mounted && createPortal(
           <div
@@ -196,6 +200,17 @@ export default function Header({ variant = 'landing' }) {
               className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
             >
               KAI&apos;S STORY
+            </Link>
+            <Link
+              href="/tools"
+              onClick={() => {
+                closeAuthModal();
+                closeSubscribeModal();
+                setIsMenuOpen(false);
+              }}
+              className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+            >
+              SECRET STASH
             </Link>
             <a
               href="#ideas-section"

@@ -137,6 +137,18 @@ describe('ZerosByKaiLanding', () => {
         });
     });
 
+    it('renders with initial ISR props', () => {
+        const initialIdeas = [
+            { id: 99, name: 'ISR Idea', title: 'ISR Title' }
+        ];
+        render(<ZerosByKaiLanding initialIdeas={initialIdeas} />);
+
+        // Should be visible immediately without waiting for fetch
+        expect(screen.getByTestId('mock-idea-carousel')).toBeInTheDocument();
+        // You might want to inspect the props passed to the mock if possible, 
+        // or rely on the Fact that IdeaCarousel is in the document.
+    });
+
     it('handles newsletter subscription success', async () => {
         const subscribeNewsletter = vi.fn().mockResolvedValue({ success: true });
         useAuth.mockReturnValue({

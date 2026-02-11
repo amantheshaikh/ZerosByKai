@@ -3,6 +3,7 @@
  * Provides buttery-smooth scrolling with momentum physics
  */
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import Lenis from 'lenis';
 
 const SmoothScrollContext = createContext(null);
@@ -46,6 +47,7 @@ const prefersReducedMotion = () => {
 export function SmoothScrollProvider({ children }) {
     const lenisRef = useRef(null);
     const rafRef = useRef(null);
+    const router = useRouter(); // Initialize router
     const [scrollState, setScrollState] = useState({
         velocity: 0,
         direction: 0,
@@ -54,6 +56,17 @@ export function SmoothScrollProvider({ children }) {
     });
     const lastDirectionRef = useRef(0);
     const dampingActiveRef = useRef(false);
+
+    // Reset scroll on route change
+    useEffect(() => {
+        if (!lenisRef.current) return;
+
+        // Immediate scroll to top without animation to feel like a fresh page load
+        lenisRef.current.scrollTo(0, { immediate: true });
+
+        // Also ensure window scroll is reset for native behavior compatibility
+        window.scrollTo(0, 0);
+    }, [router.pathname]); // Trigger on pathname change
 
     // Initialize Lenis with premium configuration
     useEffect(() => {
@@ -184,9 +197,9 @@ export function useSmoothScroll() {
         // Return no-op functions if not in provider (SSR safety)
         return {
             lenis: null,
-            scrollTo: () => {},
-            stop: () => {},
-            start: () => {},
+            scrollTo: () => { },
+            stop: () => { },
+            start: () => { },
             getScroll: () => 0,
             getLimit: () => 0,
             velocity: 0,
@@ -196,53 +209,6 @@ export function useSmoothScroll() {
         };
     }
     return context;
-}
-
-/**
- * Hook for scroll-velocity-based animations
- * @param {Object} options - Configuration options
- * @returns {Object} Velocity-based animation values
- */
-export function useScrollVelocity(options = {}) {
-    const { velocity, direction, isScrolling } = useSmoothScroll();
-    const {
-        maxVelocity = 5,
-        smoothing = 0.1,
-    } = options;
-
-    const [smoothVelocity, setSmoothVelocity] = useState(0);
-    const smoothVelocityRef = useRef(0);
-
-    useEffect(() => {
-        // Smooth the velocity value for animations
-        const targetVelocity = Math.min(velocity, maxVelocity) / maxVelocity;
-        smoothVelocityRef.current += (targetVelocity - smoothVelocityRef.current) * smoothing;
-        setSmoothVelocity(smoothVelocityRef.current);
-    }, [velocity, maxVelocity, smoothing]);
-
-    return {
-        velocity: smoothVelocity,
-        rawVelocity: velocity,
-        direction,
-        isScrolling,
-        // Normalized 0-1 value for animations
-        intensity: Math.min(1, smoothVelocity),
-    };
-}
-
-/**
- * Hook for section-specific scroll speeds
- * Use data-scroll-speed attribute on elements
- */
-export function useSectionSpeed() {
-    const { lenis } = useSmoothScroll();
-
-    useEffect(() => {
-        if (!lenis) return;
-
-        // This is handled by CSS transform based on scroll position
-        // Lenis provides the smooth base, sections can use CSS parallax
-    }, [lenis]);
 }
 
 // Section IDs that can be navigated to
@@ -454,17 +420,8 @@ export function useScrollActions() {
         });
     }, [scrollTo]);
 
-    const scrollToSubscribe = useCallback((options = {}) => {
-        scrollToElement('#final-cta', {
-            duration: 1.6,
-            easing: scrollEasings.smooth,
-            ...options,
-        });
-    }, [scrollToElement]);
-
     return {
         scrollToElement,
         scrollToTop,
-        scrollToSubscribe,
     };
 }

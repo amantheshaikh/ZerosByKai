@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * IntersectionObserver-based reveal detection hook
@@ -47,62 +47,6 @@ export function useReveal({
     }, [threshold, once, rootMargin]);
 
     return { ref, isVisible };
-}
-
-/**
- * Get motion props for reveal animations
- * @param {boolean} isVisible - Whether element is visible
- * @param {Object} options - Animation options
- * @returns {Object} Motion props
- */
-export function useRevealMotionProps(isVisible, {
-    type = 'fade',
-    direction = 'up',
-    delay = 0,
-    duration,
-    spring = 'gentle',
-} = {}) {
-    const { getVariant, getTransition } = require('./variants');
-
-    const variant = getVariant(type, direction);
-    const transition = getTransition(spring, delay, duration);
-
-    return {
-        initial: 'hidden',
-        animate: isVisible ? 'visible' : 'hidden',
-        variants: {
-            hidden: variant.hidden,
-            visible: {
-                ...variant.visible,
-                transition,
-            },
-        },
-    };
-}
-
-/**
- * Combined hook for reveal detection + motion props
- */
-export function useRevealAnimation({
-    type = 'fade',
-    direction = 'up',
-    delay = 0,
-    duration,
-    spring = 'gentle',
-    threshold = 0.1,
-    once = true,
-    rootMargin = '-50px 0px',
-} = {}) {
-    const { ref, isVisible } = useReveal({ threshold, once, rootMargin });
-    const motionProps = useRevealMotionProps(isVisible, {
-        type,
-        direction,
-        delay,
-        duration,
-        spring,
-    });
-
-    return { ref, isVisible, motionProps };
 }
 
 export default useReveal;

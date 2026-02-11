@@ -39,7 +39,7 @@ const MISSION_DESIGNATIONS = [
     { img: '/badges/unicorn-prism.png', title: 'UNICORN HUNTER', tier: '20+ winning picks', color: 'text-indigo-400', special: 'Legendary' }
 ];
 
-const ZerosByKaiLanding = () => {
+const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
     const { user, session, openAuthModal, subscribeNewsletter } = useAuth();
     const errorTimeoutRef = useRef(null);
 
@@ -49,17 +49,22 @@ const ZerosByKaiLanding = () => {
     const [subscribeError, setSubscribeError] = useState(null);
 
     // Ideas state
-    const [ideas, setIdeas] = useState(null);
-    const [leaderboard, setLeaderboard] = useState(null);
+    const [ideas, setIdeas] = useState(initialIdeas);
+    const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
     const [userVote, setUserVote] = useState(null);
     const [votingIdeaId, setVotingIdeaId] = useState(null);
     const [voteConfirmation, setVoteConfirmation] = useState(null);
     const [voteError, setVoteError] = useState(null);
 
-    // Fetch ideas and leaderboard
+    // Fetch ideas and leaderboard on mount (refresh data)
     useEffect(() => {
-        fetchCurrentWeekIdeas().then(data => data.length > 0 && setIdeas(data));
-        fetchLeaderboard().then(data => data.length > 0 && setLeaderboard(data));
+        // Optimistically show initial props, then re-fetch to ensure freshness if needed
+        fetchCurrentWeekIdeas().then(data => {
+            if (data.length > 0) setIdeas(data);
+        });
+        fetchLeaderboard().then(data => {
+            if (data.length > 0) setLeaderboard(data);
+        });
     }, []);
 
     // Fetch user's current vote
@@ -80,8 +85,8 @@ const ZerosByKaiLanding = () => {
         };
     }, []);
 
-    const displayIdeas = ideas || sampleIdeas.map(normalizeIdea);
-    const isRealData = ideas !== null;
+    const displayIdeas = (ideas && ideas.length > 0) ? ideas : sampleIdeas.map(normalizeIdea);
+    const isRealData = ideas !== null && ideas.length > 0;
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
@@ -869,5 +874,32 @@ const ZerosByKaiLanding = () => {
         </div>
     );
 };
+
+// Static Generation (ISR)
+export async function getStaticProps() {
+    try {
+        const [ideas, leaderboard] = await Promise.all([
+            fetchCurrentWeekIdeas(),
+            fetchLeaderboard()
+        ]);
+
+        return {
+            props: {
+                initialIdeas: ideas || [],
+                initialLeaderboard: leaderboard || []
+            },
+            revalidate: 60 // Revalidate every 60 seconds
+        };
+    } catch (error) {
+        console.error('Error in getStaticProps:', error);
+        return {
+            props: {
+                initialIdeas: [],
+                initialLeaderboard: []
+            },
+            revalidate: 60
+        };
+    }
+}
 
 export default ZerosByKaiLanding;

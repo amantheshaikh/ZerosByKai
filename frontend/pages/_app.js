@@ -14,6 +14,9 @@ const AuthModal = dynamic(() => import('@/components/AuthModal'), {
 const SubscribeModal = dynamic(() => import('@/components/SubscribeModal'), {
     loading: () => null,
 })
+const ScrollToTop = dynamic(() => import('@/components/ScrollToTop'), {
+    loading: () => null,
+})
 
 const bangers = Bangers({
     weight: '400',
@@ -84,6 +87,7 @@ export default function App({ Component, pageProps }) {
                     <Component {...pageProps} />
                     <AuthModal />
                     <SubscribeModal />
+                    <ScrollToTop />
                     <Analytics />
                     <div id="mobile-menu-portal" />
                 </main>

@@ -8,12 +8,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SubscribeModal() {
     const router = useRouter();
-    const { showSubscribeModal, closeSubscribeModal, subscribeNewsletter } = useAuth();
+    const { showSubscribeModal, closeSubscribeModal, subscribeNewsletter, openAuthModal } = useAuth();
 
     // Form State
     const [email, setEmail] = useState('');
-
-
     // UI State
     const [step, setStep] = useState('form'); // 'form' | 'success'
     const [status, setStatus] = useState('idle'); // 'idle' | 'sending' | 'error'
@@ -25,8 +23,6 @@ export default function SubscribeModal() {
             setStep('form');
             setStatus('idle');
             setErrorMsg('');
-
-
         }
     }, [showSubscribeModal]);
 
@@ -127,8 +123,6 @@ export default function SubscribeModal() {
                                     />
                                 </div>
 
-
-
                                 {errorMsg && (
                                     <div className="bg-red-50 border-2 border-red-400 p-3 text-red-700 comic-body text-sm">
                                         {errorMsg}
@@ -148,6 +142,21 @@ export default function SubscribeModal() {
                                     )}
                                 </button>
                             </form>
+
+                            <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-200 text-center">
+                                <p className="text-xs comic-body text-gray-500">
+                                    Want to vote &amp; earn badges?
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        closeSubscribeModal();
+                                        openAuthModal('signin');
+                                    }}
+                                    className="mt-1 text-black font-bold comic-body hover:text-rose-700 inline-flex items-center gap-1 underline text-sm"
+                                >
+                                    Create an account <ArrowRight className="w-3 h-3" />
+                                </button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>

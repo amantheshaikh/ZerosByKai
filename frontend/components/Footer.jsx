@@ -28,6 +28,7 @@ export default function Footer() {
                             <li><a href="#ideas-section" onClick={(e) => handleAnchorClick(e, '#ideas-section')} className="hover:text-yellow-400 cursor-pointer">This Week&apos;s Ideas</a></li>
                             <li><Link href="/archive" className="hover:text-yellow-400">Archive</Link></li>
                             <li><Link href="/story" className="hover:text-yellow-400">Kai&apos;s story</Link></li>
+                            <li><Link href="/tools" className="hover:text-yellow-400">Secret Stash</Link></li>
                         </ul>
                     </div>
                     <div>
