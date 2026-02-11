@@ -251,10 +251,12 @@ Use Supabase Dashboard:
 
 ---
 
-- ✅ **Next-Gen Models**: Integrated `gemini-3-flash-preview` and `gemini-3-pro-preview`.
-- ✅ **Hardening**: CRLF protection, RFC 2047 subject encoding, Base64 email bodies.
-- ✅ **Maintenance**: PII masked in logs, UTC standardized dates, ADMIN_CONFIG in env.
-- ✅ **Sync**: Unified `tags` array (max 5) on ideas.
+- ✅ **Security**: Fixed admin delete scalability (subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
+- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls.
+- ✅ **Auth**: Updated `verify-email-token` to use magic link generation + verification for session creation.
+- ✅ **Cleanup**: Removed dead endpoints, service exports, and unused imports across the API.
+- ✅ **Logging**: Enhanced PII masking in logs, UTC standardized dates.
+
 
 
 ---

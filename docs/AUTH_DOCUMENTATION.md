@@ -13,8 +13,10 @@ The ZerosByKai authentication system supports multiple authentication flows to p
 1. User receives weekly digest email with `?token=<jwt>` in URL
 2. Frontend detects token on page load
 3. Token is verified with backend `/api/auth/verify-email-token`
-4. Session is created and user is signed in
-5. Token is removed from URL
+4. Backend generates a magic link and immediately verifies it via `supabase.auth.verifyOtp` to create a session
+5. Session is returned to frontend and user is signed in
+6. Token is removed from URL
+
 
 **Code example:**
 ```javascript
@@ -29,12 +31,12 @@ The ZerosByKai authentication system supports multiple authentication flows to p
 **Use case:** Users sign up or sign in without passwords
 
 **Flow:**
-1. User enters email (and optionally name)
+1. User enters email (name only requested if not present in DB)
 2. Backend sends magic link email via Supabase
 3. User clicks link in email
 4. Redirected to `/auth/callback`
 5. Supabase verifies token and creates session
-6. Post-login hook runs (welcome email, subscriber sync)
+6. Post-login hook runs (sync subscriber, send welcome if new)
 
 **Code example:**
 ```javascript
@@ -73,10 +75,10 @@ await signInWithGoogle();
 **Use case:** Users who only want weekly emails (no account)
 
 **Flow:**
-1. User enters email (and optionally name)
+1. User enters email (name only requested if not present in DB)
 2. Backend creates subscriber record (no auth user)
-3. Welcome email sent
-4. User receives weekly digests but cannot vote
+3. Welcome email sent (via `/api/auth/subscribe`)
+4. User receives weekly digests but cannot vote until they fully sign up
 
 **Code example:**
 ```javascript
@@ -259,11 +261,12 @@ NEXT_PUBLIC_SITE_URL=https://zerosbykai.com
 
 # Backend (.env)
 SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
-BREVO_API_KEY, BREVO_WEEKLY_DIGEST_TEMPLATE_ID
-JWT_SECRET, EMAIL_TOKEN_SECRET
-FRONTEND_URL
+BREVO_API_KEY, BREVO_WEEKLY_DIGEST_TEMPLATE_ID, BREVO_WEBHOOK_SECRET
+JWT_SECRET            # Used for some legacy lookups
+EMAIL_TOKEN_SECRET    # Used specifically for secure email link tokens
+FRONTEND_URL, PORT, NODE_ENV
 GEMINI_API_KEY
-ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD
+ADMIN_EMAIL, ADMIN_NAME, BACKLOG_THRESHOLD, BREVO_LIST_ID
 ```
 
 ---

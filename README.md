@@ -93,33 +93,35 @@ node src/workflows/simulate_monday_workflow.js
 
 ```
 zerosbykai/
-├── backend/                          # Express API
+├── backend/                          # Express API (Fly.io)
 │   ├── src/
-│   │   ├── server.js                 # Entry point + Cron jobs
-│   │   ├── config/                   # Supabase, environment
-│   │   ├── services/                 # Business logic (Brevo, AI, Newsletter)
-│   │   ├── routes/                   # API routes (Auth, Ideas, Votes, Emails, Webhooks)
+│   │   ├── server.js                 # Entry point + health crons
+│   │   ├── config/                   # env, supabase, brevo
+│   │   ├── services/                 # Business logic (AI, Brevo, Newsletter)
+│   │   ├── routes/                   # API routes (Auth, Ideas, Votes, Webhooks)
 │   │   ├── jobs/                     # Production cron jobs
-│   │   │   ├── scrapers/             # Scrapers (Reddit, HN, IH, X)
-│   │   │   └── weekly.js             # Monday: publish, winner, digest
-│   │   ├── emails/                   # Transactional templates
-│   │   └── utils/                    # Utilities (JWT Tokens, etc)
-│   ├── unit_tests/                   # Vitest suite (Services, Routes, Jobs)
-│   └── fly.toml                      # Deployment config
+│   │   │   ├── scrapers/             # Multi-source scrapers (Reddit, HN, IH, X)
+│   │   │   ├── schedule_newsletter.js # Batch scheduling
+│   │   │   └── weekly.js             # Monday publishing & delivery
+│   │   ├── emails/                   # Server-generated templates
+│   │   └── utils/                    # JWT, date, masking helpers
+│   ├── unit_tests/                   # Vitest logic suite
+│   └── migrations/                   # SQL migration tracking
 │
-├── frontend/                         # Next.js 14
-│   ├── pages/                        # Routes (index, profile, archive, story)
-│   ├── components/                   # UI Components (AuthModal, Cards, etc)
-│   ├── lib/                          # Auth context, API helpers
-│   ├── unit_tests/                   # React testing library suite
-│   └── public/                       # Static assets
+├── frontend/                         # Next.js 14 (Vercel)
+│   ├── pages/                        # Routes (index, story, tools, profile, archive)
+│   ├── components/                   # UI (AuthModal, Carousel, Leaderboard)
+│   ├── lib/                          # Auth context, API fetching, Stash data
+│   ├── unit_tests/                   # React Testing Library suite
+│   └── public/                       # Assets & SEO files
 │
-├── docs/                             # Deep-dive guides
-│   ├── MASTER_WORKFLOW.md            # Newsletter lifecycle
+├── docs/                             # Tiered Documentation
+│   ├── MASTER_WORKFLOW.md            # Lifecycle guide
 │   ├── BREVO_GUIDE.md                # Email/Contact automation
-│   └── AUTH_DOCUMENTATION.md         # Auth system technicals
+│   ├── AUTH_DOCUMENTATION.md         # Auth system technicals
+│   └── ai-context/                   # AI-specific context
 │
-└── .github/workflows/                # CI/CD & Scraper crons
+└── .github/workflows/                # CI/CD & Weekly Cron
 ```
 
 ---
@@ -281,9 +283,12 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## 📝 Recent Changes (2026-02-11)
 
 ### Routes Optimization & Cleanup (Feb 11)
-- ✅ **Security**: Fixed admin delete scalability (`listUsers()` → subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
-- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls in `/votes/last-week`.
-- ✅ **Cleanup**: Removed dead endpoints (`GET /api/ideas`, `GET /api/votes`), dead service exports, unused imports, stale fallback code.
+- ✅ **Security**: Fixed admin delete scalability (subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
+- ✅ **Auth**: Updated `verify-email-token` to use magic link generation + verification for session creation; removed name field from subscribe modal.
+- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls.
+- ✅ **Features**: Added **Tools** page (`/tools`) for curated startup resources with dynamic logo fetching.
+- ✅ **Cleanup**: Removed dead endpoints, service exports, and unused imports across the API.
+
 
 ### Previous (Feb 9)
 - ✅ **Security**: Unsubscribe links use backend-generated secure tokens. RFC 8058 one-click unsubscribe.

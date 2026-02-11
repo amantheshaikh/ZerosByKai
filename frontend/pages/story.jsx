@@ -5,8 +5,6 @@ import Image from 'next/image';
 import { Zap, Brain, Rocket, Target, Sparkles, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 // --- Animation variants ---
 const fadeIn = {
@@ -146,26 +144,26 @@ export default function KaiStory() {
     return (
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
-                <title>The Story of Kai — How We Find Validated Startup Ideas | ZerosByKai</title>
+                <title>How Kai Finds Validated Startup Ideas: The Story | Zeros By Kai</title>
                 <meta name="description" content="The origin story of Kai. In a world where building became trivial, finding the RIGHT startup idea became the real challenge. How Kai analyzes the internet's noise to discover validated business opportunities for entrepreneurs and indie hackers." />
                 <meta name="keywords" content="startup idea story, how to find startup ideas, validated startup opportunities, AI idea validation, indie hacker ideas" />
                 <link rel="canonical" href="https://zerosbykai.com/story" />
-                <meta property="og:title" content="The Story of Kai | ZerosByKai" />
+                <meta property="og:title" content="The Story of Kai | Zeros By Kai" />
                 <meta property="og:description" content="When building became easy, knowing what to build became the goldmine. The origin story of Kai." />
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content="https://zerosbykai.com/story" />
                 <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
-                <meta name="twitter:title" content="The Story of Kai | ZerosByKai" />
+                <meta name="twitter:title" content="The Story of Kai | Zeros By Kai" />
                 <meta name="twitter:description" content="When building became easy, knowing what to build became the goldmine." />
             </Head>
 
-            <Header variant="story" />
+
 
             <main>
                 {/* Cover / Title Panel */}
                 <section className="relative bg-black pt-32 pb-16 sm:py-24 lg:py-32 px-4 sm:px-6 overflow-hidden">
                     <div className="absolute inset-0 opacity-20" style={{ background: 'repeating-conic-gradient(from 0deg, #fbbf24 0deg 5deg, transparent 5deg 30deg)' }} />
-                    <motion.div className="relative max-w-5xl mx-auto text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }}>
+                    <motion.div className="relative max-w-5xl 2xl:max-w-7xl mx-auto text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }}>
                         <div className="inline-block bg-rose-700 text-white px-6 py-2 comic-title text-sm sm:text-lg mb-6 transform rotate-1 border-2 border-yellow-400">
                             ⚡ THE ORIGIN STORY ⚡
                         </div>
@@ -185,7 +183,7 @@ export default function KaiStory() {
                 {/* Prologue - The Golden Age */}
                 <section className="py-12 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 relative overflow-hidden">
                     <div className="absolute inset-0 halftone" />
-                    <div className="relative max-w-6xl mx-auto">
+                    <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                         <ChapterHeading badge="PROLOGUE" badgeClass="bg-black text-yellow-400 transform -rotate-1" title="THE GOLDEN AGE OF" accent="VIBE CODERS" accentClass="text-rose-700" titleClass="text-black" />
 
                         <div className="grid lg:grid-cols-2 gap-8 items-center mb-12">
@@ -238,7 +236,7 @@ export default function KaiStory() {
                 {/* Chapter 1 - The Builder's Trap */}
                 <section className="py-12 sm:py-20 px-4 sm:px-6 bg-black text-white relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: DIAGONAL_STRIPES_ROSE }} />
-                    <div className="relative max-w-6xl mx-auto">
+                    <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                         <ChapterHeading badge="CHAPTER 1" badgeClass="bg-rose-700 text-white border-2 border-yellow-400" title="THE BUILDER&apos;S" accent="TRAP" accentClass="text-white" titleClass="text-yellow-400" />
 
                         <div className="grid lg:grid-cols-2 gap-8 items-center mb-12">
@@ -293,7 +291,7 @@ export default function KaiStory() {
                 {/* Chapter 2 - The Discovery */}
                 <section className="py-12 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 text-white relative overflow-hidden">
                     <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-                    <div className="relative max-w-6xl mx-auto">
+                    <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                         <ChapterHeading badge="CHAPTER 2" badgeClass="bg-blue-600 text-white border-2 border-yellow-400" title="THE" accent="DISCOVERY" accentClass="text-white" titleClass="text-yellow-400" />
 
                         <div className="grid lg:grid-cols-2 gap-8 items-center mb-12">
@@ -335,7 +333,7 @@ export default function KaiStory() {
                 <section className="py-12 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-yellow-400 via-yellow-300 to-amber-400 relative overflow-hidden">
                     <div className="absolute inset-0 halftone" />
                     <div className="absolute inset-0 opacity-20" style={{ background: 'repeating-conic-gradient(from 0deg, #000 0deg 2deg, transparent 2deg 15deg)' }} />
-                    <div className="relative max-w-6xl mx-auto">
+                    <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                         <Reveal className="text-center mb-12">
                             <div className="inline-block bg-black text-yellow-400 px-8 py-3 comic-title text-xl sm:text-3xl mb-4 transform rotate-1 border-4 border-yellow-400">
                                 ⚡ CHAPTER 3 ⚡
@@ -388,7 +386,7 @@ export default function KaiStory() {
                 {/* Epilogue - The New Era */}
                 {/* Quote / Bottleneck Section (Moved) */}
                 <section className="py-12 sm:py-16 px-6 bg-gray-900 border-t-8 border-b-8 border-yellow-400 relative z-10">
-                    <div className="max-w-4xl mx-auto text-center">
+                    <div className="max-w-4xl 2xl:max-w-6xl mx-auto text-center">
                         <Reveal>
                             <p className="comic-title text-2xl sm:text-4xl lg:text-5xl text-yellow-400 leading-tight mb-6 px-4">
                                 &quot;THE BOTTLENECK HAS SHIFTED.&quot;
@@ -411,7 +409,7 @@ export default function KaiStory() {
                 {/* Epilogue - The New Era */}
                 <section className="py-12 sm:py-20 px-4 sm:px-6 bg-black text-white relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: DIAGONAL_STRIPES_GOLD }} />
-                    <div className="relative max-w-6xl mx-auto">
+                    <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                         <ChapterHeading badge="EPILOGUE" badgeClass="bg-yellow-400 text-black transform -rotate-1" title="THE NEW" accent="ERA" accentClass="text-yellow-400" titleClass="text-white" />
 
                         <div className="grid lg:grid-cols-2 gap-8 items-start mb-12">
@@ -446,7 +444,7 @@ export default function KaiStory() {
                         </div>
 
                         {/* Final Panel */}
-                        <Reveal className="max-w-6xl mx-auto">
+                        <Reveal className="max-w-6xl 2xl:max-w-7xl mx-auto">
                             <div className="comic-panel p-8 sm:p-12 bg-gradient-to-r from-rose-700 to-rose-600 comic-shadow">
                                 <div className="grid lg:grid-cols-2 gap-8 items-center">
                                     {/* Left Column: Text */}
@@ -541,7 +539,9 @@ export default function KaiStory() {
                 </section>
             </main>
 
-            <Footer />
+
         </div>
     );
 }
+
+KaiStory.headerVariant = 'story';

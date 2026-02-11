@@ -28,8 +28,11 @@ vi.mock('framer-motion', () => {
         motion: {
             div: ({ children, ...props }) => <div {...filterMotionProps(props)}>{children}</div>,
             button: ({ children, ...props }) => <button {...filterMotionProps(props)}>{children}</button>,
+            header: ({ children, ...props }) => <header {...filterMotionProps(props)}>{children}</header>,
         },
         AnimatePresence: ({ children }) => <>{children}</>,
+        useScroll: () => ({ scrollY: { getPrevious: () => 0, get: () => 0 } }),
+        useMotionValueEvent: () => {},
     };
 });
 
@@ -69,7 +72,7 @@ describe('Header Component', () => {
         it('renders logo and brand name', () => {
             render(<Header />);
 
-            expect(screen.getByAltText('ZerosByKai Logo')).toBeInTheDocument();
+            expect(screen.getByAltText('Zeros By Kai Logo')).toBeInTheDocument();
             expect(screen.getByText('ZEROS BY KAI')).toBeInTheDocument();
         });
 

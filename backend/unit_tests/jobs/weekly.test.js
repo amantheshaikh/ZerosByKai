@@ -168,7 +168,7 @@ describe('weekly.js', () => {
                     expect.objectContaining({
                         to: 'sub@example.com',
                         params: expect.objectContaining({
-                            name: 'Sub',
+                            name: 'Hustler',
                             subject: 'Custom Subject',
                             ideasCount: 1,
                             unsubscribeUrl: expect.stringContaining('/unsubscribe?email='),

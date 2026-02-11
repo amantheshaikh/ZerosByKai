@@ -118,7 +118,12 @@ describe('auth.js routes', () => {
     });
 
     describe('POST /api/auth/subscribe', () => {
-        it('should subscribe and send welcome email', async () => {
+        it('should subscribe and send welcome email if not already welcomed', async () => {
+            // 1. Fetching existing subscriber (none)
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f));
+            // 2. Upserting subscriber
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+            // 3. Updating welcomed status
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
@@ -129,6 +134,21 @@ describe('auth.js routes', () => {
             expect(res.body.message).toBe("You're in!");
             expect(sendEmail).toHaveBeenCalled();
             expect(syncContact).toHaveBeenCalledWith({ email: 'test@example.com', name: 'John' });
+        });
+
+        it('should subscribe but NOT send welcome email if already welcomed', async () => {
+            // 1. Fetching existing subscriber (already welcomed)
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: true }, error: null }).then(f));
+            // 2. Upserting subscriber
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'test@example.com', name: 'John' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe("You're in!");
+            expect(sendEmail).not.toHaveBeenCalled();
         });
     });
 
@@ -151,9 +171,10 @@ describe('auth.js routes', () => {
     });
 
     describe('POST /api/auth/post-login', () => {
-        it('should send welcome email for new users', async () => {
+        it('should send welcome email for new users (created < 24h ago)', async () => {
             supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 't@t.com' } }, error: null });
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: false, name: 'John' }, error: null }).then(f));
+            const recentDate = new Date().toISOString();
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: false, name: 'John', created_at: recentDate }, error: null }).then(f));
             // Second call for update
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
@@ -164,6 +185,22 @@ describe('auth.js routes', () => {
             expect(res.status).toBe(200);
             expect(res.body.isNewUser).toBe(true);
             expect(sendEmail).toHaveBeenCalled();
+        });
+
+        it('should NOT send welcome email for old users (created > 24h ago)', async () => {
+            supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 't@t.com' } }, error: null });
+            const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: false, name: 'John', created_at: oldDate }, error: null }).then(f));
+            // Update call (even if skip email, we update flag)
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.isNewUser).toBe(false);
+            expect(sendEmail).not.toHaveBeenCalled();
         });
 
         it('should return 404 if subscriber record never appears', async () => {

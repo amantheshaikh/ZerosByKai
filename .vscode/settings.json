@@ -1,0 +1,30 @@
+{
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.next": true,
+        "**/coverage": true,
+        "**/logs": true,
+        "**/*.log": true,
+        "**/.DS_Store": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.next": true,
+        "**/coverage": true,
+        "**/logs": true,
+        "**/*.log": true
+    },
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/.next/**": true,
+        "**/coverage/**": true,
+        "**/logs/**": true,
+        "**/*.log": true
+    }
+}

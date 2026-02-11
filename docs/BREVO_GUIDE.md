@@ -27,11 +27,11 @@ Your backend automatically syncs users to Brevo when they sign up or log in.
 
 ### The Sync Logic
 - **File:** `backend/src/services/brevoService.js`
-- **Trigger:** Happens in `backend/src/routes/auth.js` (`/post-login` hook).
+- **Trigger:** Happens in `backend/src/routes/auth.js` (`/post-login` hook and `/subscribe`).
 - **Behavior:**
   - Creates the contact if they don't exist.
   - Updates their attributes (FIRSTNAME, LASTNAME) if they do.
-  - Adds them to **List ID 2** (Default).
+  - Adds them to the list ID specified in `.env` (`BREVO_LIST_ID`).
 
 ### Action Required
 1. Go to **Contacts** > **Lists** in Brevo.
@@ -68,16 +68,18 @@ node backend/src/workflows/preview_templates.js your@email.com
 node backend/src/tests/test_brevo_template.js
 ```
 
-## 4. Webhooks (Advanced)
-
-To get real-time data back into your app (e.g., "Mark user as Bounced in Supabase"):
+## 4. Webhooks
+- 
+Real-time data sync is handled via the Brevo webhook endpoint.
 
 1. Go to **Transactional** > **Settings** > **Webhooks**.
 2. Add a new Webhook.
-3. **URL:** `https://your-api.fly.dev/api/brevo/webhook` (You need to build this endpoint).
-4. **Events:** Check "Hard Bounce", "Complaint", "Delivered".
+3. **URL:** `https://your-api.fly.dev/api/webhooks/brevo?token=YOUR_WEBHOOK_SECRET`
+4. **Events:** Check "Hard Bounce", "Complaint", "Unsubscribed", "Contact Deleted".
 
-> *Note: This feature is not yet implemented in `server.js`. Currently, Brevo handles suppression of bounced emails automatically.*
+**Implementation:**
+- **File:** `backend/src/routes/webhooks.js`
+- **Logic:** Automatically unsubscribes users in Supabase on bounce/spam, and performs full deletion on `contact_deleted` event.
 
 ## 5. Batch Sending (High Performance)
 

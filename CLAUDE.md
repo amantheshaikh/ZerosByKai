@@ -97,18 +97,13 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 ## Recent Major Changes (Feb 11, 2026)
 
 ### Routes Optimization & Cleanup (Feb 11)
-- ✅ **Security (P0)**: Fixed admin delete (`DELETE /admin/user`) — replaced `listUsers()` (loaded ALL users) with targeted subscriber lookup.
-- ✅ **Security (P0)**: Brevo webhook now rejects requests when secret is not configured (was silently allowing all).
-- ✅ **Security (P1)**: Added rate limiter (`tokenLimiter`) to `POST /unsubscribe`.
-- ✅ **Performance (P1)**: `getVotingWeek()` now cached in-memory with 60s TTL (was hitting DB on every request).
-- ✅ **Performance (P2)**: Added `Cache-Control` headers to all read endpoints (60s for weekly/leaderboard, 300s for archives).
-- ✅ **Performance (P2)**: Parallelized 3 sequential DB calls in `GET /votes/last-week` with `Promise.all`.
-- ✅ **Performance (P2)**: Replaced nested async subquery in `POST /votes` with explicit sequential queries.
-- ✅ **Cleanup (P1)**: Removed unused `GET /api/ideas` root endpoint (no consumers, unbounded result set).
-- ✅ **Cleanup (P2)**: Removed dead exports (`getIdeaWithVoteCount`, `getWinnerByWeek`) from `ideaService.js`.
-- ✅ **Cleanup (P2)**: Removed dead `GET /api/votes` static info endpoint.
-- ✅ **Cleanup (P2)**: Removed unused imports from `emails.js` and stale column fallback from `auth.js`.
-- ✅ **Tests**: Updated route tests to match refactored code (admin delete, removed endpoints).
+- ✅ **Security**: Fixed admin delete (`DELETE /admin/user`) with targeted subscriber lookup; secured Brevo webhook auth; added rate limiter to `POST /unsubscribe`.
+- ✅ **Auth**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation; removed name field from subscribe modal; enforced name entry only for new users.
+- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL); added `Cache-Control` headers to all read endpoints; parallelized sequential DB calls.
+- ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching via Clearbit API.
+- ✅ **Cleanup**: Removed dead endpoints (`GET /api/ideas`, `GET /api/votes`), dead service exports, and unused imports across the backend.
+- ✅ **Tests**: Updated all backend and frontend test suites to reflect architectural changes.
+
 
 ### Previous (Feb 9)
 - ✅ **Security**: Unsubscribe links now use backend-generated secure tokens to prevent 401 errors.

@@ -303,7 +303,7 @@ export async function sendWeeklyDigest() {
           return {
             to: subscriber.email,
             params: {
-              name: subscriber.name ? subscriber.name.split(' ')[0] : 'there',
+              name: 'Hustler',
               subject: emailSubject,
               weekDate: new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
               threadCount: threadCount.toLocaleString(),

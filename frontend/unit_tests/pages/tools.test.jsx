@@ -151,7 +151,7 @@ describe('SecretStash (Tools Page)', () => {
         render(<SecretStash />);
 
         const question = "Is it actually possible to build a SaaS for $0?";
-        const answerFragment = "The tools in this stash aren't 'free trials'";
+        const answerFragment = "This stash is designed to help you build an MVP";
 
         const questionButton = screen.getByText(question);
 

@@ -49,7 +49,7 @@ const AuthCallback = () => {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <Head>
-                    <title>Authentication Error | ZerosByKai</title>
+                    <title>Authentication Error | Zeros By Kai</title>
                     <meta name="robots" content="noindex, nofollow" />
                 </Head>
                 <div className="comic-panel bg-white p-8 max-w-md w-full mx-4 comic-shadow text-center">
@@ -80,7 +80,7 @@ const AuthCallback = () => {
     return (
         <div className="min-h-screen bg-white flex items-center justify-center">
             <Head>
-                <title>Signing In... | ZerosByKai</title>
+                <title>Secure Sign In | Zeros By Kai</title>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
             <div className="text-center">
@@ -90,5 +90,7 @@ const AuthCallback = () => {
         </div>
     );
 };
+
+AuthCallback.headerVariant = 'none';
 
 export default AuthCallback;

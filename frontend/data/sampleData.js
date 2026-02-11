@@ -1,4 +1,14 @@
-// Static sample/fallback data and schema used by the landing page
+// Static sample/fallback data, constants, and schema used by the landing page
+
+export const LIVE_SIGNAL_SOURCES = ['Reddit', 'Hacker News', 'X (Twitter)', 'Indie Hackers'];
+
+export const MISSION_DESIGNATIONS = [
+    { img: '/badges/bronze-circle.png', title: 'ONLOOKER', tier: '0-2 winning picks', color: 'text-gray-400', special: '' },
+    { img: '/badges/silver-pentagon.png', title: 'FIELD AGENT', tier: '3-6 winning picks', color: 'text-gray-300', special: '' },
+    { img: '/badges/gold-hexagon.png', title: 'LEAD ANALYST', tier: '7-11 winning picks', color: 'text-yellow-400', special: '' },
+    { img: '/badges/platinum-shield.png', title: 'HEAD OF INTEL', tier: '12-19 winning picks', color: 'text-yellow-500', special: 'Expert' },
+    { img: '/badges/unicorn-prism.png', title: 'UNICORN HUNTER', tier: '20+ winning picks', color: 'text-indigo-400', special: 'Legendary' }
+];
 
 export const faqSchema = {
     "@context": "https://schema.org",
@@ -6,42 +16,50 @@ export const faqSchema = {
     "mainEntity": [
         {
             "@type": "Question",
-            "name": "What is ZerosByKai?",
+            "name": "What is Zeros By Kai?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "ZerosByKai is a free weekly startup ideas newsletter. Every Monday, Kai curates 10 validated business opportunities by analyzing thousands of internet conversations to find real pain points people are willing to pay to solve."
+                "text": "Zeros By Kai is a curated weekly newsletter for entrepreneurs focused on validated startup ideas. Every Monday, our AI (Kai) scans millions of online conversations to identify real pain points that people are actively complaining about—giving you the 'Zero to One' jumpstart you need to build a profitable business."
             }
         },
         {
             "@type": "Question",
-            "name": "How does ZerosByKai find startup ideas?",
+            "name": "How is this different from a startup idea generator?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Kai uses AI to analyze 20+ sources and thousands of conversations weekly, looking for complaint clusters and validated pain points. These are turned into actionable startup opportunities with problem statements, solution ideas, target audiences, and market potential."
+                "text": "Most idea generators use random keywords (e.g., 'Uber for Cats'). Zeros By Kai uses social listening and sentiment analysis. We find problems that real humans are struggling with right now on platforms like Reddit, X (Twitter), and niche forums. We only surface ideas where there is demonstrable demand and 'willingness to pay' signals."
             }
         },
         {
             "@type": "Question",
-            "name": "Is ZerosByKai free?",
+            "name": "What kind of business ideas will I find?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes, ZerosByKai is 100% free. You can subscribe to the weekly newsletter or create an account to vote on ideas and earn badges. There is no paid tier."
+                "text": "Our opportunities span various digital business models, primarily focused on SaaS (Software as a Service), Micro-SaaS tools, B2B services, Newsletters, and Content sites. Whether you are an indie hacker looking for a side project or a founder looking for your next venture-backable startup, we cover industries like Marketing Tech, DevTools, Productivity, and more."
             }
         },
         {
             "@type": "Question",
-            "name": "How do badges work?",
+            "name": "How does the 'Idea Validation' process work?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Badges are earned when you vote for the winning startup idea of the week. Your total badge count determines your Designation, ranging from Onlooker (0-2) to Field Agent (3-6), Lead Analyst (7-11), Head of Intelligence (12-19), and the ultimate Unicorn Hunter (20+)."
+                "text": "We follow a strict 'Problem-First' methodology. 1) We detect a 'Complaint Cluster' (multiple people complaining about the same thing). 2) We analyze sentiment to measure frustration levels. 3) We look for 'gap signals' (people asking 'Why doesn't this exist?'). 4) We vet the market size. Only opportunities that pass all 4 checks make it into the newsletter."
             }
         },
         {
             "@type": "Question",
-            "name": "Who is ZerosByKai for?",
+            "name": "Who is Zeros By Kai built for?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "ZerosByKai is for entrepreneurs, indie hackers, solopreneurs, builders, and investors looking for validated startup ideas and business opportunities backed by real market demand from online communities."
+                "text": "Zeros By Kai is the ultimate resource for Indie Hackers, Solopreneurs, Full-stack Developers, and Aspiring Founders who have the skills to build but struggle to find the 'right idea'. It's also valuable for investors and agencies looking for emerging market trends before they go mainstream."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is Zeros By Kai free?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, the core weekly newsletter is 100% free. You get 10 fresh, validated startup ideas delivered to your inbox every single Monday based on your timezone. There is no paywall for our weekly curation—our goal is to help you stop brainstorming and start building."
             }
         }
     ]

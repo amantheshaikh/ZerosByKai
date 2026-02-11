@@ -24,7 +24,7 @@ const Leaderboard = ({ winners }) => {
         <section className="bg-gradient-to-r from-rose-700 to-rose-600 py-12 px-6 relative overflow-visible">
             <div className="absolute inset-0 halftone opacity-20 pointer-events-none"></div>
 
-            <div className="relative max-w-6xl mx-auto">
+            <div className="relative max-w-6xl 2xl:max-w-7xl mx-auto">
                 <motion.div
                     className="flex items-center gap-4 mb-10 justify-center"
                     initial={{ opacity: 0, y: -20 }}

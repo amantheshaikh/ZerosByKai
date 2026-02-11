@@ -3,8 +3,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth, apiFetch } from '@/lib/auth';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 const TIERS = [
     {
@@ -88,7 +86,7 @@ export default function ProfilePage() {
     if (isLoading || loading) {
         return (
             <div className="min-h-screen bg-white">
-                <Header variant="page" />
+
                 <div className="flex items-center justify-center py-32">
                     <div className="text-center">
                         <div className="animate-spin text-4xl mb-4">⚡</div>
@@ -108,13 +106,13 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-yellow-50">
             <Head>
-                <title>Your Profile — Badges & Voting History | ZerosByKai</title>
-                <meta name="description" content="View your ZerosByKai profile, badge tier, voting history, and earned badges for picking winning startup ideas." />
+                <title>Your Profile: Badges, Voting History & Ranks | Zeros By Kai</title>
+                <meta name="description" content="View your Zeros By Kai profile, badge tier, voting history, and earned badges for picking winning startup ideas." />
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
-            <Header variant="page" />
 
-            <div className="max-w-3xl mx-auto px-6 pt-32 pb-12">
+
+            <div className="max-w-3xl 2xl:max-w-5xl mx-auto px-6 pt-32 pb-12">
                 {/* User info */}
                 <div className="mb-8">
                     <h1 className="comic-title text-4xl text-gray-900 mb-1">YOUR PROFILE</h1>
@@ -257,7 +255,9 @@ export default function ProfilePage() {
                     )}
                 </div>
             </div>
-            <Footer />
+
         </div>
     );
 }
+
+ProfilePage.headerVariant = 'page';

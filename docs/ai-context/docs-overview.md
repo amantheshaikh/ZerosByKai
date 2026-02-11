@@ -6,8 +6,10 @@
 - **[Docs Overview](/docs/ai-context/docs-overview.md)**: This file.
 
 ## Tier 2: Components
-- **[Frontend](/frontend/CONTEXT.md)**: Web app implementation.
-- **[Backend Guide](/backend/README.md)**: Server setup & reference.
+- **[Frontend](/frontend/CONTEXT.md)**: Web app implementation & design system.
+- **[Backend Context](/backend/CONTEXT.md)**: Server setup, API reference & cron logic.
+
+
 
 ## Tier 3: Features
 - **[Auth Docs](/docs/AUTH_DOCUMENTATION.md)**: Authentication system.

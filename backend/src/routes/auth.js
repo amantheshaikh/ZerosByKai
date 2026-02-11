@@ -75,30 +75,49 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
       return res.status(503).json({ error: 'Subscription service unavailable' });
     }
 
-    const { error } = await supabaseAdmin
+    // Check for existing subscriber and welcomed status
+    const { data: subscriber, error: fetchError } = await supabaseAdmin
+      .from('subscribers')
+      .select('welcomed')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    const { error: upsertError } = await supabaseAdmin
       .from('subscribers')
       .upsert(
         { email, name: name || null, subscribed_at: new Date().toISOString(), unsubscribed_at: null },
         { onConflict: 'email' }
       );
 
-    if (error) throw error;
+    if (upsertError) throw upsertError;
 
-    // Async tasks
-    syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
+    // Only send welcome email if never sent before
+    if (!subscriber?.welcomed) {
+      // Async tasks
+      syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
 
-    const token = generateEmailToken(email, email);
-    const welcomeHtml = generateWelcomeEmail({ name: name || null, email, token });
-    sendEmail({
-      to: email,
-      subject: "Welcome to ZerosByKai",
-      html: welcomeHtml,
-      tags: ['welcome-email'],
-      headers: {
-        'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      const token = generateEmailToken(email, email);
+      const welcomeHtml = generateWelcomeEmail({ name: name || null, email, token });
+
+      const { success } = await sendEmail({
+        to: email,
+        subject: "Welcome to ZerosByKai",
+        html: welcomeHtml,
+        tags: ['welcome-email'],
+        headers: {
+          'List-Unsubscribe': `<${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}&token=${token}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
+      });
+
+      if (success) {
+        await supabaseAdmin.from('subscribers').update({ welcomed: true }).eq('email', email);
+      } else {
+        console.error('Welcome Email failed to send during subscription');
       }
-    }).catch(err => console.error('Welcome Email Error:', err.message));
+    }
 
     res.json({ message: "You're in!" });
   } catch (error) {
@@ -168,7 +187,7 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
     while (retries > 0) {
       const { data, error } = await supabaseAdmin
         .from('subscribers')
-        .select('welcomed, name')
+        .select('welcomed, name, created_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -182,6 +201,17 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
 
     if (!subscriber) return res.status(404).json({ error: 'Subscriber record not found' });
     if (subscriber.welcomed) return res.json({ isNewUser: false });
+
+    // Check if this is actually a new signup or an old one without the welcomed flag set
+    const signupDate = new Date(subscriber.created_at);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const isNewSignup = signupDate > oneDayAgo;
+
+    if (!isNewSignup) {
+      // Silently mark as welcomed so we don't repeat this check
+      await supabaseAdmin.from('subscribers').update({ welcomed: true }).eq('user_id', user.id);
+      return res.json({ isNewUser: false });
+    }
 
     // New user tasks
     const userName = subscriber.name || user.user_metadata?.name || null;

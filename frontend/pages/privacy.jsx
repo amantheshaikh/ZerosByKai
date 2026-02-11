@@ -1,24 +1,22 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 export default function Privacy() {
     return (
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
-                <title>Privacy Policy — Data & Newsletter Privacy | ZerosByKai</title>
-                <meta name="description" content="ZerosByKai privacy policy. We collect your email for our free startup ideas newsletter. No data selling, no tracking. Unsubscribe anytime." />
-                <meta property="og:title" content="Privacy Policy | ZerosByKai" />
+                <title>Privacy Policy: Data & Newsletter Security | Zeros By Kai</title>
+                <meta name="description" content="Zeros By Kai privacy policy. We collect your email for our free startup ideas newsletter. No data selling, no tracking. Unsubscribe anytime." />
+                <meta property="og:title" content="Privacy Policy | Zeros By Kai" />
                 <meta property="og:description" content="Our privacy policy. We collect your email for startup ideas delivery. No data selling, no tracking." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/privacy" />
-                <meta name="twitter:title" content="Privacy Policy | ZerosByKai" />
+                <meta name="twitter:title" content="Privacy Policy | Zeros By Kai" />
                 <link rel="canonical" href="https://zerosbykai.com/privacy" />
             </Head>
 
-            <Header variant="story" />
+
 
             <main className="max-w-3xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-12 text-center">
@@ -69,7 +67,9 @@ export default function Privacy() {
                 </div>
             </main>
 
-            <Footer />
+
         </div>
     );
 }
+
+Privacy.headerVariant = 'story';

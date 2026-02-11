@@ -90,7 +90,7 @@ export default function Unsubscribe() {
             </div>
 
             <Head>
-                <title>Unsubscribe | ZerosByKai</title>
+                <title>Unsubscribe from Startup Ideas Newsletter | Zeros By Kai</title>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
 
@@ -275,3 +275,5 @@ export default function Unsubscribe() {
         </div>
     );
 }
+
+Unsubscribe.headerVariant = 'none';

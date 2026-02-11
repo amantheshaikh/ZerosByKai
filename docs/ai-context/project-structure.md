@@ -26,10 +26,11 @@ This document documents the technology stack and file tree structure for ZerosBy
 ```
 ZerosByKai/
 ├── CLAUDE.md                           # Tier 1: Master AI context file
+├── README.md                           # Main project documentation
 ├── task.md                             # Current task tracking
 │
 ├── .github/workflows/                  # GitHub Actions
-│   └── reddit-scraper.yml              # Sunday Reddit scraping workflow
+│   └── weekly-digest.yml               # Monday publish & send workflow
 │
 ├── backend/                            # Backend application
 │   ├── README.md                       # Backend setup guide
@@ -40,78 +41,65 @@ ZerosByKai/
 │   │   ├── reset_all_users.sql         # Utilities to reset user base
 │   │   └── sync_production_v2.sql      # Schema synchronization
 │   ├── src/                            # Source code
-│   │   ├── server.js                   # Main entry point + cron jobs
+│   │   ├── server.js                   # Main entry point + health crons
 │   │   ├── config/
-│   │   │   └── supabase.js             # Supabase client (RLS + Admin)
+│   │   │   ├── env.js                  # Central configuration
+│   │   │   └── supabase.js             # Supabase clients
 │   │   ├── routes/                     # API Routes
-│   │   │   ├── auth.js                 # Auth endpoints (subscribe, login, unsubscribe)
-│   │   │   ├── ideas.js                # Ideas endpoints (leaderboard, weekly, batches)
-│   │   │   ├── votes.js                # Voting, badges, last-week results
-│   │   │   ├── emails.js               # Email mirror link renderer (welcome, magic-link)
-│   │   │   └── webhooks.js             # Brevo webhook handler (deletions, bounces)
+│   │   │   ├── auth.js                 # Auth, signup, unsubscribe
+│   │   │   ├── ideas.js                # Ideas, batches, leaderboard
+│   │   │   ├── votes.js                # Voting, badges, last-week
+│   │   │   ├── emails.js               # Legacy email routing (deprecated)
+│   │   │   └── webhooks.js             # Brevo webhook handler
+│   │   ├── services/                   # Business logic
+│   │   │   ├── aiService.js            # Gemini AI integration
+│   │   │   ├── brevoService.js         # Contact & list sync
+│   │   │   └── newsletterService.js    # Scheduling & batch logic
 │   │   ├── jobs/                       # Production cron jobs
-│   │   │   ├── scrapers/               # Multi-source scrapers
-│   │   │   │   └── run_scrapers.js     # Master orchestration script
+│   │   │   ├── scrapers/               # Reddit, HN, IH, X scrapers
+│   │   │   │   └── run_scrapers.js     # Scraper orchestration
 │   │   │   ├── backlog_check.js        # Health check job
-│   │   │   └── weekly.js               # Monday: publish, winner, digest (Brevo)
+│   │   │   ├── schedule_newsletter.js  # Batch scheduling job
+│   │   │   └── weekly.js               # Monday publishing & delivery
 │   │   ├── emails/                     # Email templates
 │   │   │   └── templates/
-│   │   │       ├── shared.js           # Shared components & styles
-│   │   │       ├── brevo_template.html # Weekly digest (Brevo-hosted template)
+│   │   │       ├── shared.js           # Shared styles & components
 │   │   │       ├── welcome.js          # Welcome email (server-generated)
-│   │   │       └── magic-link.js       # Magic link email (server-generated)
+│   │   │       └── magic-link.js       # Magic link (server-generated)
 │   │   ├── utils/
-│   │   │   ├── emailToken.js           # JWT utilities
-│   │   │   ├── emailService.js         # Brevo email service wrapper
-│   │   │   ├── helpers.js              # PII Masking & Config
-│   │   │   └── dateUtils.js            # UTC Date utilities
-│   │   └── scripts/
-│   │       └── delete-user-by-email.sql
+│   │   │   ├── emailToken.js           # JWT utilities for email
+│   │   │   ├── emailService.js         # Transporter wrapper
+│   │   │   └── helpers.js              # General utilities
+│   │   └── unit_tests/                 # Vitest backend suite
 │   ├── package.json                    # Dependencies
 │   ├── fly.toml                        # Fly.io config
 │   └── .env                            # Environment variables
 │
 ├── frontend/                           # Frontend application
-│   ├── CONTEXT.md                      # Tier 2: Frontend component docs
-│   ├── pages/                          # Next.js pages (Pages Router)
-│   │   ├── _app.js                     # App wrapper: AuthProvider, JSON-LD schemas
-│   │   ├── _document.js                # Document: meta, favicon, preconnect
-│   │   ├── index.jsx                   # Landing page: hero, ideas, voting, FAQ
-│   │   ├── about.jsx                   # About Kai page
-│   │   ├── story.jsx                   # Origin story page
-│   │   ├── archive.jsx                 # Past weekly idea archives
-│   │   ├── profile.jsx                 # User profile: tier, votes, badges
-│   │   ├── terms.jsx                   # Terms & guidelines
+│   ├── pages/                          # Next.js pages
+│   │   ├── _app.js                     # App wrapper & context
+│   │   ├── index.jsx                   # Landing page
+│   │   ├── story.jsx                   # Origin story
+│   │   ├── archive.jsx                 # Past editions
+│   │   ├── profile.jsx                 # User profile & badges
+│   │   ├── tools.jsx                   # Kai's toolbox (resources)
+│   │   ├── terms.jsx                   # Terms of service
 │   │   ├── privacy.jsx                 # Privacy policy
-│   │   ├── unsubscribe.jsx             # Email unsubscribe handler
-│   │   └── auth/
-│   │       └── callback.jsx            # Magic link / OAuth callback
-│   ├── components/                     # Reusable UI components
-│   │   ├── AuthModal.jsx               # Auth modal (sign in / join / Google OAuth)
-│   │   ├── Header.jsx                  # Site header with nav and auth state
-│   │   ├── BadgeDisplay.jsx            # User badge display
-│   │   ├── VoteConfirmation.jsx        # Vote confirmation modal
-│   │   └── Leaderboard.jsx             # Idea voting leaderboard
-│   ├── lib/                            # Shared utilities
-│   │   └── auth.js                     # AuthProvider context, Supabase client
-│   ├── styles/
-│   │   └── globals.css                 # Global styles, comic design system
+│   │   ├── unsubscribe.jsx             # Unsubscribe interface
+│   │   ├── view/                       # Mirror link handlers
+│   │   └── auth/                       # Auth callbacks
+│   ├── components/                     # UI components
+│   │   ├── AuthModal.jsx               # Unified signup/login
+│   │   ├── Header.jsx                  # Navigation
+│   │   ├── IdeaCarousel.jsx            # Dynamic idea slider
+│   │   └── Leaderboard.jsx             # Voting results
+│   ├── lib/                            # Shared logic
+│   │   ├── auth.js                     # AuthProvider & context
+│   │   └── stash-data.js               # Toolbox data source
+│   ├── styles/                         # Global styles
 │   ├── public/                         # Static assets
-│   │   ├── favicon.ico                 # Site favicon
-│   │   ├── favicon-32x32.png           # 32x32 favicon
-│   │   ├── kai-hero.jpg                # Hero image (also OG image)
-│   │   ├── kai-about-hero.png          # About page hero
-│   │   ├── icon-stash.png              # Feature icon
-│   │   ├── icon-target.png             # Feature icon
-│   │   ├── icon-trophy.png             # Feature icon
-│   │   ├── robots.txt                  # Crawler directives
-│   │   └── sitemap.xml                 # Sitemap for 6 public pages
-│   ├── package.json                    # Dependencies
-│   ├── tailwind.config.js              # Tailwind config with custom extensions
-│   ├── next.config.js                  # Next.js config
-│   ├── postcss.config.js               # PostCSS config
-│   ├── jsconfig.json                   # JS path aliases (@/)
-│   └── .eslintrc.json                  # ESLint rules
+│   ├── unit_tests/                     # Frontend test suite
+│   └── package.json                    # Dependencies
 │
 └── docs/                               # Documentation
     ├── CLAUDE-CODE-GUIDE.md            # AI coding guide
@@ -151,27 +139,28 @@ ZerosByKai/
 | File | Purpose |
 |------|---------|
 | `server.js` | Entry point, cron scheduling, middleware |
-| `jobs/reddit_scraper.js` | Sunday Reddit scraping workflow |
+| `jobs/scrapers/run_scrapers.js` | Multi-source scraping orchestration |
 | `jobs/weekly.js` | Monday publish, winner, digest workflow |
-| `routes/auth.js` | All authentication endpoints |
-| `emails/templates/shared.js` | Shared email components |
-| `utils/emailToken.js` | JWT token utilities |
+| `jobs/schedule_newsletter.js` | Batch scheduling logic |
+| `services/aiService.js` | Gemini AI integration & prompt engineering |
+| `services/brevoService.js` | Brevo contact & list synchronization |
 
 ### Frontend Critical Files
 | File | Purpose |
 |------|---------|
 | `pages/_app.js` | App wrapper, AuthProvider, global meta |
 | `pages/index.jsx` | Landing page (main entry point) |
+| `pages/tools.jsx` | Kai's Toolbox (resource directory) |
 | `lib/auth.js` | Auth context provider (all auth flows) |
-| `components/AuthModal.jsx` | Authentication modal |
-| `components/Header.jsx` | Site header with auth state |
+| `components/AuthModal.jsx` | Unified Authentication modal |
 
 ## Documentation Hierarchy
 
 ### Tier 1: Foundation
 - **`/CLAUDE.md`** - Master AI context, coding standards, key patterns
-- **`/PROJECT_DOCUMENTATION.md`** - Comprehensive project guide
-- **`/AUTH_DOCUMENTATION.md`** - Authentication system guide
+- **`/README.md`** - Comprehensive project guide, deployment, and testing
+- **`/docs/AUTH_DOCUMENTATION.md`** - Authentication system guide
+
 
 ### Tier 2: Components
 - **`/backend/CONTEXT.md`** - Backend component documentation
@@ -222,11 +211,12 @@ vercel --prod
 
 ## Recent Changes
 - ✅ **Routes Optimization (Feb 11)**: Removed dead endpoints/exports, added caching (in-memory + Cache-Control), parallelized DB calls, fixed admin delete scalability, secured webhook auth.
-- ✅ **Email System**: Fully migrated to Brevo (Transactional + Batch API).
-- ✅ **Multi-Source**: Added HackerNews, IndieHackers, and X scraping.
-- ✅ **Database**: Added `migrations/` directory for tracked schema changes.
-- ✅ **Performance**: Added `vote_count` column and ISR for 10k+ user scale.
-- ✅ **Auth**: Enhanced `auth.js` with improved triggers and documentation.
+- ✅ **Auth (Feb 11)**: Updated `verify-email-token` to use magic link generation + verification for session creation; removed name field from subscribe modal.
+- ✅ **Toolbox Implementation**: Added `tools.jsx` and `stash-data.js` for curated resource listing.
+- ✅ **Tool Logos**: Dynamic logo fetching via Clearbit API integration.
+- ✅ **Email System**: Fully migrated to Brevo (Transactional + Batch API), with RFC 8058 one-click unsubscribe support.
+- ✅ **Performance**: Added `vote_count` column for O(1) leaderboard and ISR for landing page scaling.
+
 
 ---
 

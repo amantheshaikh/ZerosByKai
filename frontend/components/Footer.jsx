@@ -40,7 +40,7 @@ export default function Footer() {
                 </div>
 
                 <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 comic-body text-gray-500 text-xs sm:text-sm">
-                    <p>&copy; 2026 ZerosByKai. Find the right zero.</p>
+                    <p>&copy; 2026 Zeros By Kai. Find the right zero.</p>
                     <div className="flex gap-4 sm:gap-6">
                         <Link href="/terms" className="hover:text-yellow-400 underline">Terms & Guidelines</Link>
                         <Link href="/privacy" className="hover:text-yellow-400 underline">Privacy Policy</Link>

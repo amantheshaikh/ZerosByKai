@@ -64,7 +64,7 @@ export default function ViewEmail() {
     return (
         <>
             <Head>
-                <title>View Email | ZerosByKai</title>
+                <title>View Curated Startup Idea Email | Zeros By Kai</title>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
             <div
@@ -74,3 +74,5 @@ export default function ViewEmail() {
         </>
     );
 }
+
+ViewEmail.headerVariant = 'none';

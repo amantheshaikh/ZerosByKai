@@ -34,7 +34,9 @@ Fully operational with all authentication flows implemented.
 | `story.jsx` | `/story` | Origin story page | ✅ Indexed |
 | `archive.jsx` | `/archive` | Past weekly idea archives | ✅ Indexed |
 | `profile.jsx` | `/profile` | User profile: tier, votes, badges | ❌ Noindex |
+| `tools.jsx` | `/tools` | Kai's Toolbox: resources & tools | ✅ Indexed |
 | `terms.jsx` | `/terms` | Terms & guidelines | ✅ Indexed |
+
 | `privacy.jsx` | `/privacy` | Privacy policy | ✅ Indexed |
 | `unsubscribe.jsx` | `/unsubscribe` | Email unsubscribe handler | ❌ Noindex |
 | `auth/callback.jsx` | `/auth/callback` | Magic link / OAuth callback | ❌ Noindex |
@@ -245,14 +247,13 @@ npm run build
 # - Successful page generation
 ```
 
-## Recent Changes (Feb 2, 2026)
-- ✅ Refactored `lib/auth.js` with comprehensive documentation
-- ✅ Added `sendMagicLink()` and `subscribeNewsletter()` methods
-- ✅ Implemented email token auto-login flow
-- ✅ **Tagging System**: Refactored to use a flexible array of up to 5 tags
-- ✅ **Leaderboard**: Updated to extract primary tag from the new array structure
-- ✅ **Archive**: Enhanced to display multiple tags for winners and ideas
-- ✅ Improved error handling in auth flows
+## Recent Changes (Feb 11, 2026)
+- ✅ **Tools**: Launched **Kai's Toolbox** (`/tools`) for curated startup resources.
+- ✅ **Logos**: Dynamic logo fetching via Clearbit API integration for tool cards.
+- ✅ **Auth**: Removed name field from subscribe modal; enforced only for new users.
+- ✅ **Email Auth**: Updated verification flow for more robust session creation.
+- ✅ **Leaderboard**: Standardized tag extraction from new `tags` array structure.
+
 
 ## Common Patterns
 

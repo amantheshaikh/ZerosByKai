@@ -1,14 +1,12 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 export default function Terms() {
     return (
         <div className="min-h-screen bg-yellow-50 font-sans">
             <Head>
-                <title>Terms & Guidelines — Startup Ideas Curation Policy | ZerosByKai</title>
+                <title>Terms & Guidelines: Startup Idea Curation Policy | ZerosByKai</title>
                 <meta name="description" content="ZerosByKai terms and guidelines. Learn how we curate validated startup ideas from the internet's open communities, our anti-hallucination pledge, and our 0% equity policy on business ideas you build." />
                 <meta name="keywords" content="ZerosByKai terms, startup ideas policy, curation guidelines, business ideas terms of service" />
                 <meta property="og:title" content="Terms & Guidelines | ZerosByKai" />
@@ -19,7 +17,7 @@ export default function Terms() {
                 <link rel="canonical" href="https://zerosbykai.com/terms" />
             </Head>
 
-            <Header variant="story" />
+
 
             <main className="max-w-3xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-12 text-center">
@@ -107,7 +105,9 @@ export default function Terms() {
 
             </main>
 
-            <Footer />
+
         </div>
     );
 }
+
+Terms.headerVariant = 'story';

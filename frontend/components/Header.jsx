@@ -6,16 +6,27 @@ import { useRouter } from 'next/router';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth';
 import { useAnchorNavigation, scrollEasings } from '@/lib/smoothScroll';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import BadgeDisplay from './ui/badge-display';
 import HamburgerMenu from './HamburgerMenu';
-
 
 export default function Header({ variant = 'landing' }) {
   const router = useRouter();
   const { user, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious() || 0;
+    if (latest > previous && latest > 150) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+  });
+
   const { activeSection, scrollToAnchor } = useAnchorNavigation({
     offset: 100,
     duration: 1.4,
@@ -27,13 +38,6 @@ export default function Header({ variant = 'landing' }) {
   }, []);
 
   const isStory = variant === 'story';
-
-  // Handle smooth scroll for anchor links
-  const handleAnchorClick = (e, hash) => {
-    e.preventDefault();
-    scrollToAnchor(hash);
-    setIsMenuOpen(false);
-  };
 
   // Handle "ZEROS THIS WEEK" link - navigate to landing page first if not there
   const handleThisWeekClick = (e) => {
@@ -55,8 +59,15 @@ export default function Header({ variant = 'landing' }) {
   const isActive = (sectionId) => activeSection === sectionId;
 
   return (
-    <header
-      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[101] flex items-center justify-between w-[94%] sm:w-[92%] max-w-7xl px-3 py-2 sm:px-6 sm:py-3 bg-white border-3 sm:border-4 border-black rounded-xl sm:rounded-2xl comic-shadow"
+    <motion.header
+      variants={{
+        visible: { y: 0, x: "-50%" },
+        hidden: { y: "-150%", x: "-50%" },
+      }}
+      initial="visible"
+      animate={hidden ? "hidden" : "visible"}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+      className="fixed top-4 sm:top-6 left-1/2 z-[101] flex items-center justify-between w-[94%] sm:w-[92%] max-w-7xl 2xl:max-w-screen-2xl px-3 py-2 sm:px-6 sm:py-3 bg-white border-3 sm:border-4 border-black rounded-xl sm:rounded-2xl comic-shadow"
     >
       {isStory ? (
         <Link href="/" className="flex items-center gap-2 font-bold hover:underline comic-body text-sm sm:text-base">
@@ -67,7 +78,7 @@ export default function Header({ variant = 'landing' }) {
         <Link href="/" className="flex items-center gap-2 sm:gap-3">
           <Image
             src="/favicon.ico"
-            alt="ZerosByKai Logo"
+            alt="Zeros By Kai Logo"
             width={32}
             height={32}
             className="w-7 h-7 sm:w-8 sm:h-8"
@@ -79,7 +90,7 @@ export default function Header({ variant = 'landing' }) {
       )}
 
       {/* Desktop Navigation */}
-      <nav aria-label="Main navigation" className="hidden sm:flex items-center gap-2 sm:gap-3">
+      <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-2 sm:gap-3">
         <Link
           href="/story"
           className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors"
@@ -177,143 +188,141 @@ export default function Header({ variant = 'landing' }) {
             </motion.button>
           </div>
         )}
-      </nav >
+      </nav>
 
       {/* Mobile Toggle */}
-      < div className="sm:hidden" >
+      <div className="lg:hidden">
         <HamburgerMenu isOpen={isMenuOpen} setIsOpen={setIsMenuOpen} />
-      </div >
+      </div>
 
       {/* Mobile Menu Overlay */}
-      {
-        isMenuOpen && mounted && createPortal(
-          <div
-            className="fixed inset-0 bg-white/95 backdrop-blur-sm z-[100] flex flex-col pt-32 px-6 gap-6 sm:hidden animate-in fade-in duration-200"
+      {isMenuOpen && mounted && createPortal(
+        <div
+          className="fixed inset-0 bg-white/95 backdrop-blur-sm z-[100] flex flex-col pt-32 px-6 gap-6 lg:hidden animate-in fade-in duration-200"
+        >
+          <Link
+            href="/story"
+            onClick={() => {
+              closeAuthModal();
+              closeSubscribeModal();
+              setIsMenuOpen(false);
+            }}
+            className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
           >
-            <Link
-              href="/story"
-              onClick={() => {
-                closeAuthModal();
-                closeSubscribeModal();
-                setIsMenuOpen(false);
-              }}
-              className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
-            >
-              KAI&apos;S STORY
-            </Link>
-            <Link
-              href="/tools"
-              onClick={() => {
-                closeAuthModal();
-                closeSubscribeModal();
-                setIsMenuOpen(false);
-              }}
-              className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
-            >
-              SECRET STASH
-            </Link>
-            <a
-              href="#ideas-section"
-              onClick={handleThisWeekClick}
-              className={`text-center comic-title text-2xl transition-colors ${isActive('ideas-section') ? 'text-rose-700' : 'text-black hover:text-rose-700'
-                }`}
-            >
-              ZEROS THIS WEEK
-            </a>
+            KAI&apos;S STORY
+          </Link>
+          <Link
+            href="/tools"
+            onClick={() => {
+              closeAuthModal();
+              closeSubscribeModal();
+              setIsMenuOpen(false);
+            }}
+            className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+          >
+            SECRET STASH
+          </Link>
+          <a
+            href="#ideas-section"
+            onClick={handleThisWeekClick}
+            className={`text-center comic-title text-2xl transition-colors ${isActive('ideas-section') ? 'text-rose-700' : 'text-black hover:text-rose-700'
+              }`}
+          >
+            ZEROS THIS WEEK
+          </a>
 
-            <div className="w-full h-px bg-gray-200 my-2" />
+          <div className="w-full h-px bg-gray-200 my-2" />
 
-            {isLoading ? null : user ? (
-              <div className="flex flex-col items-center gap-6">
-                <div onClick={() => setIsMenuOpen(false)}>
-                  <div className="scale-125 origin-center">
-                    <BadgeDisplay />
-                  </div>
+          {isLoading ? null : user ? (
+            <div className="flex flex-col items-center gap-6">
+              <div onClick={() => setIsMenuOpen(false)}>
+                <div className="scale-125 origin-center">
+                  <BadgeDisplay />
                 </div>
+              </div>
 
-                <Link
-                  href="/profile"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
-                >
-                  PROFILE
-                </Link>
+              <Link
+                href="/profile"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+              >
+                PROFILE
+              </Link>
 
-                <motion.button
-                  whileHover={{
-                    x: 2,
-                    y: 2,
-                    boxShadow: "4px 4px 0px 0px #000"
-                  }}
-                  whileTap={{
-                    x: 6,
-                    y: 6,
-                    boxShadow: "0px 0px 0px 0px #000"
-                  }}
+              <motion.button
+                whileHover={{
+                  x: 2,
+                  y: 2,
+                  boxShadow: "4px 4px 0px 0px #000"
+                }}
+                whileTap={{
+                  x: 6,
+                  y: 6,
+                  boxShadow: "0px 0px 0px 0px #000"
+                }}
+                onClick={() => {
+                  signOut();
+                  setIsMenuOpen(false);
+                }}
+                className="w-full max-w-xs px-6 py-3 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000]"
+              >
+                SIGN OUT
+              </motion.button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-8 w-full px-4 items-center">
+              <motion.div
+                whileHover={{
+                  x: 2,
+                  y: 2,
+                  boxShadow: "4px 4px 0px 0px #000"
+                }}
+                whileTap={{
+                  x: 6,
+                  y: 6,
+                  boxShadow: "0px 0px 0px 0px #000"
+                }}
+                className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
+              >
+                <button
                   onClick={() => {
-                    signOut();
+                    closeAuthModal();
+                    openSubscribeModal();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full max-w-xs px-6 py-3 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000]"
+                  className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
                 >
-                  SIGN OUT
-                </motion.button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-8 w-full px-4 items-center">
-                <motion.div
-                  whileHover={{
-                    x: 2,
-                    y: 2,
-                    boxShadow: "4px 4px 0px 0px #000"
-                  }}
-                  whileTap={{
-                    x: 6,
-                    y: 6,
-                    boxShadow: "0px 0px 0px 0px #000"
-                  }}
-                  className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
-                >
-                  <button
-                    onClick={() => {
-                      closeAuthModal();
-                      openSubscribeModal();
-                      setIsMenuOpen(false);
-                    }}
-                    className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
-                  >
-                    <Mail className="w-5 h-5" />
-                    SUBSCRIBE
-                  </button>
-                </motion.div>
+                  <Mail className="w-5 h-5" />
+                  SUBSCRIBE
+                </button>
+              </motion.div>
 
-                <motion.button
-                  whileHover={{
-                    x: 2,
-                    y: 2,
-                    boxShadow: "4px 4px 0px 0px #000"
-                  }}
-                  whileTap={{
-                    x: 6,
-                    y: 6,
-                    boxShadow: "0px 0px 0px 0px #000"
-                  }}
-                  onClick={() => {
-                    closeSubscribeModal();
-                    openAuthModal('signin');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full max-w-xs px-6 py-4 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000] flex items-center justify-center gap-3"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                  SIGN IN
-                </motion.button>
-              </div>
-            )}
-          </div>,
-          document.getElementById('mobile-menu-portal') || document.body
-        )
-      }
-    </header >
+              <motion.button
+                whileHover={{
+                  x: 2,
+                  y: 2,
+                  boxShadow: "4px 4px 0px 0px #000"
+                }}
+                whileTap={{
+                  x: 6,
+                  y: 6,
+                  boxShadow: "0px 0px 0px 0px #000"
+                }}
+                onClick={() => {
+                  closeSubscribeModal();
+                  openAuthModal('signin');
+                  setIsMenuOpen(false);
+                }}
+                className="w-full max-w-xs px-6 py-4 bg-black text-yellow-400 border-3 border-black comic-title text-xl hover:bg-gray-900 shadow-[6px_6px_0px_0px_#000] flex items-center justify-center gap-3"
+              >
+                <ArrowRight className="w-5 h-5" />
+                SIGN IN
+              </motion.button>
+            </div>
+          )}
+        </div>,
+        document.getElementById('mobile-menu-portal') || document.body
+      )}
+    </motion.header>
   );
 }

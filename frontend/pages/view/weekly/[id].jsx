@@ -4,8 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Award, ChevronLeft, Sparkles, Zap, Mail } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { fetchWeeklyBatch } from '@/lib/ideas';
 
 export default function WeeklyDigestView() {
@@ -37,14 +35,14 @@ export default function WeeklyDigestView() {
     return (
         <div className="min-h-screen bg-yellow-50">
             <Head>
-                <title>Weekly Digest: {weekLabel} | ZerosByKai</title>
-                <meta name="description" content={`View the curated startup ideas for the week of ${weekLabel}. 10 validated opportunities from ZerosByKai.`} />
+                <title>Weekly Startup Ideas Digest: {weekLabel} | Zeros By Kai</title>
+                <meta name="description" content={`View the curated startup ideas for the week of ${weekLabel}. 10 validated opportunities from Zeros By Kai.`} />
                 <meta name="robots" content="noindex" />
             </Head>
 
-            <Header variant="page" />
 
-            <div className="max-w-4xl mx-auto px-6 pt-32 pb-12">
+
+            <div className="max-w-4xl 2xl:max-w-6xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
                         <Link
@@ -209,7 +207,9 @@ export default function WeeklyDigestView() {
                 )}
             </div>
 
-            <Footer />
+
         </div>
     );
 }
+
+WeeklyDigestView.headerVariant = 'page';

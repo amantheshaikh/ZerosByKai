@@ -2,8 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import { Search, ExternalLink, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { CATEGORIES, TOOLS, CATEGORY_COLORS } from '@/lib/stash-data';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -11,7 +9,11 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 const FAQ_DATA = [
   {
     question: "Is it actually possible to build a SaaS for $0?",
-    answer: "100%. The tools in this stash aren't 'free trials'—they have generous permanent free tiers. You can host your frontend, backend, database, and payments without a credit card. You only pay when you scale (usually when you're making money)."
+    answer: "Yes, but let's be honest: we're not saying you can build the next $1B unicorn for free. This stash is designed to help you build an MVP, ship it fast, and validate if your idea has actual market demand. It's about moving from zero to one, not building another 'cool project' that goes nowhere."
+  },
+  {
+    question: "Are these tools sponsored?",
+    answer: "Zero. None of these tools are sponsored. Every tool in this stash is vetted from Kai's personal use. If a tool stops being great, it gets removed. Period."
   },
   {
     question: "Why not just use the big cloud providers?",
@@ -28,10 +30,6 @@ const FAQ_DATA = [
   {
     question: "I'm a non-technical founder. Can I use this?",
     answer: "It will be tough, but possible. Tools like 'Windsurf' and 'Cursor' (AI editors) are bridging the gap. If you can write logic in English, modern AI coding tools can help you generate the boilerplate."
-  },
-  {
-    question: "Why is 'Design' included in a dev stack?",
-    answer: "Because ugly apps don't convert. You don't need to be a designer to have a good looking app. Tools like Tailwind CSS and free illustration libraries help you ship something that looks professional. Trust is visual."
   },
   {
     question: "What is the 'Catch' with these free tools?",
@@ -201,9 +199,6 @@ function ToolDetailModal({ tool, onClose }) {
             </div>
           )}
 
-          {/* The Catch */}
-
-
           {/* Visit Button */}
           <motion.a
             href={tool.url}
@@ -360,7 +355,7 @@ export default function SecretStash() {
   return (
     <div className="min-h-screen bg-yellow-50">
       <Head>
-        <title>Secret Stash — 29+ Free Tools to Build MVPs for $0 (2026 Edition)</title>
+        <title>Free Developer Tools & Startup Stack for MVPs (2026) | Zeros By Kai</title>
         <meta name="description" content="The ultimate list of free developer tools for 2026. Build your startup for $0 with free hosting, databases, authentication, and AI. Curated for indie hackers and solopreneurs." />
         <meta name="keywords" content={`free developer tools, mvp stack 2026, free hosting, supabase alternatives, vercel vs railway, indie hacker tools, build startup for free, ${CATEGORIES.map(c => c.name.toLowerCase()).join(', ')}`} />
         <link rel="canonical" href="https://zerosbykai.com/tools" />
@@ -370,7 +365,7 @@ export default function SecretStash() {
         <meta property="og:description" content="Stop paying for SaaS. Here are 29+ free tools to build, launch, and scale your MVP without spending a dime. Hosting, DB, Auth, Payments, and more." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://zerosbykai.com/tools" />
-        <meta property="og:site_name" content="ZerosByKai" />
+        <meta property="og:site_name" content="Zeros By Kai" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -411,7 +406,7 @@ export default function SecretStash() {
         />
       </Head>
 
-      <Header />
+
 
       <AnimatePresence>
         {selectedTool && (
@@ -424,7 +419,7 @@ export default function SecretStash() {
         <section className="relative bg-black pt-32 pb-12 sm:pb-16 px-4 sm:px-6 overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 10px, transparent 10px, transparent 20px)' }} />
           <motion.div
-            className="relative max-w-4xl mx-auto text-center"
+            className="relative max-w-4xl 2xl:max-w-5xl mx-auto text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -450,7 +445,7 @@ export default function SecretStash() {
 
         {/* Search + Filters */}
         <section className="sticky-none z-50 bg-yellow-50 px-4 sm:px-6 py-4">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl 2xl:max-w-7xl mx-auto">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -467,7 +462,7 @@ export default function SecretStash() {
 
         {/* Categories (Non-sticky) */}
         <section className="bg-yellow-50 px-4 sm:px-6 py-2">
-          <div className="max-w-6xl mx-auto space-y-3">
+          <div className="max-w-6xl 2xl:max-w-7xl mx-auto space-y-3">
             {/* Category Chips */}
             <div className="flex flex-wrap gap-2 pb-1">
               <button
@@ -516,9 +511,9 @@ export default function SecretStash() {
 
         {/* Tool Grid */}
         <section className="px-4 sm:px-6 py-4 sm:py-6">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl 2xl:max-w-7xl mx-auto">
             {filteredTools.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-8">
                 {filteredTools.map((tool, i) => (
                   <ToolCard
                     key={tool.id}
@@ -558,7 +553,7 @@ export default function SecretStash() {
         </section>
       </main>
 
-      <Footer />
+
     </div>
   );
 }

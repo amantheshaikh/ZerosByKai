@@ -4,8 +4,6 @@ import Link from 'next/link';
 import { Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { normalizeIdea } from '@/lib/utils';
 import { fetchArchiveBatches } from '@/lib/ideas';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 export default function ArchivePage() {
     const [batches, setBatches] = useState(null);
@@ -34,21 +32,21 @@ export default function ArchivePage() {
     return (
         <div className="min-h-screen bg-yellow-50">
             <Head>
-                <title>Startup Ideas & Opportunities Archive | ZerosByKai</title>
-                <meta name="description" content="Browse the complete archive of startup ideas and opportunities from ZerosByKai. See every validated business project, past winners, and explore hundreds of opportunities curated from millions of conversations." />
+                <title>Startup Ideas Archive: Explore Validated Opportunities | Zeros By Kai</title>
+                <meta name="description" content="Browse the complete archive of startup ideas and opportunities from Zeros By Kai. See every validated business project, past winners, and explore hundreds of opportunities curated from millions of conversations." />
                 <meta name="keywords" content="startup ideas archive, past business ideas, startup opportunities, validated business opportunities, weekly startup winners, complete archive" />
-                <meta property="og:title" content="Complete Startup Ideas Archive | ZerosByKai" />
+                <meta property="og:title" content="Complete Startup Ideas Archive | Zeros By Kai" />
                 <meta property="og:description" content="Explore the complete archive of validated startup ideas and opportunities curated from millions of conversations. See winners and all past ideas." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/archive" />
                 <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
-                <meta name="twitter:title" content="Complete Startup Ideas Archive | ZerosByKai" />
+                <meta name="twitter:title" content="Complete Startup Ideas Archive | Zeros By Kai" />
                 <meta name="twitter:description" content="Explore hundreds of validated startup ideas. See winners and browse the complete archive." />
                 <link rel="canonical" href="https://zerosbykai.com/archive" />
             </Head>
-            <Header variant="page" />
 
-            <div className="max-w-4xl mx-auto px-6 pt-32 pb-12">
+
+            <div className="max-w-4xl 2xl:max-w-6xl mx-auto px-6 pt-32 pb-12">
                 <div className="mb-8 sm:mb-12">
                     <h1 className="comic-title text-4xl sm:text-5xl text-gray-900 mb-2">ARCHIVE</h1>
                     <p className="comic-body text-gray-600 text-base sm:text-lg">Browse all past startup ideas. See what won and explore every opportunity.</p>
@@ -234,7 +232,9 @@ export default function ArchivePage() {
                     </div>
                 )}
             </div>
-            <Footer />
+
         </div>
     );
 }
+
+ArchivePage.headerVariant = 'page';
