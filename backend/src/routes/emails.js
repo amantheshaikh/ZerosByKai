@@ -1,9 +1,6 @@
 import express from 'express';
-import { supabaseAdmin } from '../config/supabase.js';
 import { generateWelcomeEmail } from '../emails/templates/welcome.js';
 import { generateMagicLinkEmail } from '../emails/templates/magic-link.js';
-import { getMonday, getLastMonday } from '../utils/dateUtils.js';
-import { config } from '../config/env.js';
 
 const router = express.Router();
 

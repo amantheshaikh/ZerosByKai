@@ -22,8 +22,16 @@ export const getLatestActiveWeek = async () => {
 
 /**
  * Get the current active week specifically for voting (published ideas)
+ * Cached for 60s since voting week only changes once per week.
  */
+let _votingWeekCache = { value: null, expiry: 0 };
+
 export const getVotingWeek = async () => {
+    const now = Date.now();
+    if (_votingWeekCache.value && now < _votingWeekCache.expiry) {
+        return _votingWeekCache.value;
+    }
+
     const { data: latestIdea } = await supabaseAdmin
         .from('ideas')
         .select('week_published')
@@ -32,7 +40,9 @@ export const getVotingWeek = async () => {
         .limit(1)
         .single();
 
-    return latestIdea?.week_published || null;
+    const week = latestIdea?.week_published || null;
+    _votingWeekCache = { value: week, expiry: now + 60_000 };
+    return week;
 };
 
 /**
@@ -40,37 +50,25 @@ export const getVotingWeek = async () => {
  * @param {string} weekStart 
  */
 export const getLeaderboardForWeek = async (weekStart) => {
-    // Fetch ideas for that week
+    // Fetch ideas for that week, ordered by vote_count
     const { data: ideas, error } = await supabaseAdmin
         .from('ideas')
         .select('*')
         .eq('week_published', weekStart)
-        .in('status', ['published', 'archived']);
+        .in('status', ['published', 'archived'])
+        .order('vote_count', { ascending: false })
+        .limit(3);
 
     if (error) throw error;
     if (!ideas || ideas.length === 0) return [];
 
-    // Fetch vote counts in one go
-    const ideaIds = ideas.map(i => i.id);
-    const { data: votesRows, error: votesError } = await supabaseAdmin
-        .from('votes')
-        .select('idea_id')
-        .in('idea_id', ideaIds);
-
-    if (votesError) throw votesError;
-
-    const voteCountMap = {};
-    (votesRows || []).forEach(v => {
-        voteCountMap[v.idea_id] = (voteCountMap[v.idea_id] || 0) + 1;
-    });
-
     const rankedIdeas = ideas.map(idea => ({
         ...idea,
-        votes: voteCountMap[idea.id] || 0,
+        votes: idea.vote_count || 0,
         category: parseCategory(idea.tags)
     }));
 
-    return rankedIdeas.sort((a, b) => b.votes - a.votes).slice(0, 3);
+    return rankedIdeas;
 };
 
 /**
@@ -99,45 +97,3 @@ export const getIdeasByWeek = async (weekStart) => {
     return ideas || [];
 };
 
-/**
- * Get a single idea with vote count
- */
-export const getIdeaWithVoteCount = async (id) => {
-    const { data: idea, error: ideaError } = await supabase
-        .from('ideas')
-        .select('*')
-        .eq('id', id)
-        .or('status.eq.published,is_winner.eq.true')
-        .single();
-
-    if (ideaError) throw ideaError;
-
-    const { count, error: voteError } = await supabase
-        .from('votes')
-        .select('*', { count: 'exact', head: true })
-        .eq('idea_id', id);
-
-    if (voteError) throw voteError;
-
-    return {
-        ...idea,
-        voteCount: count || 0
-    };
-};
-
-/**
- * Get winner for a specific week
- */
-export const getWinnerByWeek = async (week) => {
-    const { data: batch, error } = await supabase
-        .from('weekly_batches')
-        .select(`
-        *,
-        winner:ideas!fk_weekly_batches_winner_idea (*)
-      `)
-        .eq('week_start_date', week)
-        .single();
-
-    if (error) throw error;
-    return batch;
-};

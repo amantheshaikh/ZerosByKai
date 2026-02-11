@@ -317,7 +317,7 @@ router.get('/unsubscribe', tokenLimiter, async (req, res, next) => {
 });
 
 // POST /api/auth/unsubscribe - Perform unsubscription with reason
-router.post('/unsubscribe', async (req, res, next) => {
+router.post('/unsubscribe', tokenLimiter, async (req, res, next) => {
   try {
     const { email, token, reason } = req.body;
 
@@ -348,24 +348,11 @@ router.post('/unsubscribe', async (req, res, next) => {
     const { error } = await supabaseAdmin.from('subscribers')
       .update({
         unsubscribed_at: new Date().toISOString(),
-        unsubscribe_reason: reason || null // Assuming column exists or we just log it for now
+        unsubscribe_reason: reason || null
       })
       .eq('email', email);
 
-    if (error) {
-      // If column doesn't exist, just update unsubscribed_at
-      // This is a failsafe in case the user hasn't run migrations for a new column
-      // PGRST204: PostgREST error for missing column
-      // 42703: Postgres error for undefined column
-      if (error.code === '42703' || error.code === 'PGRST204') {
-        console.warn('unsubscribe_reason column missing, skipping reason storage');
-        await supabaseAdmin.from('subscribers')
-          .update({ unsubscribed_at: new Date().toISOString() })
-          .eq('email', email);
-      } else {
-        throw error;
-      }
-    }
+    if (error) throw error;
 
     // Log the reason internally nicely
     console.log(`User ${email} unsubscribed. Reason: ${reason || 'No reason provided'}`);
@@ -404,12 +391,15 @@ router.delete('/admin/user', requireAdminKey, async (req, res, next) => {
 
     await deleteContact(email).catch(() => { });
 
-    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-    const user = users.find(u => u.email === email);
+    const { data: subscriber } = await supabaseAdmin
+      .from('subscribers')
+      .select('user_id')
+      .eq('email', email)
+      .maybeSingle();
 
-    if (user) {
-      await supabaseAdmin.from('subscribers').delete().eq('user_id', user.id);
-      await supabaseAdmin.auth.admin.deleteUser(user.id);
+    if (subscriber?.user_id) {
+      await supabaseAdmin.from('subscribers').delete().eq('user_id', subscriber.user_id);
+      await supabaseAdmin.auth.admin.deleteUser(subscriber.user_id);
     } else {
       await supabaseAdmin.from('subscribers').delete().eq('email', email);
     }

@@ -4,16 +4,6 @@ import express from 'express';
 import emailsRouter from '../../src/routes/emails.js';
 
 // Mock dependencies
-vi.mock('../../src/config/supabase.js', () => ({
-    supabaseAdmin: {}
-}));
-
-vi.mock('../../src/config/env.js', () => ({
-    config: {
-        frontendUrl: 'http://localhost:3000'
-    }
-}));
-
 vi.mock('../../src/emails/templates/welcome.js', () => ({
     generateWelcomeEmail: vi.fn(() => '<html>Welcome</html>')
 }));

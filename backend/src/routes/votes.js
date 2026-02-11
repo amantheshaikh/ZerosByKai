@@ -6,11 +6,6 @@ import * as badgeService from '../services/badgeService.js';
 
 const router = express.Router();
 
-// GET /api/votes - Get votes status (public)
-router.get('/', (req, res) => {
-  res.json({ status: 'active', message: 'Use POST to cast votes or GET /user for your current vote.' });
-});
-
 // POST /api/votes - Cast or change vote (one vote per week)
 router.post('/', requireAuth, async (req, res, next) => {
   try {
@@ -32,18 +27,19 @@ router.post('/', requireAuth, async (req, res, next) => {
       return res.status(404).json({ error: 'Idea not found or not from current week' });
     }
 
-    // Check if user already voted this week
+    // Get this week's idea IDs, then check if user already voted
+    const { data: weekIdeas } = await supabaseAdmin
+      .from('ideas')
+      .select('id')
+      .eq('week_published', weekStart);
+
+    const weekIdeaIds = weekIdeas?.map(i => i.id) || [];
+
     const { data: existingVotes, error: voteCheckError } = await supabaseAdmin
       .from('votes')
       .select('id, idea_id')
       .eq('user_id', userId)
-      .in('idea_id',
-        await supabaseAdmin
-          .from('ideas')
-          .select('id')
-          .eq('week_published', weekStart)
-          .then(({ data }) => data?.map(i => i.id) || [])
-      );
+      .in('idea_id', weekIdeaIds);
 
     if (voteCheckError) throw voteCheckError;
 
@@ -151,13 +147,7 @@ router.get('/last-week', requireAuth, async (req, res, next) => {
       });
     }
 
-    // 2. Count votes for winner
-    const { count: winnerVoteCount } = await supabaseAdmin
-      .from('votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('idea_id', batch.winner_idea_id);
-
-    // 3. Get user's vote from last week
+    // 2. Fetch winner vote count, user's vote, and badge check in parallel
     const { data: lastWeekIdeas } = await supabaseAdmin
       .from('ideas')
       .select('id')
@@ -165,20 +155,26 @@ router.get('/last-week', requireAuth, async (req, res, next) => {
 
     const lastWeekIdeaIds = lastWeekIdeas?.map(i => i.id) || [];
 
-    let lastWeekVote = null;
-    if (lastWeekIdeaIds.length > 0) {
-      const { data: vote } = await supabaseAdmin
+    const [
+      { count: winnerVoteCount },
+      lastWeekVote,
+      earnedBadge
+    ] = await Promise.all([
+      supabaseAdmin
         .from('votes')
-        .select('*, idea:ideas(id, name, title)')
-        .eq('user_id', userId)
-        .in('idea_id', lastWeekIdeaIds)
-        .maybeSingle();
-
-      lastWeekVote = vote || null;
-    }
-
-    // 4. Check if user earned a badge
-    const earnedBadge = await badgeService.hasBadge(userId, batch.winner_idea_id);
+        .select('*', { count: 'exact', head: true })
+        .eq('idea_id', batch.winner_idea_id),
+      lastWeekIdeaIds.length > 0
+        ? supabaseAdmin
+            .from('votes')
+            .select('*, idea:ideas(id, name, title)')
+            .eq('user_id', userId)
+            .in('idea_id', lastWeekIdeaIds)
+            .maybeSingle()
+            .then(({ data }) => data || null)
+        : Promise.resolve(null),
+      badgeService.hasBadge(userId, batch.winner_idea_id)
+    ]);
 
     res.json({
       lastWeekVote: lastWeekVote ? { name: lastWeekVote.idea?.name, title: lastWeekVote.idea?.title } : null,

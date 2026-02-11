@@ -36,6 +36,7 @@ ZerosByKai/
 │   ├── final_schema.sql                # Definitive schema
 │   ├── migrations/                     # Database migrations
 │   │   ├── fix_auth_trigger.sql        # Fix for auth user creation trigger
+│   │   ├── add_vote_count_to_ideas.sql # Optimization: vote_count column
 │   │   ├── reset_all_users.sql         # Utilities to reset user base
 │   │   └── sync_production_v2.sql      # Schema synchronization
 │   ├── src/                            # Source code
@@ -43,9 +44,11 @@ ZerosByKai/
 │   │   ├── config/
 │   │   │   └── supabase.js             # Supabase client (RLS + Admin)
 │   │   ├── routes/                     # API Routes
-│   │   │   ├── auth.js                 # Auth endpoints
-│   │   │   ├── ideas.js                # Ideas CRUD & leaderboard
-│   │   │   └── votes.js                # Voting, badges, results
+│   │   │   ├── auth.js                 # Auth endpoints (subscribe, login, unsubscribe)
+│   │   │   ├── ideas.js                # Ideas endpoints (leaderboard, weekly, batches)
+│   │   │   ├── votes.js                # Voting, badges, last-week results
+│   │   │   ├── emails.js               # Email mirror link renderer (welcome, magic-link)
+│   │   │   └── webhooks.js             # Brevo webhook handler (deletions, bounces)
 │   │   ├── jobs/                       # Production cron jobs
 │   │   │   ├── scrapers/               # Multi-source scrapers
 │   │   │   │   └── run_scrapers.js     # Master orchestration script
@@ -218,17 +221,13 @@ vercel --prod
 ```
 
 ## Recent Changes
+- ✅ **Routes Optimization (Feb 11)**: Removed dead endpoints/exports, added caching (in-memory + Cache-Control), parallelized DB calls, fixed admin delete scalability, secured webhook auth.
 - ✅ **Email System**: Fully migrated to Brevo (Transactional + Batch API).
 - ✅ **Multi-Source**: Added HackerNews, IndieHackers, and X scraping.
 - ✅ **Database**: Added `migrations/` directory for tracked schema changes.
+- ✅ **Performance**: Added `vote_count` column and ISR for 10k+ user scale.
 - ✅ **Auth**: Enhanced `auth.js` with improved triggers and documentation.
-- ✅ Moved `workflows/daily_startup_ideas.js` → `jobs/reddit_scraper.js`
-- ✅ Removed `routes/admin.js` (use Supabase dashboard)
-- ✅ Separated email templates into individual files
-- ✅ Added `utils/emailToken.js` for JWT tokens
-- ✅ Added comprehensive testing scripts in `workflows/`
-- ✅ Removed redundant wrapper scripts
 
 ---
 
-**Last Updated:** February 2, 2026
+**Last Updated:** February 11, 2026

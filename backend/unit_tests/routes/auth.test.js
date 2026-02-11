@@ -44,8 +44,7 @@ vi.mock('../../src/config/supabase.js', () => {
             admin: {
                 generateLink: vi.fn(),
                 createSession: vi.fn(),
-                deleteUser: vi.fn(),
-                listUsers: vi.fn()
+                deleteUser: vi.fn()
             }
         },
         then: vi.fn(function (resolve) {
@@ -297,8 +296,10 @@ describe('auth.js routes', () => {
 
     describe('DELETE /api/auth/admin/user', () => {
         it('should delete user if authorized with service key', async () => {
-            supabaseAdmin.auth.admin.listUsers.mockResolvedValue({ data: { users: [{ id: 'u1', email: 'admin@t.com' }] }, error: null });
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // delete subscribers
+            // First call: subscriber lookup returns user_id
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { user_id: 'u1' }, error: null }).then(f));
+            // Second call: delete subscribers
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
             supabaseAdmin.auth.admin.deleteUser.mockResolvedValue({ error: null });
 
             const res = await request(app)
@@ -311,8 +312,10 @@ describe('auth.js routes', () => {
         });
 
         it('should delete from subscribers even if user not in auth', async () => {
-            supabaseAdmin.auth.admin.listUsers.mockResolvedValue({ data: { users: [] }, error: null }); // No users
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // delete subscribers
+            // Subscriber lookup returns no user_id
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f));
+            // Delete subscribers by email
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
                 .delete('/api/auth/admin/user')

@@ -99,26 +99,38 @@ fly logs
 
 ## API Endpoints
 
-### Public
+### Public (Ideas)
 - `GET /health` - Health check
-- `GET /api/ideas` - List all published ideas
-- `GET /api/ideas/weekly` - Current week's ideas
-- `GET /api/ideas/:id` - Single idea
-- `GET /api/ideas/winner/:week` - Week's winner
+- `GET /api/ideas/weekly` - Current week's ideas (Cache-Control: 60s)
+- `GET /api/ideas/leaderboard` - Top 3 winners from last week (Cache-Control: 60s)
+- `GET /api/ideas/weekly-batches` - Paginated past batches (Cache-Control: 300s)
+- `GET /api/ideas/weekly-batch/:date` - Specific week's batch (Cache-Control: 300s)
+
+### Public (Emails)
+- `GET /api/emails/view/:type` - Mirror link renderer (welcome, magic-link)
 
 ### Auth Endpoints
+- `POST /api/auth/check` - Check if subscriber exists
 - `POST /api/auth/subscribe` - Newsletter-only subscription (no account)
 - `POST /api/auth/signup` - Send magic link (creates account)
+- `POST /api/auth/verify` - Verify magic link OTP
 - `POST /api/auth/verify-email-token` - Verify email token for auto-login
 - `POST /api/auth/post-login` - Post-login hook (welcome email, sync)
-- `GET /api/auth/user` - Get current user
+- `GET /api/auth/user` - Get current user (auth required)
 - `POST /api/auth/signout` - Sign out
-- `GET /api/auth/unsubscribe` - Unsubscribe from emails
+- `GET /api/auth/unsubscribe` - Verify unsubscribe token (rate limited)
+- `POST /api/auth/unsubscribe` - Perform unsubscription (rate limited)
+- `DELETE /api/auth/user` - Delete own account (auth required)
+- `DELETE /api/auth/admin/user` - Admin delete user (service key required)
 
 ### Voting (Auth Required)
 - `POST /api/votes` - Cast vote (one per week)
 - `GET /api/votes/user` - Get user's current vote
+- `GET /api/votes/last-week` - Get last week's vote result
 - `GET /api/votes/badges` - Get user's badges
+
+### Webhooks
+- `POST /api/webhooks/brevo` - Brevo event sync (requires webhook secret)
 
 ---
 
@@ -153,9 +165,11 @@ backend/
 │   ├── config/
 │   │   └── supabase.js               # Supabase client setup
 │   ├── routes/                       # API routes
-│   │   ├── ideas.js                  # Ideas endpoints
-│   │   ├── votes.js                  # Voting endpoints
-│   │   └── auth.js                   # Auth endpoints
+│   │   ├── ideas.js                  # Ideas endpoints (leaderboard, weekly, batches)
+│   │   ├── votes.js                  # Voting endpoints (cast, user vote, badges)
+│   │   ├── auth.js                   # Auth endpoints (subscribe, login, unsubscribe)
+│   │   ├── emails.js                 # Email mirror link renderer
+│   │   └── webhooks.js               # Brevo webhook handler
 │   ├── jobs/                         # Production cron jobs
 │   │   ├── reddit_scraper.js         # Sunday: Reddit scraping
 │   │   ├── weekly.js                 # Monday: publish, winner, digest
@@ -278,4 +292,4 @@ Use Supabase Dashboard:
 
 ---
 
-**Last Updated**: 2026-02-09
+**Last Updated**: 2026-02-11

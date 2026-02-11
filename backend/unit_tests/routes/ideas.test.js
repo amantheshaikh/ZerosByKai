@@ -29,10 +29,6 @@ vi.mock('../../src/config/supabase.js', () => {
     };
 });
 
-vi.mock('../../src/utils/dateUtils.js', () => ({
-    getMonday: vi.fn(() => '2025-02-03')
-}));
-
 const app = express();
 app.use(express.json());
 app.use('/api/ideas', ideasRouter);
@@ -75,24 +71,6 @@ describe('ideas.js routes', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toEqual([]);
-        });
-    });
-
-    describe('GET /api/ideas/', () => {
-        it('should return all published ideas', async () => {
-            const mockIdeas = [{ id: '1', title: 'Idea 1' }];
-            supabase.then.mockImplementationOnce(f => f({ data: mockIdeas, error: null }));
-
-            const response = await request(app).get('/api/ideas/');
-
-            expect(response.status).toBe(200);
-            expect(response.body.ideas).toEqual(mockIdeas);
-        });
-
-        it('should handle database errors', async () => {
-            supabase.then.mockImplementationOnce(f => f({ error: { message: 'DB Error' } }));
-            const response = await request(app).get('/api/ideas/');
-            expect(response.status).toBe(500);
         });
     });
 

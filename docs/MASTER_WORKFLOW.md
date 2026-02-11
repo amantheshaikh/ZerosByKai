@@ -51,7 +51,7 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 **Running**: GitHub Actions (`.github/workflows/weekly-digest.yml`) — **Monday 14:00 UTC (9 AM EST)**.
 **Command**: `node src/jobs/weekly.js --scheduled`
 **Logic**:
-1. **Calculate Winner**: Looks at the *Previous Week's* batch. Counts votes. Determines winner.
+1. **Calculate Winner**: Looks at the *Previous Week's* batch. Uses pre-calculated `vote_count` for O(1) efficiency. Determines winner.
    - Awards badges and **archives** last week's ideas.
 2. **Publish**: Finds ideas scheduled for *this week* and flips status `scheduled` -> `published`.
    - *Now they receive public visibility on the site.*

@@ -1,6 +1,5 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
-import { getMonday } from '../utils/dateUtils.js';
 import * as ideaService from '../services/ideaService.js';
 
 const router = express.Router();
@@ -18,24 +17,8 @@ router.get('/leaderboard', async (req, res, next) => {
     const weekStart = lastWeekDate.toISOString().split('T')[0];
 
     const ranked = await ideaService.getLeaderboardForWeek(weekStart);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json(ranked);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /api/ideas - List all published ideas
-router.get('/', async (req, res, next) => {
-  try {
-    const { data: ideas, error } = await supabase
-      .from('ideas')
-      .select('*')
-      .or('status.eq.published,is_winner.eq.true')
-      .lte('week_published', getMonday())
-      .order('week_published', { ascending: false });
-
-    if (error) throw error;
-    res.json({ ideas });
   } catch (error) {
     next(error);
   }
@@ -50,6 +33,7 @@ router.get('/weekly', async (req, res, next) => {
     }
 
     const ideas = await ideaService.getIdeasByWeek(weekStart);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json({ ideas, weekStart });
   } catch (error) {
     next(error);
@@ -111,6 +95,7 @@ router.get('/weekly-batches', async (req, res, next) => {
       ideas: batchIdeas?.filter(opp => opp.week_published === batch.week_start_date) || []
     }));
 
+    res.set('Cache-Control', 'public, max-age=300');
     res.json({
       batches: batchesWithIdeas,
       page,
@@ -152,6 +137,7 @@ router.get('/weekly-batch/:date', async (req, res, next) => {
 
     if (ideasError) throw ideasError;
 
+    res.set('Cache-Control', 'public, max-age=300');
     res.json({
       ...batch,
       ideas: ideas || []

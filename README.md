@@ -98,7 +98,7 @@ zerosbykai/
 │   │   ├── server.js                 # Entry point + Cron jobs
 │   │   ├── config/                   # Supabase, environment
 │   │   ├── services/                 # Business logic (Brevo, AI, Newsletter)
-│   │   ├── routes/                   # API routes (Auth, Ideas, Votes)
+│   │   ├── routes/                   # API routes (Auth, Ideas, Votes, Emails, Webhooks)
 │   │   ├── jobs/                     # Production cron jobs
 │   │   │   ├── scrapers/             # Scrapers (Reddit, HN, IH, X)
 │   │   │   └── weekly.js             # Monday: publish, winner, digest
@@ -278,24 +278,20 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-06)
+## 📝 Recent Changes (2026-02-11)
 
-### System Reliability & Testing
-- ✅ **Full Test Suite**: Implemented Vitest suite for both Backend and Frontend.
-- ✅ **High Coverage**: Achieved near 100% logic coverage for services, routes, and core jobs.
-- ✅ **Test Consolidation**: Moved all unit tests to dedicated `unit_tests/` directories.
-- ✅ **Refactoring**: Modularized `auth.js`, `ideas.js`, and `votes.js` into clean service/route patterns.
+### Routes Optimization & Cleanup (Feb 11)
+- ✅ **Security**: Fixed admin delete scalability (`listUsers()` → subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
+- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls in `/votes/last-week`.
+- ✅ **Cleanup**: Removed dead endpoints (`GET /api/ideas`, `GET /api/votes`), dead service exports, unused imports, stale fallback code.
 
-### Authentication & UI
-- ✅ **AuthModal Refinement**: Enhanced email and name validation for better UX.
-- ✅ **Signup Logic**: Improved handling of existing vs new subscribers during magic link flows.
-- ✅ **Security**: Hardened JWT email token verification and rate limiting.
-
-### Infrastructure (Feb 4, 2026)
-- ✅ **Architecture**: Extracted planning logic to `src/services/newsletterService.js`.
-- ✅ **State Machine**: `backlog` -> `approved` -> `scheduled` (hidden) -> `published` (live).
-- ✅ **Efficiency**: Brevo Batch API (50 emails/req) for high-volume delivery.
+### Previous (Feb 9)
+- ✅ **Security**: Unsubscribe links use backend-generated secure tokens. RFC 8058 one-click unsubscribe.
+- ✅ **Performance**: `vote_count` column for O(1) leaderboard. ISR on landing page (60s revalidation).
+- ✅ **Email**: Subject override from `weekly_batches.subject_line`. Mirror links via dedicated frontend routes.
+- ✅ **Frontend**: Hero redesign, scroll animations, comic-panel design system.
+- ✅ **Testing**: Full Vitest suite for backend and frontend.
 
 ---
 
-**Last Updated**: 2026-02-06
+**Last Updated**: 2026-02-11

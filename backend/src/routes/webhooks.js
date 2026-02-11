@@ -14,8 +14,8 @@ router.post('/brevo', async (req, res) => {
     try {
         const { token } = req.query;
 
-        // Security check
-        if (config.brevo.webhookSecret && token !== config.brevo.webhookSecret) {
+        // Security check — reject if secret is missing or mismatched
+        if (!config.brevo.webhookSecret || token !== config.brevo.webhookSecret) {
             console.warn(`⚠️  Unauthorized Brevo webhook attempt (invalid token): ${token}`);
             return res.status(401).json({ error: 'Unauthorized: Invalid webhook token' });
         }

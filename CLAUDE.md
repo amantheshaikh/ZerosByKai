@@ -38,11 +38,13 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
   - Email token auto-login (from weekly digest)
 
 ### API Architecture
-- **Routes:** Express routes at `/api/{ideas,votes,auth}`
+- **Routes:** Express routes at `/api/{ideas,votes,auth,webhooks,emails}`
 - **Clients:** Two Supabase clients:
   - `supabase` (RLS-enabled for user operations)
   - `supabaseAdmin` (service key for admin operations)
 - **Auth:** Bearer token validation via Supabase `getUser()`
+- **Caching:** `getVotingWeek()` cached in-memory (60s TTL); read endpoints use `Cache-Control` headers
+- **Rate Limiting:** Global limiter + per-route limiters on auth/unsubscribe endpoints
 
 ### Automation & Jobs
 - **Generate:** Multi-source scraping → Gemini AI → `backlog` ideas (`npm run scrape:local`)
@@ -92,17 +94,30 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`lib/auth.js`** - Auth context
 - **`unit_tests/`** - React component & lib tests
 
-## Recent Major Changes (Feb 9, 2026)
+## Recent Major Changes (Feb 11, 2026)
+
+### Routes Optimization & Cleanup (Feb 11)
+- ✅ **Security (P0)**: Fixed admin delete (`DELETE /admin/user`) — replaced `listUsers()` (loaded ALL users) with targeted subscriber lookup.
+- ✅ **Security (P0)**: Brevo webhook now rejects requests when secret is not configured (was silently allowing all).
+- ✅ **Security (P1)**: Added rate limiter (`tokenLimiter`) to `POST /unsubscribe`.
+- ✅ **Performance (P1)**: `getVotingWeek()` now cached in-memory with 60s TTL (was hitting DB on every request).
+- ✅ **Performance (P2)**: Added `Cache-Control` headers to all read endpoints (60s for weekly/leaderboard, 300s for archives).
+- ✅ **Performance (P2)**: Parallelized 3 sequential DB calls in `GET /votes/last-week` with `Promise.all`.
+- ✅ **Performance (P2)**: Replaced nested async subquery in `POST /votes` with explicit sequential queries.
+- ✅ **Cleanup (P1)**: Removed unused `GET /api/ideas` root endpoint (no consumers, unbounded result set).
+- ✅ **Cleanup (P2)**: Removed dead exports (`getIdeaWithVoteCount`, `getWinnerByWeek`) from `ideaService.js`.
+- ✅ **Cleanup (P2)**: Removed dead `GET /api/votes` static info endpoint.
+- ✅ **Cleanup (P2)**: Removed unused imports from `emails.js` and stale column fallback from `auth.js`.
+- ✅ **Tests**: Updated route tests to match refactored code (admin delete, removed endpoints).
+
+### Previous (Feb 9)
 - ✅ **Security**: Unsubscribe links now use backend-generated secure tokens to prevent 401 errors.
 - ✅ **Frontend Redesign**: New Hero section with Kai's image, overlay text, and scroll-triggered animations.
-- ✅ **UX Improvements**: "This Week" renamed to "Zeros This Week", subscribe modal name field removed, auto-closing modals on nav.
 - ✅ **Mirror Link**: Mirror links in email digests now point to a dedicated frontend route instead of backend endpoint.
-- ✅ **Dev Experience**: Resolved Turbopack cache corruption and Parallax import issues (stable `npm run dev`).
 - ✅ **Cleanup**: Removed legacy server-side HTML generation for weekly digests; fully reliant on Brevo templates.
-- ✅ **Testing**: Fixed backend unit tests (`weekly.test.js`, `newsletterService.test.js`) and Vitest worker timeouts.
-- ✅ **Email Stability**: Fixed "Empty Email" issue in GitHub Action script and blocked list discrepancies.
-- ✅ **Infrastructure**: Validated `/deploy_production` workflow and created SQL reset script for Monday jobs.
 - ✅ **RFC 8058**: Per-subscriber `List-Unsubscribe` + `List-Unsubscribe-Post` headers for one-click unsubscribe.
+- ✅ **Performance**: Implemented `vote_count` column on `ideas` table for O(1) leaderboard queries.
+- ✅ **Scaling**: Added ISR (`getStaticProps`) to Landing Page (`index.jsx`) with 60s revalidation.
 - ✅ **Subject Override**: Email subject from Supabase `weekly_batches.subject_line` passed via Brevo API.
 
 ## Documentation Hierarchy
