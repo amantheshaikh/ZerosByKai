@@ -4,22 +4,91 @@ import { vi } from 'vitest';
 // --- Global Browser Mocks ---
 class MockIntersectionObserver {
     constructor(callback) { this.callback = callback; }
-    observe() { this.callback([{ isIntersecting: true }]); }
+    observe() {
+        // Sync callback can sometimes cause render loops, but needed for some tests
+        this.callback([{ isIntersecting: true }]);
+    }
     unobserve() { }
     disconnect() { }
 }
-global.IntersectionObserver = MockIntersectionObserver;
+
+class MockResizeObserver {
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+}
+
+const mockMatchMedia = (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+});
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+vi.stubGlobal('ResizeObserver', MockResizeObserver);
+vi.stubGlobal('matchMedia', vi.fn().mockImplementation(mockMatchMedia));
+
+vi.mock('framer-motion', () => {
+    const filterMotionProps = (props) => {
+        const { whileInView, viewport, whileHover, whileTap, drag, dragConstraints, dragElastic, onDragEnd, initial, animate, exit, variants, transition, custom, layout, ...rest } = props;
+        return rest;
+    };
+    return {
+        motion: {
+            div: ({ children, ...props }) => <div {...filterMotionProps(props)}>{children}</div>,
+            h1: ({ children, ...props }) => <h1 {...filterMotionProps(props)}>{children}</h1>,
+            h2: ({ children, ...props }) => <h2 {...filterMotionProps(props)}>{children}</h2>,
+            p: ({ children, ...props }) => <p {...filterMotionProps(props)}>{children}</p>,
+            span: ({ children, ...props }) => <span {...filterMotionProps(props)}>{children}</span>,
+            button: ({ children, ...props }) => <button {...filterMotionProps(props)}>{children}</button>,
+            a: ({ children, ...props }) => <a {...filterMotionProps(props)}>{children}</a>,
+            nav: ({ children, ...props }) => <nav {...filterMotionProps(props)}>{children}</nav>,
+            ul: ({ children, ...props }) => <ul {...filterMotionProps(props)}>{children}</ul>,
+            li: ({ children, ...props }) => <li {...filterMotionProps(props)}>{children}</li>,
+            header: ({ children, ...props }) => <header {...filterMotionProps(props)}>{children}</header>,
+            footer: ({ children, ...props }) => <footer {...filterMotionProps(props)}>{children}</footer>,
+            section: ({ children, ...props }) => <section {...filterMotionProps(props)}>{children}</section>,
+            article: ({ children, ...props }) => <article {...filterMotionProps(props)}>{children}</article>,
+        },
+        AnimatePresence: ({ children }) => <>{children}</>,
+        useScroll: () => ({ scrollY: { get: () => 0, getPrevious: () => 0, on: () => { }, onChange: () => { } } }),
+        useTransform: () => 0,
+        useSpring: () => 0,
+        useMotionValue: () => 0,
+        useMotionValueEvent: () => { },
+        useInView: () => true,
+    };
+});
 
 // --- Next.js Mocks ---
+const mockRouter = {
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    query: {},
+    pathname: '',
+    asPath: '',
+    events: {
+        on: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
+    },
+};
+
 vi.mock('next/router', () => ({
-    useRouter: () => ({
-        push: vi.fn(),
-        replace: vi.fn(),
-        prefetch: vi.fn(),
-        query: {},
-        pathname: '',
-        events: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
-    }),
+    useRouter: () => mockRouter,
+    default: () => mockRouter,
+}));
+
+// Mock next/link
+vi.mock('next/link', () => ({
+    __esModule: true,
+    default: ({ children, href, ...props }) => <a href={href} {...props}>{children}</a>,
 }));
 
 vi.mock('next/head', () => ({

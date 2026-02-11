@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync-public": "bash ../scripts/sync-public-files.sh",
-    "test": "vitest run ./unit_tests"
+    "test": "vitest run ./unit_tests",
+    "coverage": "vitest run ./unit_tests --coverage"
   },
   "browserslist": [
     "defaults",

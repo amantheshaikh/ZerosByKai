@@ -5,9 +5,7 @@ import SecretStash from '../../pages/tools';
 import { TOOLS } from '@/lib/stash-data';
 
 // Mock dependencies
-vi.mock('next/head', () => ({
-    default: ({ children }) => <>{children}</>,
-}));
+// Mocks handled in setup: framer-motion, next/head
 
 vi.mock('../../components/Header', () => ({
     default: () => <div data-testid="header">Header</div>,
@@ -15,24 +13,6 @@ vi.mock('../../components/Header', () => ({
 
 vi.mock('../../components/Footer', () => ({
     default: () => <div data-testid="footer">Footer</div>,
-}));
-
-vi.mock('@/lib/smoothScroll', () => ({
-    useSmoothScroll: () => ({
-        stop: vi.fn(),
-        start: vi.fn(),
-        lenis: {},
-    }),
-}));
-
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, ...props }) => <div {...props}>{children}</div>,
-        a: ({ children, ...props }) => <a {...props}>{children}</a>,
-        button: ({ children, ...props }) => <button {...props}>{children}</button>,
-    },
-    AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
 // Mock stash-data inline to avoid hoisting issues
@@ -147,6 +127,60 @@ describe('SecretStash (Tools Page)', () => {
         });
     });
 
+    it('shows category description when a specific category is selected', async () => {
+        render(<SecretStash />);
+        const hostingCategoryButton = screen.getByText(/Hosting \(/i);
+        fireEvent.click(hostingCategoryButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Hosting Desc/i)).toBeInTheDocument();
+        });
+    });
+
+    it('closes modal on Escape key press', async () => {
+        render(<SecretStash />);
+        const deetsButtons = screen.getAllByText(/DEETS/i);
+        fireEvent.click(deetsButtons[0]);
+
+        await waitFor(() => {
+            expect(screen.getByText('Mock Description 1')).toBeInTheDocument();
+        });
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Mock Description 1')).not.toBeInTheDocument();
+        });
+    });
+
+    it('renders cost badges with correct styling', () => {
+        render(<SecretStash />);
+        const freeBadge = screen.getByText('Free');
+        const paidBadge = screen.getByText('Paid');
+
+        // Check classes if possible, or just presence
+        // Note: tailwind classes might be hard to test exactly without checking classList
+        expect(freeBadge.className).toContain('bg-green-100');
+        expect(paidBadge.className).toContain('bg-yellow-100');
+    });
+
+    it('handles image load error in ToolLogo by hiding the image', async () => {
+        render(<SecretStash />);
+        // Find an image. The mock data has url 'https://example.com/1'
+        // host is example.com.
+        // ToolLogo alt is "Mock Tool 1 logo"
+
+        await waitFor(() => {
+            const logo = screen.getByAltText('Mock Tool 1 logo');
+            fireEvent.error(logo);
+            // Logic: setError(true) -> returns null (removes from DOM)
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByAltText('Mock Tool 1 logo')).not.toBeInTheDocument();
+        });
+    });
+
     it('toggles FAQ items', async () => {
         render(<SecretStash />);
 
@@ -167,13 +201,8 @@ describe('SecretStash (Tools Page)', () => {
 
         // Wait for removal or invisibility
         await waitFor(() => {
-            // It might be in document but opacity 0, or removed.
-            // Our mock removes it? No, our mock relies on AnimatePresence.
-            // If isOpen is false, AnimatePresence children are removed (in React logic)
-            // provided exit animation completes. 
-            // Since we mocked AnimatePresence to just {children}, standard React conditional rendering applies.
-            // {isOpen && (...)} -> if false, it is removed from DOM immediately.
             expect(screen.queryByText(new RegExp(answerFragment, 'i'))).not.toBeInTheDocument();
         });
     });
 });
+

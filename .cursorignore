@@ -1,0 +1,10 @@
+# Cursor AI Indexing Exclusions
+node_modules/
+.next/
+build/
+dist/
+coverage/
+logs/
+*.log
+.DS_Store
+.git/

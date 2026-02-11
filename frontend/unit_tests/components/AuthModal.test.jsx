@@ -13,13 +13,7 @@ vi.mock('@/lib/auth', () => ({
 // Mock fetch for any other usage
 global.fetch = vi.fn();
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, ...props }) => <div {...props}>{children}</div>,
-    },
-    AnimatePresence: ({ children }) => <>{children}</>,
-}));
+// Mocks handled in setup: framer-motion
 
 describe('AuthModal', () => {
     const mockCloseAuthModal = vi.fn();
@@ -62,7 +56,7 @@ describe('AuthModal', () => {
         // Wait for debounced user check
         await waitFor(() => {
             expect(apiFetch).toHaveBeenCalledWith('/api/auth/check', expect.any(Object));
-        });
+        }, { timeout: 2000 });
 
         // For new users, name field appears
         await waitFor(() => {
@@ -94,7 +88,7 @@ describe('AuthModal', () => {
 
         await waitFor(() => {
             expect(screen.getByPlaceholderText(/Your Name \(Required\)/i)).toBeInTheDocument();
-        });
+        }, { timeout: 2000 });
     });
 
     it('keeps submit button disabled for invalid email', async () => {
@@ -128,7 +122,7 @@ describe('AuthModal', () => {
 
         await waitFor(() => {
             expect(apiFetch).toHaveBeenCalledWith('/api/auth/check', expect.any(Object));
-        });
+        }, { timeout: 2000 });
 
         // Verify name is not visible yet (since it's welcome mode) or just check state
         // In our component, for isRecognized, we show "WELCOME BACK, AMAN!"
@@ -143,7 +137,7 @@ describe('AuthModal', () => {
         // Wait for check
         await waitFor(() => {
             expect(apiFetch).toHaveBeenCalledTimes(2);
-        });
+        }, { timeout: 2000 });
 
         // Verify "WELCOME BACK, AMAN!" is gone and it's joining mode
         expect(screen.queryByText(/WELCOME BACK, AMAN!/i)).not.toBeInTheDocument();

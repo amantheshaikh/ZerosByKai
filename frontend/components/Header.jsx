@@ -12,7 +12,7 @@ import HamburgerMenu from './HamburgerMenu';
 
 export default function Header({ variant = 'landing' }) {
   const router = useRouter();
-  const { user, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal } = useAuth();
+  const { user, profile, isLoading, signOut, openAuthModal, closeAuthModal, openSubscribeModal, closeSubscribeModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -107,13 +107,13 @@ export default function Header({ variant = 'landing' }) {
           href="#ideas-section"
           onClick={handleThisWeekClick}
           className={`px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm transition-colors ${isActive('ideas-section')
-              ? 'text-rose-700 border-b-2 border-rose-700'
-              : 'text-black hover:text-rose-700'
+            ? 'text-rose-700 border-b-2 border-rose-700'
+            : 'text-black hover:text-rose-700'
             }`}
         >
           ZEROS THIS WEEK
         </a>
-        {isLoading ? null : user ? (
+        {isLoading ? null : user && !profile?.unsubscribed_at ? (
           <>
             <BadgeDisplay />
             <Link
@@ -233,7 +233,7 @@ export default function Header({ variant = 'landing' }) {
 
           <div className="w-full h-px bg-gray-200 my-2" />
 
-          {isLoading ? null : user ? (
+          {isLoading ? null : user && !profile?.unsubscribed_at ? (
             <div className="flex flex-col items-center gap-6">
               <div onClick={() => setIsMenuOpen(false)}>
                 <div className="scale-125 origin-center">

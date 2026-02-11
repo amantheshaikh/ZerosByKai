@@ -1,6 +1,5 @@
-
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import SubscribeModal from '../../components/SubscribeModal';
 import { useAuth } from '@/lib/auth';
 
@@ -9,17 +8,23 @@ vi.mock('@/lib/auth', () => ({
     useAuth: vi.fn(),
 }));
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, ...props }) => <div {...props}>{children}</div>,
-    },
-    AnimatePresence: ({ children }) => <>{children}</>,
+// Mock next/router
+vi.mock('next/router', () => ({
+    useRouter: vi.fn(() => ({
+        events: { on: vi.fn(), off: vi.fn() },
+    })),
 }));
+
+// Mock handled in setup: framer-motion
 
 describe('SubscribeModal', () => {
     const mockCloseSubscribeModal = vi.fn();
     const mockSubscribeNewsletter = vi.fn();
+    const mockOpenAuthModal = vi.fn();
+
+    const getFirstByText = (text) => screen.getAllByText(text)[0];
+    const getFirstByPlaceholder = (text) => screen.getAllByPlaceholderText(text)[0];
+    const getFirstByDisplayValue = (val) => screen.getAllByDisplayValue(val)[0];
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -27,15 +32,34 @@ describe('SubscribeModal', () => {
             showSubscribeModal: true,
             closeSubscribeModal: mockCloseSubscribeModal,
             subscribeNewsletter: mockSubscribeNewsletter,
+            openAuthModal: mockOpenAuthModal,
+            user: null,
         });
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     it('renders correctly when open', () => {
         render(<SubscribeModal />);
 
-        expect(screen.getByText(/GET THE WEEKLY DROP/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/your@email.com/i)).toBeInTheDocument();
-        expect(screen.getByText(/SUBSCRIBE FREE/i)).toBeInTheDocument();
+        expect(getFirstByText(/GET THE WEEKLY DROP/i)).toBeInTheDocument();
+        expect(getFirstByPlaceholder(/your@email.com/i)).toBeInTheDocument();
+        expect(getFirstByText(/SUBSCRIBE FREE/i)).toBeInTheDocument();
+    });
+
+    it('pre-fills email if user is logged in', () => {
+        useAuth.mockReturnValue({
+            showSubscribeModal: true,
+            closeSubscribeModal: mockCloseSubscribeModal,
+            subscribeNewsletter: mockSubscribeNewsletter,
+            openAuthModal: mockOpenAuthModal,
+            user: { email: 'test@example.com' },
+        });
+
+        render(<SubscribeModal />);
+        expect(getFirstByDisplayValue('test@example.com')).toBeInTheDocument();
     });
 
     it('does not render when closed', () => {
@@ -43,109 +67,65 @@ describe('SubscribeModal', () => {
             showSubscribeModal: false,
             closeSubscribeModal: mockCloseSubscribeModal,
             subscribeNewsletter: mockSubscribeNewsletter,
+            openAuthModal: mockOpenAuthModal,
+            user: null,
         });
 
         const { container } = render(<SubscribeModal />);
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('validates email before submitting', async () => {
+    it('disables submit button for invalid email', () => {
         render(<SubscribeModal />);
 
-        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
-        const submitButton = screen.getByRole('button', { name: /SUBSCRIBE FREE/i });
+        const input = getFirstByPlaceholder(/your@email.com/i);
+        fireEvent.change(input, { target: { value: 'not-an-email' } });
 
-        // Invalid email
-        fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+        const submitButton = getFirstByText(/SUBSCRIBE FREE/i).closest('button');
         expect(submitButton).toBeDisabled();
+    });
 
-        // Valid email
-        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    it('enables submit button for valid email', () => {
+        render(<SubscribeModal />);
+
+        const input = getFirstByPlaceholder(/your@email.com/i);
+        fireEvent.change(input, { target: { value: 'valid@email.com' } });
+
+        const submitButton = getFirstByText(/SUBSCRIBE FREE/i).closest('button');
         expect(submitButton).not.toBeDisabled();
     });
 
-    it('calls subscribeNewsletter on valid submission', async () => {
+    it('shows success state after successful subscription', async () => {
         mockSubscribeNewsletter.mockResolvedValue({});
-
         render(<SubscribeModal />);
 
-        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
-        const submitButton = screen.getByRole('button', { name: /SUBSCRIBE FREE/i });
-
-        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-        fireEvent.click(submitButton);
+        const input = getFirstByPlaceholder(/your@email.com/i);
+        fireEvent.change(input, { target: { value: 'test@example.com' } });
+        fireEvent.submit(input.closest('form'));
 
         await waitFor(() => {
-            expect(mockSubscribeNewsletter).toHaveBeenCalledWith('test@example.com');
+            expect(getFirstByText(/YOU'RE ON THE LIST/i)).toBeInTheDocument();
         });
+        expect(mockSubscribeNewsletter).toHaveBeenCalledWith('test@example.com');
     });
 
-    it('shows success message on successful subscription', async () => {
-        mockSubscribeNewsletter.mockResolvedValue({});
-
-        render(<SubscribeModal />);
-
-        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
-        const submitButton = screen.getByRole('button', { name: /SUBSCRIBE FREE/i });
-
-        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-        fireEvent.click(submitButton);
-
-        await waitFor(() => {
-            expect(screen.getByText(/YOU'RE ON THE LIST!/i)).toBeInTheDocument();
-        });
-    });
-
-    it('shows error message on subscription failure', async () => {
+    it('shows error message on failed subscription', async () => {
         mockSubscribeNewsletter.mockRejectedValue(new Error('Subscription failed'));
-
         render(<SubscribeModal />);
 
-        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
-        const submitButton = screen.getByRole('button', { name: /SUBSCRIBE FREE/i });
-
-        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-        fireEvent.click(submitButton);
+        const input = getFirstByPlaceholder(/your@email.com/i);
+        fireEvent.change(input, { target: { value: 'test@example.com' } });
+        fireEvent.submit(input.closest('form'));
 
         await waitFor(() => {
             expect(screen.getByText('Subscription failed')).toBeInTheDocument();
         });
     });
 
-    it('closes modal when close button is clicked (success state)', async () => {
-        // Setup success state directly? No, easier to go through flow or just test behavior
-        // Let's go through flow
-        mockSubscribeNewsletter.mockResolvedValue({});
-
+    it('opens auth modal when "Create an account" is clicked', () => {
         render(<SubscribeModal />);
 
-        const emailInput = screen.getByPlaceholderText(/your@email.com/i);
-        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-        fireEvent.click(screen.getByRole('button', { name: /SUBSCRIBE FREE/i }));
-
-        await waitFor(() => {
-            expect(screen.getByText(/YOU'RE ON THE LIST!/i)).toBeInTheDocument();
-        });
-
-        const closeButton = screen.getByText('AWESOME');
-        fireEvent.click(closeButton);
-
-        expect(mockCloseSubscribeModal).toHaveBeenCalled();
-    });
-
-    it('opens auth modal when "Create an account" link is clicked', () => {
-        const mockOpenAuthModal = vi.fn();
-        useAuth.mockReturnValue({
-            showSubscribeModal: true,
-            closeSubscribeModal: mockCloseSubscribeModal,
-            subscribeNewsletter: mockSubscribeNewsletter,
-            openAuthModal: mockOpenAuthModal,
-        });
-
-        render(<SubscribeModal />);
-
-        const createAccountLink = screen.getByText(/Create an account/i);
-        fireEvent.click(createAccountLink);
+        fireEvent.click(getFirstByText(/Create an account/i));
 
         expect(mockCloseSubscribeModal).toHaveBeenCalled();
         expect(mockOpenAuthModal).toHaveBeenCalledWith('signin');

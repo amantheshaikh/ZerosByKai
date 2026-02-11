@@ -13,7 +13,8 @@
     "monday:weekly": "node src/jobs/weekly.js",
     "monday:weekly:scheduled": "node src/jobs/weekly.js --scheduled",
     "schedule": "node src/jobs/schedule_newsletter.js",
-    "test": "vitest run ./unit_tests"
+    "test": "vitest run ./unit_tests",
+    "coverage": "vitest run ./unit_tests --coverage"
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",

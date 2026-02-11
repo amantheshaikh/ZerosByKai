@@ -23,50 +23,7 @@ vi.mock('@/lib/utils', () => ({
     cn: (...inputs) => inputs.filter(Boolean).join(' '),
 }));
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => {
-    const filterMotionProps = (props) => {
-        const {
-            whileInView,
-            viewport,
-            whileHover,
-            whileTap,
-            drag,
-            dragConstraints,
-            dragElastic,
-            onDragEnd,
-            initial,
-            animate,
-            exit,
-            variants,
-            transition,
-            custom,
-            layout,
-            ...rest
-        } = props;
-        return rest;
-    };
-
-    return {
-        motion: {
-            div: ({ children, ...props }) => <div {...filterMotionProps(props)}>{children}</div>,
-            h1: ({ children, ...props }) => <h1 {...filterMotionProps(props)}>{children}</h1>,
-            h2: ({ children, ...props }) => <h2 {...filterMotionProps(props)}>{children}</h2>,
-            p: ({ children, ...props }) => <p {...filterMotionProps(props)}>{children}</p>,
-            span: ({ children, ...props }) => <span {...filterMotionProps(props)}>{children}</span>,
-            button: ({ children, ...props }) => <button {...filterMotionProps(props)}>{children}</button>,
-        },
-        AnimatePresence: ({ children }) => <>{children}</>,
-        useInView: () => true,
-    };
-});
-
-// Mock IntersectionObserver
-global.IntersectionObserver = vi.fn(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-}));
+// Mocks handled in setup: framer-motion, IntersectionObserver
 
 // Mock Header, Leaderboard, IdeaCard, Footer to simplify top-level testing
 vi.mock('@/components/Header', () => ({
@@ -106,6 +63,7 @@ describe('ZerosByKaiLanding', () => {
             isLoading: false,
             openAuthModal: vi.fn(),
             subscribeNewsletter: vi.fn(),
+            profile: null,
         });
         fetchCurrentWeekIdeas.mockResolvedValue(mockIdeas);
         fetchLeaderboard.mockResolvedValue(mockWinners);
@@ -237,5 +195,48 @@ describe('ZerosByKaiLanding', () => {
 
         // The first idea in mockIdeas has id: 1
         expect(castVote).toHaveBeenCalledWith(1, mockSession);
+    });
+
+    it('shows FinalCTA for unsubscribed authenticated user with pre-filled email', async () => {
+        useAuth.mockReturnValue({
+            user: { id: 'user1', email: 'test@example.com' },
+            session: { access_token: 'token' },
+            isLoading: false,
+            openAuthModal: vi.fn(),
+            subscribeNewsletter: vi.fn(),
+            profile: { unsubscribed_at: new Date().toISOString() }
+        });
+
+        render(<ZerosByKaiLanding />);
+
+        await waitFor(() => {
+            const emailInputs = screen.getAllByDisplayValue('test@example.com');
+            expect(emailInputs.length).toBeGreaterThan(0);
+            const subscribeButtons = screen.getAllByRole('button', { name: /SUBSCRIBE FREE/i });
+            expect(subscribeButtons.length).toBeGreaterThan(0);
+        });
+    });
+    it('handles resubscription using user email without re-typing', async () => {
+        const subscribeNewsletter = vi.fn().mockResolvedValue({ success: true });
+        useAuth.mockReturnValue({
+            user: { id: 'user1', email: 'stored@example.com' },
+            session: { access_token: 'token' },
+            isLoading: false,
+            openAuthModal: vi.fn(),
+            subscribeNewsletter,
+            profile: { unsubscribed_at: '2023-01-01' },
+        });
+
+        render(<ZerosByKaiLanding />);
+
+        await waitFor(() => {
+            const subscribeButtons = screen.getAllByRole('button', { name: /SUBSCRIBE FREE/i });
+            // Click the subscribe button. The handleSubscribe function should use the user props.
+            fireEvent.click(subscribeButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(subscribeNewsletter).toHaveBeenCalledWith('stored@example.com');
+        });
     });
 });

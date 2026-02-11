@@ -31,7 +31,7 @@ const VoteConfirmation = dynamic(() => import('@/components/ui/vote-confirmation
 const VOTE_ERROR_TIMEOUT = 5000;
 
 const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
-    const { user, session, openAuthModal, subscribeNewsletter } = useAuth();
+    const { user, profile, session, openAuthModal, subscribeNewsletter } = useAuth();
     const errorTimeoutRef = useRef(null);
 
     // Form state
@@ -82,8 +82,11 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
         e.preventDefault();
         setSubscribeStatus('loading');
         setSubscribeError(null);
+
+        const emailToSubmit = (user && profile?.unsubscribed_at) ? user.email : email;
+
         try {
-            await subscribeNewsletter(email);
+            await subscribeNewsletter(emailToSubmit);
             setSubscribeStatus('success');
             setEmail('');
         } catch (err) {
@@ -227,14 +230,15 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
             <WhyKaiSection />
             <FAQSection />
 
-            {!user && (
+            {(!user || (user && profile?.unsubscribed_at)) && (
                 <FinalCTA
-                    email={email}
+                    email={user && profile?.unsubscribed_at ? user.email : email}
                     setEmail={setEmail}
                     subscribeStatus={subscribeStatus}
                     subscribeError={subscribeError}
                     onSubscribe={handleSubscribe}
                     onOpenAuth={() => openAuthModal()}
+                    isResubscribe={!!(user && profile?.unsubscribed_at)}
                 />
             )}
 

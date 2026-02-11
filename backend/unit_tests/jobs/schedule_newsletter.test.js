@@ -124,4 +124,25 @@ describe('schedule_newsletter.js', () => {
         expect(process.exit).toHaveBeenCalledWith(1);
         expect(console.error).toHaveBeenCalledWith('Error scheduling newsletter:', error);
     });
+    it('should exit with 1 if --weeks argument is invalid', async () => {
+        process.argv = ['node', 'schedule_newsletter.js', '--weeks', 'abc'];
+        await scheduleNewsletter();
+        expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit with 1 if --date argument is invalid', async () => {
+        process.argv = ['node', 'schedule_newsletter.js', '--date', 'invalid-date'];
+        await scheduleNewsletter();
+        expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit with 1 if no ideas are returned', async () => {
+        process.argv = ['node', 'schedule_newsletter.js', '--weeks', '1'];
+        pickAndPublishIdeas.mockResolvedValueOnce([]); // Empty array
+
+        await scheduleNewsletter();
+
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to pick 10 ideas'));
+        expect(process.exit).toHaveBeenCalledWith(1);
+    });
 });

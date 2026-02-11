@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useRouter } from 'next/router';
 import Unsubscribe from '../../pages/unsubscribe';
@@ -14,23 +14,7 @@ vi.mock('@/lib/auth', () => ({
     getApiUrl: vi.fn(() => 'http://localhost:3001'),
 }));
 
-// Mock framer-motion
-vi.mock('framer-motion', () => {
-    const filterMotionProps = (props) => {
-        const {
-            whileInView, viewport, whileHover, whileTap, drag, dragConstraints,
-            dragElastic, onDragEnd, initial, animate, exit, variants,
-            transition, custom, layout, ...rest
-        } = props;
-        return rest;
-    };
-    return {
-        motion: {
-            div: ({ children, ...props }) => <div {...filterMotionProps(props)}>{children}</div>,
-        },
-        AnimatePresence: ({ children }) => <>{children}</>,
-    };
-});
+// Mock handled in setup: framer-motion
 
 describe('Unsubscribe Page', () => {
     const mockPush = vi.fn();

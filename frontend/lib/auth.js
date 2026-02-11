@@ -98,6 +98,7 @@ export function AuthProvider({ children }) {
   // Auth state
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -337,6 +338,15 @@ export function AuthProvider({ children }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
+        if (currentSession?.user) {
+          const { data: userProfile } = await supabase
+            .from('subscribers')
+            .select('*')
+            .eq('user_id', currentSession.user.id)
+            .maybeSingle();
+          setProfile(userProfile);
+        }
+
         console.log('✅ Auth initialized:', currentSession ? 'Authenticated' : 'Not authenticated');
       } catch (error) {
         console.error('❌ Auth initialization failed:', error.message);
@@ -359,6 +369,19 @@ export function AuthProvider({ children }) {
         // Update state
         setSession(newSession);
         setUser(newSession?.user ?? null);
+
+        // Fetch profile if user exists
+        if (newSession?.user) {
+          const { data: userProfile } = await supabase
+            .from('subscribers')
+            .select('*')
+            .eq('user_id', newSession.user.id)
+            .maybeSingle();
+          setProfile(userProfile);
+        } else {
+          setProfile(null);
+        }
+
         setIsLoading(false);
 
         // Schedule session refresh before expiry
@@ -615,6 +638,9 @@ export function AuthProvider({ children }) {
     sendMagicLink,
     subscribeNewsletter,
     clearError,
+
+    // User Profile (for subscription status)
+    profile,
 
     // Modal state
     showAuthModal,

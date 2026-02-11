@@ -37,7 +37,7 @@ export default function FAQSection() {
                                 key={index}
                                 question={faq.name}
                                 answer={faq.acceptedAnswer.text}
-                                defaultOpen={index === 0}
+                                defaultOpen={false}
                             />
                         ))}
 

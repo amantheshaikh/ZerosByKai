@@ -8,7 +8,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SubscribeModal() {
     const router = useRouter();
-    const { showSubscribeModal, closeSubscribeModal, subscribeNewsletter, openAuthModal } = useAuth();
+    const { showSubscribeModal, closeSubscribeModal, subscribeNewsletter, openAuthModal, user } = useAuth();
 
     // Form State
     const [email, setEmail] = useState('');
@@ -23,6 +23,11 @@ export default function SubscribeModal() {
             setStep('form');
             setStatus('idle');
             setErrorMsg('');
+            if (user?.email) {
+                setEmail(user.email);
+            } else {
+                setEmail('');
+            }
         }
     }, [showSubscribeModal]);
 

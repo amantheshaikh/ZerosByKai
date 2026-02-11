@@ -1,33 +1,26 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, fireEvent, waitFor, within, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ScrollToTop from '../../components/ScrollToTop';
 import * as smoothScroll from '@/lib/smoothScroll';
 
-// Mock lib/smoothScroll
 vi.mock('@/lib/smoothScroll', () => ({
     useScrollActions: vi.fn(),
 }));
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-    motion: {
-        button: ({ children, ...props }) => <button {...props}>{children}</button>,
-    },
-    AnimatePresence: ({ children }) => <>{children}</>,
-}));
+// Mock handled in setup: framer-motion
 
 describe('ScrollToTop', () => {
     const mockScrollToTop = vi.fn();
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
         vi.spyOn(smoothScroll, 'useScrollActions').mockReturnValue({
             scrollToTop: mockScrollToTop,
         });
-
-        // Reset scroll position
         window.scrollY = 0;
     });
+
+    afterEach(cleanup);
 
     it('is hidden initially', () => {
         const { container } = render(<ScrollToTop />);
@@ -35,49 +28,45 @@ describe('ScrollToTop', () => {
     });
 
     it('shows button when scrolled down > 300px', async () => {
-        render(<ScrollToTop />);
+        const { container } = render(<ScrollToTop />);
+        const view = within(container);
 
-        // Simulate scroll
         window.scrollY = 350;
         fireEvent.scroll(window);
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/Scroll to top/i)).toBeInTheDocument();
+            expect(view.getByLabelText(/Scroll to top/i)).toBeTruthy();
         });
     });
 
     it('hides button when scrolled up < 300px', async () => {
-        render(<ScrollToTop />);
+        const { container } = render(<ScrollToTop />);
+        const view = within(container);
 
-        // Show first
         window.scrollY = 350;
         fireEvent.scroll(window);
         await waitFor(() => {
-            expect(screen.getByLabelText(/Scroll to top/i)).toBeInTheDocument();
+            expect(view.getByLabelText(/Scroll to top/i)).toBeTruthy();
         });
 
-        // Hide
         window.scrollY = 100;
         fireEvent.scroll(window);
         await waitFor(() => {
-            const button = screen.queryByLabelText(/Scroll to top/i);
-            expect(button).not.toBeInTheDocument();
+            expect(view.queryByLabelText(/Scroll to top/i)).toBeNull();
         });
     });
 
     it('calls scrollToTop action when clicked', async () => {
-        render(<ScrollToTop />);
+        const { container } = render(<ScrollToTop />);
+        const view = within(container);
 
-        // Show button
         window.scrollY = 350;
         fireEvent.scroll(window);
         await waitFor(() => {
-            expect(screen.getByLabelText(/Scroll to top/i)).toBeInTheDocument();
+            expect(view.getByLabelText(/Scroll to top/i)).toBeTruthy();
         });
 
-        // Click
-        fireEvent.click(screen.getByLabelText(/Scroll to top/i));
-
+        fireEvent.click(view.getByLabelText(/Scroll to top/i));
         expect(mockScrollToTop).toHaveBeenCalledWith({ duration: 1.5 });
     });
 });

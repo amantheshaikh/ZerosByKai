@@ -122,7 +122,7 @@ const ListItem = ({ icon, iconClass, children, className = "", gap = "gap-2" }) 
 );
 
 export default function KaiStory() {
-    const { user, subscribeNewsletter } = useAuth();
+    const { user, profile, subscribeNewsletter } = useAuth();
     const [email, setEmail] = useState('');
     const [subscribeStatus, setSubscribeStatus] = useState('idle');
     const [subscribeError, setSubscribeError] = useState(null);
@@ -131,8 +131,11 @@ export default function KaiStory() {
         e.preventDefault();
         setSubscribeStatus('loading');
         setSubscribeError(null);
+
+        const emailToSubmit = (user && profile?.unsubscribed_at) ? user.email : email;
+
         try {
-            await subscribeNewsletter(email);
+            await subscribeNewsletter(emailToSubmit);
             setSubscribeStatus('success');
             setEmail('');
         } catch (err) {
@@ -462,7 +465,7 @@ export default function KaiStory() {
 
                                     {/* Right Column: Form */}
                                     <div>
-                                        {!user ? (
+                                        {(!user || (user && profile?.unsubscribed_at)) ? (
                                             <div className="relative">
                                                 <div className="comic-panel p-8 bg-white comic-shadow overflow-hidden max-w-xl mx-auto">
                                                     <div className="flex items-center justify-between mb-4">
@@ -479,7 +482,7 @@ export default function KaiStory() {
                                                             <form onSubmit={handleSubscribe} className="space-y-4">
                                                                 <input
                                                                     type="email"
-                                                                    value={email}
+                                                                    value={email || (user && profile?.unsubscribed_at ? user.email : '')}
                                                                     onChange={(e) => setEmail(e.target.value)}
                                                                     placeholder="your@email.com"
                                                                     className="w-full px-4 py-3 border-3 border-black comic-body focus:outline-none focus:ring-4 focus:ring-yellow-400 text-black"
@@ -501,10 +504,12 @@ export default function KaiStory() {
                                                         </div>
                                                     )}
                                                     <p className="text-xs comic-body mt-3 text-gray-600">✓ Free forever &bull; ✓ Unsubscribe anytime &bull; ✓ No spam</p>
-                                                    <p className="text-xs comic-body mt-2 text-gray-500">
-                                                        Want to vote &amp; earn badges?{' '}
-                                                        <Link href="/" className="text-rose-700 font-bold underline hover:text-rose-900">Create an account &rarr;</Link>
-                                                    </p>
+                                                    {!user && (
+                                                        <p className="text-xs comic-body mt-2 text-gray-500">
+                                                            Want to vote &amp; earn badges?{' '}
+                                                            <Link href="/" className="text-rose-700 font-bold underline hover:text-rose-900">Create an account &rarr;</Link>
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         ) : (
