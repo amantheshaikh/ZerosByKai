@@ -19,14 +19,14 @@ export default function HeroSection() {
             </div>
 
             <div className="relative z-10 max-w-7xl 2xl:max-w-screen-2xl mx-auto px-6 pt-32 pb-6">
-                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-4 lg:py-6">
+                <div className="grid lg:grid-cols-2 gap-4 lg:gap-4 items-center py-4 lg:py-6">
                     {/* Left: Text Content */}
                     <div className="space-y-6 lg:space-y-8">
                         <div className="comic-panel p-3 sm:p-4 bg-white inline-block transform -rotate-2">
                             <p className="comic-body text-xs sm:text-sm font-bold uppercase text-black">⚡ 10 Fresh Ideas Every Monday</p>
                         </div>
 
-                        <h1 className="comic-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl leading-none text-gray-900">
+                        <h1 className="comic-title text-4xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-none text-gray-900">
                             REAL PROBLEMS.<br />
                             <span className="text-rose-700">REAL STARTUP IDEAS.</span>
                         </h1>

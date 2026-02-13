@@ -38,6 +38,22 @@ export default function Footer() {
                         <ul className="space-y-2 comic-body text-sm sm:text-base 2xl:text-lg text-gray-400">
                             <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400 transition-colors">kai@zerosbykai.com</a></li>
                             <li><button onClick={openFeedbackModal} className="hover:text-yellow-400 transition-colors text-left">Feedback</button></li>
+                            <li>
+                                <a
+                                    href="https://foundrlist.com/product/zerosbykai"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block mt-4 hover:opacity-80 transition-opacity"
+                                >
+                                    <img
+                                        src="https://foundrlist.com/api/badge/zerosbykai"
+                                        alt="Live on FoundrList"
+                                        width="180"
+                                        height="72"
+                                        className="h-auto w-32 sm:w-40 2xl:w-48"
+                                    />
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
