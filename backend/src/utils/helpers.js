@@ -22,23 +22,6 @@ export const maskEmail = (email) => {
 };
 
 /**
- * Centralized Admin Configuration
- * Loaded from environment variables for security.
+ * Helper to wait for a specified number of milliseconds
  */
-export const ADMIN_CONFIG = {
-    email: process.env.ADMIN_EMAIL,
-    name: process.env.ADMIN_NAME || 'Admin',
-    backlogThreshold: (() => {
-        const parsed = parseInt(process.env.BACKLOG_THRESHOLD || '10', 10);
-        return Number.isNaN(parsed) ? 10 : parsed;
-    })()
-};
-
-// Fail-fast check for critical configuration
-if (!ADMIN_CONFIG.email) {
-    console.error('❌ FATAL ERROR: ADMIN_EMAIL environment variable is missing.');
-    // In production, we want to know immediately if the env is misconfigured
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('ADMIN_EMAIL is required but not configured');
-    }
-}
+export const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));

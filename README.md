@@ -150,48 +150,33 @@ zerosbykai/
 ---
 
 ## 🔐 Authentication Flows
+Comprehensive identity and security flows are documented in [**AUTH_DOCUMENTATION.md**](./docs/AUTH_DOCUMENTATION.md).
 
-See [AUTH_DOCUMENTATION.md](./AUTH_DOCUMENTATION.md) for comprehensive guide.
-
-### Quick Overview:
-1. **Email Token Auto-Login** - Users click links in weekly digest emails
-2. **Magic Link** - Passwordless sign-in/sign-up
-3. **Google OAuth** - Sign in with Google
-4. **Newsletter-Only** - Subscribe without creating account
+### Quick Entry Points:
+1. **Email Token Auto-Login** - Seamless transition from newsletter to voting.
+2. **Magic Link** - Secure, passwordless entry.
+3. **Google OAuth** - One-click social login.
+4. **Newsletter-Only** - Subscription without account creation.
 
 ---
 
 ## 📧 Email System
+Detailed automation and template logic is found in the [**Documentation Index**](./docs/README.md).
 
-### Email Provider: Brevo (formerly Sendinblue)
-- **From**: `kai@zerosbykai.com`
-- **Reply-To**: `kai@zerosbykai.com`
-
-### Email Types:
-1. **Weekly Digest** - Sent every Monday via Brevo template (params-only, no server-side HTML)
-2. **Welcome Email** - Server-generated HTML, sent on signup
-3. **Magic Link** - Server-generated HTML, sent for passwordless auth
-
-### Auto-Login Feature:
-- Authenticated users receive weekly digest with `?token=<jwt>` in URL
-- Clicking link automatically signs them in
-- Token expires after 7 days
+- **Providers**: Brevo (SMTP) + Cloudflare (Routing).
+- **Digests**: Sent every Monday via API-driven templates.
+- **Auto-Login**: JWT tokens enabling 7-day session persistence from emails.
 
 ---
 
 ## 🤖 AI & Scraping
+Analytics and extraction heuristics are located in [**Idea Extraction Logic**](./docs/idea_extraction_logic.md).
 
-### Multi-source Scraping
-- **Frequency**: Sunday 10 AM UTC (via GitHub Actions)
-- **Sources**: Reddit (17+ subreddits), Hacker News, Indie Hackers, X
-- **Anti-Detection**: Rotating user agents, randomized delays, exponential backoff
-- **Output**: ~300+ posts scraped from multiple platforms
+- **Multi-source**: Sunday scrapes of Reddit, HN, IH, and X.
+- **Model**: `gemini-2.0-flash` (Primary) for high-fidelity idea synthesis.
+- **Workflow**: Automated synthesis → Backlog → Admin Approval → Scheduling.
 
-### AI Idea Generation (Google Gemini)
-- **Model**: `gemini-2.0-flash` (Primary) with fallback to `gemini-flash-latest`
-- **Input**: Scraped content from multiple sources
-- **Output**: 10 high-quality startup ideas
-- **Retry Logic**: Automated model fallback and synthesis to ensure quality output.
+---
 
 ---
 
@@ -281,29 +266,27 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-12)
+---
 
-### Routes Optimization & Refinement (Feb 12)
-- ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for all read endpoints.
-- ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation.
-- ✅ **Auth**: Enforced name entry only for new users; removed redundant name field from subscribe modal.
-- ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching via Clearbit API.
-- ✅ **Tests**: Refactored frontend test suite with centralized utilities and mocks for faster, isolated testing.
-- ✅ **Cleanup**: Removed dead endpoints and unused services across the API.
+## 📝 Recent Changes (2026-02-14)
 
+### Subscription Reliability & Test Coverage (Feb 14)
+- ✅ **Test Coverage**: Achieved >90% statement coverage across all backend files (161 tests passing).
+- ✅ **Email Robustness**: Implemented exponential backoff retries and idempotency for Brevo Batch API.
+- ✅ **Auth Refinement**: Hardened `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement logic.
+- ✅ **Security**: Secure webhook handling with RFC 8058 one-click unsubscribe support.
+- ✅ **Admin**: Consolidated all template management and simulations into `manage_templates.js`.
+
+### Previous (Feb 12)
+- ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for read endpoints.
+- ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` sessions.
+- ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching.
+- ✅ **Cleanup**: Removed dead endpoints and unused legacy services.
 
 ### Previous (Feb 11)
 - ✅ **Security**: Secured Brevo webhook auth; added rate limiter to `POST /unsubscribe`.
 - ✅ **Cache**: In-memory cache for `getVotingWeek()` (60s TTL).
 
-
-### Previous (Feb 9)
-- ✅ **Security**: Unsubscribe links use backend-generated secure tokens. RFC 8058 one-click unsubscribe.
-- ✅ **Performance**: `vote_count` column for O(1) leaderboard. ISR on landing page (60s revalidation).
-- ✅ **Email**: Subject override from `weekly_batches.subject_line`. Mirror links via dedicated frontend routes.
-- ✅ **Frontend**: Hero redesign, scroll animations, comic-panel design system.
-- ✅ **Testing**: Full Vitest suite for backend and frontend.
-
 ---
 
-**Last Updated**: 2026-02-11
+**Last Updated**: 2026-02-14

@@ -168,9 +168,7 @@ describe('weekly.js', () => {
                     expect.objectContaining({
                         to: 'sub@example.com',
                         params: expect.objectContaining({
-                            name: 'Hustler',
-                            subject: 'Custom Subject',
-                            ideasCount: 1,
+                            name: 'Sub',
                             unsubscribeUrl: expect.stringContaining('/unsubscribe?email='),
                             voteUrl: expect.stringContaining('token=')
                         }),
@@ -183,7 +181,11 @@ describe('weekly.js', () => {
                 expect.objectContaining({
                     templateId: 99,
                     subject: 'Custom Subject',
-                    tags: ['weekly-digest']
+                    tags: ['weekly-digest'],
+                    globalParams: expect.objectContaining({
+                        ideasCount: 1,
+                        ideas: expect.any(Array)
+                    })
                 })
             );
         });
@@ -237,6 +239,154 @@ describe('weekly.js', () => {
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: new Error('Subs Fetch Failed') }).then(f)); // fetch page 1 fails
 
             await expect(sendWeeklyDigest()).rejects.toThrow('Subs Fetch Failed');
+        });
+
+        it('should throw error if subject resolution fails due to countErrorSubs', async () => {
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // batch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ count: 0, error: new Error('Count Error') }).then(f)); // count fails
+
+            await expect(sendWeeklyDigest()).rejects.toThrow('Count Error');
+        });
+
+        it('should throw error if batch update at end fails', async () => {
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // batch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // count
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ email: 't@t.com' }], error: null }).then(f)) // subs p1
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // subs p2
+                .mockImplementationOnce(f => Promise.resolve({ error: { message: 'Final Update Failed' } }).then(f)); // final update
+
+            await expect(sendWeeklyDigest()).rejects.toThrow('[FATAL] Failed to mark batch as sent');
+        });
+
+        it('should return early if no active subscribers', async () => {
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: [{ id: '1' }], error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ count: 0, error: null }).then(f)); // total = 0
+
+            const result = await sendWeeklyDigest();
+            expect(result).toBeUndefined();
+            expect(sendBatchEmails).not.toHaveBeenCalled();
+        });
+
+        it('should generate voteUrl without token for newsletter-only subscribers', async () => {
+            const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
+            const mockSubscribers = [{ email: 'newsletter@example.com', name: 'Sub' }]; // no user_id
+
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // page 1
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // page 2
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch update
+
+            await sendWeeklyDigest();
+
+            expect(sendBatchEmails).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        to: 'newsletter@example.com',
+                        params: expect.objectContaining({
+                            voteUrl: expect.not.stringContaining('token=')
+                        })
+                    })
+                ]),
+                expect.any(Object)
+            );
+        });
+
+        it('should include last week winner in globalParams when available', async () => {
+            const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
+            const mockSubscribers = [{ email: 'sub@example.com', name: 'Sub', user_id: 'u1' }];
+            const lastWeekBatch = {
+                id: 'lb1',
+                winner: { name: 'WinnerApp', title: 'The Winner' }
+            };
+
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: lastWeekBatch, error: null }).then(f)) // lastWeekBatch with winner
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // page 1
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // page 2
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch update
+
+            await sendWeeklyDigest();
+
+            expect(sendBatchEmails).toHaveBeenCalledWith(
+                expect.any(Array),
+                expect.objectContaining({
+                    globalParams: expect.objectContaining({
+                        winner: { name: 'WinnerApp', title: 'The Winner' }
+                    })
+                })
+            );
+        });
+
+        it('should set winner to null in globalParams when no last week winner', async () => {
+            const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
+            const mockSubscribers = [{ email: 'sub@example.com', name: 'Sub' }];
+
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeek (no batch)
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // page 1
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // page 2
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // batch update
+
+            await sendWeeklyDigest();
+
+            expect(sendBatchEmails).toHaveBeenCalledWith(
+                expect.any(Array),
+                expect.objectContaining({
+                    globalParams: expect.objectContaining({
+                        winner: null
+                    })
+                })
+            );
+        });
+
+        it('should use subject from idea if no subject_line in weekly_batches', async () => {
+            const mockIdeas = [{ id: '1', title: 'Idea 1', subject: 'Idea-Level Subject' }];
+            const mockSubscribers = [{ email: 'sub@example.com', name: 'Sub' }];
+
+            supabaseAdmin.then
+                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'b1' }, error: null }).then(f)) // currentBatch (no subject)
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // scheduled
+                .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // fetch ideas
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // lastWeekBatch
+                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // total subscriber count
+                .mockImplementationOnce(f => Promise.resolve({ data: mockSubscribers, error: null }).then(f)) // subscribers
+                .mockImplementationOnce(f => Promise.resolve({ data: [], error: null }).then(f)) // empty 2nd page
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // update batch
+
+            await sendWeeklyDigest();
+
+            expect(sendBatchEmails).toHaveBeenCalledWith(
+                expect.any(Array),
+                expect.objectContaining({
+                    subject: 'Idea-Level Subject',
+                    globalParams: expect.any(Object)
+                })
+            );
         });
     });
 });

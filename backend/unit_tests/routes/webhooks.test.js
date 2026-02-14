@@ -81,6 +81,58 @@ describe('webhooks.js routes', () => {
             expect(supabaseAdmin.delete).toHaveBeenCalled();
         });
 
+        it('should handle bounce/spam/blocked events', async () => {
+            const events = ['hard_bounce', 'spam', 'blocked', 'invalid'];
+
+            for (const event of events) {
+                supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+                const res = await request(app)
+                    .post('/api/webhooks/brevo')
+                    .query({ token: 'test-secret' })
+                    .send({ event, email: 'test@t.com' });
+
+                expect(res.status).toBe(200);
+                expect(supabaseAdmin.update).toHaveBeenCalledWith(expect.objectContaining({
+                    unsubscribe_reason: event
+                }));
+            }
+        });
+
+        it('should handle contact_deleted event (underscore version)', async () => {
+            supabaseAdmin.maybeSingle.mockResolvedValueOnce({ data: { user_id: 'u2' } });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/webhooks/brevo')
+                .query({ token: 'test-secret' })
+                .send({ event: 'contact_deleted', email: 'delete@t.com' });
+
+            expect(res.status).toBe(200);
+            expect(supabaseAdmin.auth.admin.deleteUser).toHaveBeenCalledWith('u2');
+        });
+
+        it('should return 200 for unknown events (no-op)', async () => {
+            const res = await request(app)
+                .post('/api/webhooks/brevo')
+                .query({ token: 'test-secret' })
+                .send({ event: 'unknown_event', email: 'test@t.com' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Webhook processed');
+        });
+
+        it('should return 500 if Supabase update fails', async () => {
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: { message: 'DB Error' } }).then(f));
+
+            const res = await request(app)
+                .post('/api/webhooks/brevo')
+                .query({ token: 'test-secret' })
+                .send({ event: 'unsubscribe', email: 'test@t.com' });
+
+            expect(res.status).toBe(500);
+        });
+
         it('should return 400 if email is missing', async () => {
             const res = await request(app)
                 .post('/api/webhooks/brevo')
@@ -88,6 +140,28 @@ describe('webhooks.js routes', () => {
                 .send({ event: 'unsubscribed' });
 
             expect(res.status).toBe(400);
+        });
+
+        it('should return 401 if no token is provided', async () => {
+            const res = await request(app)
+                .post('/api/webhooks/brevo')
+                .send({ event: 'unsubscribe', email: 'test@t.com' });
+
+            expect(res.status).toBe(401);
+        });
+
+        it('should store unsubscribe_reason with the event type', async () => {
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            await request(app)
+                .post('/api/webhooks/brevo')
+                .query({ token: 'test-secret' })
+                .send({ event: 'hard_bounce', email: 'bounce@t.com' });
+
+            expect(supabaseAdmin.update).toHaveBeenCalledWith(expect.objectContaining({
+                unsubscribed_at: expect.any(String),
+                unsubscribe_reason: 'hard_bounce'
+            }));
         });
     });
 });

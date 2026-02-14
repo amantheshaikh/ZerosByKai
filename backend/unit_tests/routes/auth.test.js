@@ -29,10 +29,10 @@ vi.mock('../../src/utils/emailService.js', () => ({
 }));
 
 vi.mock('../../src/services/brevoService.js', () => ({
-    syncContact: vi.fn(() => Promise.resolve()),
-    blocklistContact: vi.fn(() => Promise.resolve()),
-    unblockContact: vi.fn(() => Promise.resolve()),
-    deleteContact: vi.fn(() => Promise.resolve())
+    syncContact: vi.fn(() => Promise.resolve(true)),
+    blocklistContact: vi.fn(() => Promise.resolve(true)),
+    unblockContact: vi.fn(() => Promise.resolve(true)),
+    deleteContact: vi.fn(() => Promise.resolve(true))
 }));
 
 vi.mock('../../src/utils/emailToken.js', () => ({
@@ -54,7 +54,38 @@ vi.mock('express-rate-limit', () => ({
 
 describe('auth.js routes', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
+
+        const setupMock = (m) => {
+            m.from.mockReturnThis();
+            m.select.mockReturnThis();
+            m.insert.mockReturnThis();
+            m.upsert.mockReturnThis();
+            m.update.mockReturnThis();
+            m.delete.mockReturnThis();
+            m.eq.mockReturnThis();
+            m.in.mockReturnThis();
+            m.not.mockReturnThis();
+            m.gt.mockReturnThis();
+            m.lte.mockReturnThis();
+            m.order.mockReturnThis();
+            m.limit.mockReturnThis();
+            m.single.mockReturnThis();
+            m.maybeSingle.mockReturnThis();
+            m.or.mockReturnThis();
+            m.range.mockReturnThis();
+            m.then.mockImplementation((resolve) => {
+                return Promise.resolve({ data: [], error: null }).then(resolve);
+            });
+        };
+
+        setupMock(supabase);
+        setupMock(supabaseAdmin);
+
+        // Default success for shared services
+        syncContact.mockResolvedValue(true);
+        unblockContact.mockResolvedValue(true);
+        sendEmail.mockResolvedValue({ success: true, data: { MessageId: 'test-id' } });
     });
 
     describe('POST /api/auth/check', () => {
@@ -72,6 +103,17 @@ describe('auth.js routes', () => {
         it('should return 400 if email is missing', async () => {
             const res = await request(app).post('/api/auth/check').send({});
             expect(res.status).toBe(400);
+        });
+
+        it('should return exists:false if subscriber not found', async () => {
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: { code: 'PGRST116' } }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/check')
+                .send({ email: 'nonexistent@example.com' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual({ exists: false, hasName: false, name: null });
         });
     });
 
@@ -107,7 +149,7 @@ describe('auth.js routes', () => {
             expect(res.status).toBe(200);
             expect(res.body.message).toBe("You're in!");
             expect(sendEmail).not.toHaveBeenCalled();
-            expect(syncContact).not.toHaveBeenCalled();
+            expect(syncContact).toHaveBeenCalledWith({ email: 'test@example.com', name: 'John' });
         });
 
         it('should re-sync and unblock in Brevo when re-subscribing after unsubscribe', async () => {
@@ -128,6 +170,84 @@ describe('auth.js routes', () => {
             expect(sendEmail).not.toHaveBeenCalled(); // No duplicate welcome
             expect(syncContact).toHaveBeenCalledWith({ email: 'test@example.com', name: 'John' });
             expect(unblockContact).toHaveBeenCalledWith('test@example.com');
+        });
+
+        it('should return 400 for invalid email format', async () => {
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'not-an-email' });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toBe('Invalid email format');
+        });
+
+        it('should unblock AND send welcome when re-subscribing unwelcomed+unsubscribed user', async () => {
+            // Subscriber exists: never welcomed, was unsubscribed
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: false, unsubscribed_at: '2025-01-01T00:00:00Z', name: 'Old Name' },
+                error: null
+            }).then(f));
+            // Upserting subscriber
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+            // Update welcomed flag
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'test@example.com', name: 'John' });
+
+            expect(res.status).toBe(200);
+            expect(sendEmail).toHaveBeenCalled(); // Welcome email sent
+            expect(unblockContact).toHaveBeenCalledWith('test@example.com'); // Also unblocked
+        });
+
+        it('should not send welcome email if syncContact fails', async () => {
+            syncContact.mockResolvedValueOnce(false);
+            // No existing subscriber
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f));
+            // Upsert
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'test@example.com', name: 'John' });
+
+            expect(res.status).toBe(200);
+            expect(sendEmail).not.toHaveBeenCalled();
+        });
+
+        it('should not mark as welcomed if welcome email fails to send', async () => {
+            sendEmail.mockResolvedValueOnce({ success: false, error: 'SMTP Error' });
+            // No existing subscriber
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f));
+            // Upsert
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'test@example.com', name: 'John' });
+
+            expect(res.status).toBe(200);
+            // update() should NOT have been called to set welcomed: true
+            // The upsert was the only DB write, update for welcomed should not fire
+            expect(supabaseAdmin.update).not.toHaveBeenCalled();
+        });
+
+        it('should preserve existing name when subscribing without a name', async () => {
+            // Existing subscriber with name
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: true, unsubscribed_at: null, name: 'Existing Name' },
+                error: null
+            }).then(f));
+            // Upsert
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/subscribe')
+                .send({ email: 'test@example.com' }); // No name
+
+            expect(res.status).toBe(200);
+            expect(syncContact).toHaveBeenCalledWith({ email: 'test@example.com', name: 'Existing Name' });
         });
     });
 
@@ -166,11 +286,11 @@ describe('auth.js routes', () => {
             expect(sendEmail).toHaveBeenCalled();
         });
 
-        it('should NOT send welcome email for old users (created > 24h ago)', async () => {
+        it('should send welcome email for any user not yet welcomed, regardless of age', async () => {
             supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 't@t.com' } }, error: null });
             const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { welcomed: false, name: 'John', created_at: oldDate }, error: null }).then(f));
-            // Update call (even if skip email, we update flag)
+            // Update call for welcomed flag
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
 
             const res = await request(app)
@@ -178,8 +298,8 @@ describe('auth.js routes', () => {
                 .set('Authorization', 'Bearer token');
 
             expect(res.status).toBe(200);
-            expect(res.body.isNewUser).toBe(false);
-            expect(sendEmail).not.toHaveBeenCalled();
+            expect(res.body.isNewUser).toBe(true);
+            expect(sendEmail).toHaveBeenCalled();
         });
 
         it('should clear unsubscribed_at and unblock in Brevo when unsubscribed user logs in', async () => {
@@ -224,6 +344,128 @@ describe('auth.js routes', () => {
             expect(supabaseAdmin.upsert).toHaveBeenCalled();
             sleepSpy.mockRestore();
         });
+
+        it('should return isNewUser:false for already welcomed user', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'u1', email: 't@t.com' } },
+                error: null
+            });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: true, name: 'John', created_at: '2025-01-01T00:00:00Z', unsubscribed_at: null },
+                error: null
+            }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.isNewUser).toBe(false);
+            expect(sendEmail).not.toHaveBeenCalled();
+            expect(syncContact).not.toHaveBeenCalled();
+        });
+
+        it('should sync name change via OAuth and skip welcome for already-welcomed user', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'u1', email: 't@t.com', user_metadata: { name: 'New OAuth Name' } } },
+                error: null
+            });
+            // Subscriber found: welcomed, name differs, not unsubscribed
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: true, name: 'Old Name', created_at: '2025-01-01T00:00:00Z', unsubscribed_at: null },
+                error: null
+            }).then(f));
+            // DB update for name change
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.isNewUser).toBe(false);
+            expect(syncContact).toHaveBeenCalledWith({ email: 't@t.com', name: 'New OAuth Name' });
+            expect(supabaseAdmin.update).toHaveBeenCalled();
+            expect(sendEmail).not.toHaveBeenCalled();
+        });
+
+        it('should unblock Brevo when fallback upsert finds pre-existing unsubscribed subscriber', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'u1', email: 'reactivated@t.com', user_metadata: { name: 'User' } } },
+                error: null
+            });
+            // Retry loop: subscriber not found by user_id (5 retries)
+            const sleepSpy = vi.spyOn(global, 'setTimeout').mockImplementation((fn) => fn());
+
+            supabaseAdmin.then
+                // 5 retry misses (subscriber not found by user_id)
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f))
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f))
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f))
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f))
+                .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f))
+                // Pre-capture: existing row was unsubscribed
+                .mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: '2025-06-01T00:00:00Z' }, error: null }).then(f))
+                // Upsert
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f))
+                // Read-back actual state (unsubscribed_at now null after upsert)
+                .mockImplementationOnce(f => Promise.resolve({
+                    data: { welcomed: true, name: 'User', created_at: '2025-01-01T00:00:00Z', unsubscribed_at: null },
+                    error: null
+                }).then(f))
+                // DB update to clear unsubscribed_at (sync block)
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.isNewUser).toBe(false);
+            expect(unblockContact).toHaveBeenCalledWith('reactivated@t.com');
+            expect(syncContact).toHaveBeenCalled();
+            sleepSpy.mockRestore();
+        });
+
+        it('should return emailError when syncContact fails for unwelcomed user', async () => {
+            syncContact.mockResolvedValueOnce(false);
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'u1', email: 't@t.com' } },
+                error: null
+            });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: false, name: 'John', created_at: '2025-01-01T00:00:00Z', unsubscribed_at: null },
+                error: null
+            }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.emailError).toBe(true);
+            expect(sendEmail).not.toHaveBeenCalled();
+        });
+
+        it('should return emailError when welcome email fails to send', async () => {
+            sendEmail.mockResolvedValueOnce({ success: false, error: 'SMTP Error' });
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'u1', email: 't@t.com' } },
+                error: null
+            });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { welcomed: false, name: 'John', created_at: '2025-01-01T00:00:00Z', unsubscribed_at: null },
+                error: null
+            }).then(f));
+
+            const res = await request(app)
+                .post('/api/auth/post-login')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.isNewUser).toBe(true);
+            expect(res.body.emailError).toBe(true);
+        });
     });
 
     describe('POST /api/auth/verify', () => {
@@ -258,12 +500,112 @@ describe('auth.js routes', () => {
             const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'bad' });
             expect(res.status).toBe(401);
         });
+
+        it('should throw error if magic link generation fails', async () => {
+            verifyEmailToken.mockReturnValue({ userId: 'u1', email: 'test@t.com' });
+            supabaseAdmin.auth.admin.generateLink.mockResolvedValue({ data: null, error: { message: 'Link error' } });
+            const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'valid' });
+            expect(res.status).toBe(401);
+        });
+    });
+
+    describe('GET /api/auth/unsubscribe', () => {
+        it('should verify unsubscribe token successfully', async () => {
+            verifyEmailToken.mockReturnValue({ email: 'test@t.com' });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: null }, error: null }).then(f));
+
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ email: 'test@t.com', token: 'valid' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.valid).toBe(true);
+            expect(res.body.isUnsubscribed).toBe(false);
+        });
+
+        it('should return 401 for email mismatch', async () => {
+            verifyEmailToken.mockReturnValue({ email: 'other@t.com' });
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ email: 'test@t.com', token: 'valid' });
+            expect(res.status).toBe(401);
+        });
+
+        it('should return 400 if email is missing', async () => {
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ token: 'valid' });
+            expect(res.status).toBe(400);
+        });
+
+        it('should return 400 if token is missing', async () => {
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ email: 'test@t.com' });
+            expect(res.status).toBe(400);
+        });
+
+        it('should return 401 for invalid token', async () => {
+            verifyEmailToken.mockImplementationOnce(() => { throw new Error('Invalid token'); });
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ email: 'test@t.com', token: 'bad' });
+            expect(res.status).toBe(401);
+        });
+
+        it('should return isUnsubscribed:true if already unsubscribed', async () => {
+            verifyEmailToken.mockReturnValue({ email: 'test@t.com' });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({
+                data: { unsubscribed_at: '2025-01-01T00:00:00Z' },
+                error: null
+            }).then(f));
+
+            const res = await request(app)
+                .get('/api/auth/unsubscribe')
+                .query({ email: 'test@t.com', token: 'valid' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.isUnsubscribed).toBe(true);
+        });
+    });
+
+    describe('GET /api/auth/user', () => {
+        it('should return user profile', async () => {
+            supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+            supabase.then.mockImplementationOnce(f => Promise.resolve({ data: { name: 'John' }, error: null }).then(f));
+
+            const res = await request(app)
+                .get('/api/auth/user')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.user.id).toBe('u1');
+            expect(res.body.profile.name).toBe('John');
+        });
+    });
+
+    describe('POST /api/auth/signout', () => {
+        it('should sign out successfully', async () => {
+            supabase.auth.signOut.mockResolvedValue({ error: null });
+
+            const res = await request(app)
+                .post('/api/auth/signout')
+                .set('Authorization', 'Bearer token');
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Signed out');
+        });
+
+        it('should return 401 if no token provided', async () => {
+            const res = await request(app).post('/api/auth/signout');
+            expect(res.status).toBe(401);
+        });
     });
 
     describe('POST /api/auth/unsubscribe', () => {
         it('should unsubscribe user with valid token', async () => {
             verifyEmailToken.mockReturnValue({ email: 'test@example.com' });
-            // First call: check if already unsubscribed (not unsubscribed)
+            // First call to Supabase: check if already unsubscribed (not unsubscribed)
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: null }, error: null }).then(f));
             // Second call: update to unsubscribe
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ error: null }).then(f));
@@ -279,8 +621,8 @@ describe('auth.js routes', () => {
 
         it('should return early if user is already unsubscribed', async () => {
             verifyEmailToken.mockReturnValue({ email: 'test@example.com' });
-            // User is already unsubscribed
-            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: '2025-01-01T00:00:00Z' }, error: null }).then(f));
+            // First call to Supabase: check if already unsubscribed -> returns true
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { unsubscribed_at: '2025-01-01' }, error: null }).then(f));
 
             const res = await request(app)
                 .post('/api/auth/unsubscribe')
@@ -288,7 +630,6 @@ describe('auth.js routes', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.message).toBe('Already unsubscribed');
-            // Should NOT call blocklistContact since already unsubscribed
             expect(blocklistContact).not.toHaveBeenCalled();
         });
 
@@ -310,6 +651,14 @@ describe('auth.js routes', () => {
 
             expect(res.status).toBe(400);
             expect(res.body.error).toBe('Email and token required');
+        });
+
+        it('should return 401 for invalid token', async () => {
+            verifyEmailToken.mockImplementationOnce(() => { throw new Error('Expired'); });
+            const res = await request(app)
+                .post('/api/auth/unsubscribe')
+                .send({ email: 'test@example.com', token: 'expired-token' });
+            expect(res.status).toBe(401);
         });
     });
 
@@ -344,6 +693,22 @@ describe('auth.js routes', () => {
     });
 
     describe('DELETE /api/auth/admin/user', () => {
+        it('should return 401 if not authorized', async () => {
+            const res = await request(app)
+                .delete('/api/auth/admin/user')
+                .set('Authorization', 'Bearer wrong-key')
+                .send({ email: 'test@t.com' });
+            expect(res.status).toBe(401);
+        });
+
+        it('should return 400 if email is missing', async () => {
+            const res = await request(app)
+                .delete('/api/auth/admin/user')
+                .set('Authorization', 'Bearer test-service-key')
+                .send({});
+            expect(res.status).toBe(400);
+        });
+
         it('should delete user if authorized with service key', async () => {
             // First call: subscriber lookup returns user_id
             supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { user_id: 'u1' }, error: null }).then(f));

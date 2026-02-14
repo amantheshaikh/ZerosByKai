@@ -32,34 +32,28 @@ This document maps out the entire lifecycle of a newsletter edition, from raw id
 **Command**: `npm run schedule -- --weeks 1`
 **Logic**:
 - Selects the **10 OLDEST approved** ideas (FIFO from Approved pool).
-    - *Why FIFO? To ensure older approved ideas are eventually published and don't get stuck.*
-- sets `status = 'scheduled'` and assigns `week_published` to next Monday.
-- **Note**: `scheduled` ideas are **NOT visible** on the website yet.
-- Generates a **Subject Line** using AI.
-- **Outcome**: A new row in `weekly_batches`. 10 ideas marked as `scheduled`.
+- Sets `status = 'scheduled'` and assigns `week_published` to next Monday.
+- Generates a **Subject Line** using AI ("Kai-styled" branding).
+- **Pro Tip**: Use `node src/scripts/manage_templates.js simulate` to see what the next edition will look like without sending real emails.
 
 ## 4. Step 4: Health Monitor (The Safety Net)
 **Goal**: Ensure you don't forget Step 3.
 **Running**: Automatically on **Wed, Fri, Sun**.
 **Logic**:
-- Checks: "Is there a batch scheduled for *Next Monday* with a **Subject Line** and 10 ideas?"
-- **If No**: Checks "Do we have enough *approved* ideas?" (Context).
-- Sends you an email reminder with the status of your Approved Queue.
+- Checks if a batch is scheduled for *Next Monday*.
+- Sends you an email reminder if the queue is empty or ideas are missing.
 
 ## 5. Step 5: Execution (Monday Morning)
 **Goal**: Deliver the email.
 **Running**: GitHub Actions (`.github/workflows/weekly-digest.yml`) — **Monday 14:00 UTC (9 AM EST)**.
 **Command**: `node src/jobs/weekly.js --scheduled`
 **Logic**:
-1. **Calculate Winner**: Looks at the *Previous Week's* batch. Uses pre-calculated `vote_count` for O(1) efficiency. Determines winner.
-   - Awards badges and **archives** last week's ideas.
-2. **Publish**: Finds ideas scheduled for *this week* and flips status `scheduled` -> `published`.
-   - *Now they receive public visibility on the site.*
+1. **Calculate Winner**: Analyzes *Previous Week's* votes and pre-calculated `vote_count` column.
+2. **Publish**: Flips ideas for the current week from `scheduled` -> `published`.
 3. **Send Digest**:
-   - Sends per-subscriber params to **Brevo-hosted template** (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`). No server-side HTML generation.
-   - **Optimization**: Sends in batches of 50 via `sendBatchEmailsWithTemplate()`. Each email gets personalized unsubscribe/login tokens.
-   - **RFC 8058**: Includes `List-Unsubscribe` and `List-Unsubscribe-Post` headers for one-click unsubscribe support in major clients (Gmail, Outlook).
-   - Subject line pulled from `weekly_batches.subject_line` (Supabase) or uses AI-generated default.
+   - Uses **Brevo Batch API** (50 emails/request) with **Exponential Backoff** for transient failures (429/5xx).
+   - **Idempotency**: Every batch request includes a stable `Idempotency-Key` to prevent duplicate sends during retries.
+   - **RFC 8058**: Native one-click unsubscribe support via `List-Unsubscribe` headers.
    - If NO scheduled batch is found: **Stops**. Sends nothing.
 
 ---

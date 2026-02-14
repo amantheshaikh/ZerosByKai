@@ -118,16 +118,14 @@ export class AIService {
         return [];
     }
 
-    async generateNewsletterSubject(ideas, winner) {
+    async generateNewsletterSubject(ideas) {
         // Gracefully handle missing or empty ideas
         if (!Array.isArray(ideas) || ideas.length === 0) {
             console.warn('[AI] No ideas provided for subject generation, using fallback');
-            return {
-                subject: "Kai's Zeros: This Week's Startup Opportunities"
-            };
+            return "Kai's Zeros: This Week's Startup Opportunities";
         }
 
-        const prompt = this._buildSubjectPrompt(ideas, winner);
+        const prompt = this._buildSubjectPrompt(ideas);
 
         // Try using the primary model, fall back if needed
         const chain = [
@@ -157,27 +155,22 @@ export class AIService {
             .join('\n\n');
 
         const prompt = `
-            You are Kai, an expert brand consultant.
-            I have a list of startup ideas. I need you to generate a unique, catchy, and creative multi-word brand name for each one.
-            The name should be primarily inspired by the **Solution**.
+            You are Kai, an expert brand consultant for high-growth startups.
+            I have a list of startup ideas. I need you to generate a unique, catchy, and brandable startup name for each one.
+
+            **Naming Heuristics:**
+            1. **Style**: Modern, punchy, and brandable company names (1-3 words). Think Stripe, DocSync, Supabase, Antigravity, Too Many Tabs, HubSpot, Third Space, Corner Office, Urban Ladder, Pantry Pulse.
+            2. **Forbidden (Generic)**: ABSOLUTELY NO generic technical descriptors like "Optimizer", "Platform", "Tool", "System", "Suite", "Utility", "Solution", "Hub", "Center".
+            3. **Forbidden (Metaphorical)**: DO NOT use overly artistic or metaphorical "The [Noun]" names (e.g., "The Skeptic", "The Well", "The Skeleton"). These are for books, not startups.
 
             **Ideas to Rename:**
             ${ideasText}
-
-            **Requirements:**
-            - Names MUST be creative, eccentric, and show real "character".
-            - STRICTLY FORBIDDEN: Generic technical descriptors (e.g., "On-Device Utility", "File Converter", "Payment Tool", "Soft Landing", "Planner", "System").
-            - Favor punchy 1-2 word names or clever idioms that feel like a high-end brand.
-            - The name should be primarily inspired by the **Solution** vibe, not its function.
-            - Do NOT use the examples literally.
-            - Ensure names are distinct for each idea.
-            - KEEP the same JSON format.
 
             **Output Format (Strict JSON array of objects):**
             [
               {
                 "id": "[Fill with original index 1-based]",
-                "name": "New Creative name"
+                "name": "Refined Startup Name"
               }
             ]
         `;
@@ -198,6 +191,79 @@ export class AIService {
                 });
             } catch (e) {
                 console.warn(`[AI] Renaming failed with ${model}: ${e.message}`);
+                if (model === chain[chain.length - 1]) throw e;
+            }
+        }
+    }
+
+    async refineExistingIdeas(ideas) {
+        if (!Array.isArray(ideas) || ideas.length === 0) return [];
+
+        const ideasText = ideas
+            .map((idea, idx) => `
+ID: ${idx + 1}
+Current Name: ${idea.name}
+Current Title: ${idea.title}
+Problem: ${idea.problem}
+Solution: ${idea.solution}
+Target Audience: ${idea.target_audience}
+Tags: ${idea.tags ? idea.tags.join(', ') : 'None'}
+            `.trim())
+            .join('\n\n---\n\n');
+
+        const prompt = `
+            You are Kai, an expert opportunity analyst and brand consultant.
+            I have a list of existing startup ideas that need refinement according to my latest heuristics.
+
+            **Heuristics:**
+            1. **Naming**: Names MUST be modern, punchy startup names (1-3 words). 
+               - GOOD: Stripe, DocSync, Supabase, Antigravity, Too Many Tabs, HubSpot, Third Space, Corner Office, Urban Ladder, Pantry Pulse.
+               - FORBIDDEN (Generic): "Optimizer", "Platform", "Tool", "System", "Suite", "Utility", "Solution", "Hub", "Center".
+               - FORBIDDEN (Metaphorical): Overly artistic "The [Noun]" names (e.g., "The Skeptic", "The Well").
+            2. **Clean Content**: Remove ALL mentions of specific subreddits (e.g., "r/SaaS", "Reddit") from the Title, Problem, and Solution. Use general terms like "online communities".
+            3. **Tags**: Standardize tags into 1-2 word categories.
+            4. **Character**: The tone should be punchy, insightful, and professional.
+
+            **Ideas to Refine:**
+            ${ideasText}
+
+            **Output Format (Strict JSON array of objects):**
+            [
+              {
+                "id": "[Fill with original ID provided above]",
+                "name": "Refined Creative Name",
+                "title": "Refined Title (No subreddit mentions)",
+                "problem": "Refined Problem (No subreddit mentions)",
+                "solution": "Refined Solution (No subreddit mentions)",
+                "target_audience": "Specific Niche Audience",
+                "tags": ["Tag1", "Tag2"]
+              }
+            ]
+        `;
+
+        const chain = [this.models.primary, this.models.fallback].filter(Boolean);
+        for (const model of chain) {
+            try {
+                const result = await this._callGeminiGeneric(model, prompt);
+                if (!Array.isArray(result)) throw new Error("AI did not return an array");
+
+                // Map back to original ideas (preserving original fields like id from DB)
+                return ideas.map((idea, idx) => {
+                    const aiMatch = result.find(r => parseInt(r.id) === idx + 1);
+                    if (!aiMatch) return idea;
+
+                    return {
+                        ...idea,
+                        name: aiMatch.name || idea.name,
+                        title: aiMatch.title || idea.title,
+                        problem: aiMatch.problem || idea.problem,
+                        solution: aiMatch.solution || idea.solution,
+                        target_audience: aiMatch.target_audience || idea.target_audience,
+                        tags: aiMatch.tags || idea.tags
+                    };
+                });
+            } catch (e) {
+                console.warn(`[AI] Refinement failed with ${model}: ${e.message}`);
                 if (model === chain[chain.length - 1]) throw e;
             }
         }
@@ -235,15 +301,22 @@ export class AIService {
             **Task:**
             Generate ${count} distinct, high-quality startup ideas ("Zeros").
             
+            **Rules:**
+            1. **Naming**: Generate modern, punchy, brandable startup names (1-3 words). 
+               - Think: Stripe, DocSync, Supabase, Antigravity, Too Many Tabs, HubSpot, Third Space, Corner Office, Urban Ladder, Pantry Pulse.
+               - FORBIDDEN: Generic descriptors (Optimizer, Platform, Tool, System, Suite, Utility, Solution, Hub, Center) and metaphorical "The [Noun]" names (The Skeptic, The Well).
+            2. **Clean Content**: Remove ALL mentions of specific subreddits (e.g., "r/SaaS", "Reddit") from all fields.
+            3. **Tags**: Use standard 1-2 word categories.
+
             **Output Format (Strict JSON array of objects):**
             [
               {
-                "name": "Eccentric Brand Name (Must be creative, punchy, and have 'soul'. ABSOLUTELY NO technical descriptors like 'Utility', 'Tool', 'Planner', 'Platform', 'System', 'Suite', 'Solution', 'Optimizer'. Think Slack, Ghost, Linear, or clever idioms like 'Too Many Tabs', 'Stop The Scroll'. Be brave and quirky.)",
-                "title": "Descriptive Title",
+                "name": "Brandable Startup Name",
+                "title": "Descriptive Title (NO subreddit mentions)",
                 "tags": ["Tag1", "Tag2"],
-                "problem": "Pain point description.",
+                "problem": "Pain point description (NO subreddit mentions).",
                 "solution": "MVP solution (Primary context for the name - BUT DO NOT DESCRIBE IT).",
-                "target": "Niche audience.",
+                "target_audience": "Specific Niche Audience",
                 "why": "Market sizing/why now."
               }
             ]
@@ -291,6 +364,7 @@ export class AIService {
                     - Market Size: Should serve a meaningful market
                         - Feasibility: Should be buildable as an MVP
                             - Diversity: Different industries / verticals preferred
+            - **Clean Content**: ABSOLUTELY NO subreddit mentions (r/SaaS etc.) in the output.
 
                                 ** Output Requirements:**
                                     - Return up to 40 final ideas(can be fewer if quality is the priority)
@@ -302,49 +376,41 @@ export class AIService {
                         ** Output Format(Strict JSON array):**
                             [
                                 {
-                                    "name": "Eccentric Brand Name (Must be creative, punchy, and have 'soul'. ABSOLUTELY NO technical descriptors like 'Utility', 'Tool', 'Planner', 'Platform', 'System', 'Suite', 'Solution', 'Optimizer'. Think Slack, Ghost, Linear, or clever idioms like 'Too Many Tabs', 'Stop The Scroll'. Be brave and quirky.)",
-                                    "title": "Descriptive Title",
+                                    "name": "Brandable Startup Name (1-3 words, modern, punchy. NO generic technical descriptors, NO metaphorical 'The [Noun]' names.)",
+                                    "title": "Descriptive Title (NO subreddit mentions)",
                                     "tags": ["Tag1", "Tag2"],
-                                    "problem": "Pain point description.",
-                                    "solution": "MVP solution (Primary context for the name - BUT DO NOT DESCRIBE IT).",
-                                    "target": "Niche audience.",
+                                    "problem": "Pain point description (NO subreddit mentions).",
+                                    "solution": "MVP solution (NO subreddit mentions).",
+                                    "target_audience": "Niche audience.",
                                     "why": "Market sizing/why now."
                                 }
                             ]
                                 `;
     }
 
-    _buildSubjectPrompt(ideas, winner) {
+    _buildSubjectPrompt(ideas) {
         const ideasList = ideas.map(i => `- ${i.title} (Tags: ${i.tags ? i.tags.join(', ') : ''
             })`).join('\n');
-        const winnerText = winner ? `\n(Previous Week's Winner: "${winner.name}: ${winner.title}")` : "";
 
         return `
-            You are writing the subject line for a weekly newsletter called "Kai's Zeros". 
-            The newsletter contains 10 new startup opportunities (ideas).
+            You are Kai, writing the subject line for the "Kai's Zeros" weekly newsletter. 
+            This newsletter contains 10 highly-specific, analyzed startup opportunities.
             
-            **The 10 Ideas:**
+            **The 10 Ideas for this week:**
             ${ideasList}
-            ${winnerText}
 
-            **Goal:**
-            Write ONE catchy, high-converting email subject line.
+            **GOAL:**
+            Select the TWO most compelling idea titles from the list above and generate a subject line in the EXACT format:
+            "[Title 1], [Title 2], & more - ZerosByKai"
             
-            **Styles (Vary this):**
-            - Trend-focused (e.g., "The Unbundling of SaaS", "Why X is booming")
-            - Problem-focused (e.g., "Everyone is tired of Subscription Fatigue")
-            - Winner-focused (e.g., "The idea that everyone loved last week")
-            - Curiosity-inducing
-            
-            **Constraints:**
-            - Keep it under 50 characters if possible, max 70.
-            - Do NOT use "Kai's Zeros" in the subject (tracker already knows who it is from).
-            - Do NOT use emojis.
-            - Do NOT use generic text like "Weekly Newsletter".
-            
+            **RULES:**
+            1. **FORMAT**: Use the exact template: "Title 1, Title 2, & more - ZerosByKai".
+            2. **SELECTION**: Pick the two most interesting or provocative titles from the provided list.
+            3. **CONSTRAINTS**: Max 85 characters. No emojis. Keep it professional and punchy.
+
             **Output Format (Strict JSON):**
             {
-              "subject": "The computed subject line"
+              "subject": "Selected Title 1, Selected Title 2, & more - ZerosByKai"
             }
         `;
     }

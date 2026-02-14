@@ -82,28 +82,25 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 
 ## Documentation
 
-- **Master Workflow**: `/docs/MASTER_WORKFLOW.md` - Full lifecycle of an edition
-- **Brevo Guide**: `/docs/BREVO_GUIDE.md` - Email system and automation
+- **Documentation Guide**: `/docs/README.md` - Central routing for the 3-tier system
+- **Master Workflow**: `/docs/MASTER_WORKFLOW.md` - Full newsletter lifecycle
+- **Architecture & Infrastructure**: `/docs/ai-context/architecture.md` - Technical patterns & deployment
+- **Idea Extraction**: `/docs/idea_extraction_logic.md` - AI heuristics & scraping
 - **Main Docs**: `/README.md` - Comprehensive project guide
 - **Auth Guide**: `/docs/AUTH_DOCUMENTATION.md` - Authentication system details
-- **Claude Guide**: `/docs/CLAUDE-CODE-GUIDE.md` - Coding standards and patterns
 
 ## Project Structure
 
 ```
 ZerosByKai/
 ├── frontend/          # Next.js application
-│   ├── pages/         # All routes
-│   ├── components/    # Reusable UI components
-│   ├── lib/auth.js    # Auth context provider
-│   └── unit_tests/    # Frontend Vitest suite
 ├── backend/           # Express API
-│   ├── src/routes/    # API endpoints
-│   ├── src/jobs/      # Cron jobs (scraping, seasonal)
-│   ├── src/services/  # Business logic (Brevo, AI, Newsletter)
-│   ├── src/emails/    # Transactional email templates
-│   └── unit_tests/    # Backend Vitest suite
-└── docs/              # Detailed documentation
+└── docs/              # 3-Tier Documentation Hub
+    ├── README.md      # Tier 1 Index
+    ├── MASTER_WORKFLOW.md # Tier 2 Guide
+    ├── AUTH_DOCUMENTATION.md # Tier 3 Feature
+    ├── idea_extraction_logic.md # Tier 3 Feature
+    └── ai-context/    # Agent Foundation
 ```
 
 ## Mission Designations
@@ -116,5 +113,5 @@ ZerosByKai/
 
 ---
 
-*Last Updated: February 12, 2026*
+*Last Updated: February 14, 2026*
 *For AI assistants: See `/CLAUDE.md` for development context and coding standards*

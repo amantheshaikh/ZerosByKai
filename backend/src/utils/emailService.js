@@ -19,7 +19,7 @@ export async function sendEmail({ to, subject, html, text, tags, headers, params
             to: [{ email: to }],
             sender: {
                 name: config.admin.name || 'ZerosByKai',
-                email: config.admin.email || 'hello@zerosbykai.com'
+                email: config.admin.email || 'kai@zerosbykai.com'
             },
             subject,
             htmlContent: html,
@@ -37,35 +37,6 @@ export async function sendEmail({ to, subject, html, text, tags, headers, params
     }
 }
 
-/**
- * Sends a single transactional email via Brevo using a TEMPLATE.
- * 
- * @param {Object} params
- * @param {string} params.to - Recipient email
- * @param {number} params.templateId - Brevo Template ID
- * @param {Object} params.params - Template variables
- * @param {string[]} [params.tags] - Optional tags for tracking
- * @param {Object} [params.headers] - Optional custom headers
- * @returns {Promise<{success: boolean, data?: any, error?: any}>}
- */
-export async function sendEmailWithTemplate({ to, templateId, params, subject, tags, headers }) {
-    try {
-        const sendSmtpEmail = {
-            to: [{ email: to }],
-            templateId,
-            params,
-            ...(subject && { subject }),
-            ...(tags && { tags }),
-            ...(headers && { headers })
-        };
-
-        const data = await brevoClient.sendTransacEmail(sendSmtpEmail);
-        return { success: true, data };
-    } catch (error) {
-        console.error(`❌ Brevo sendEmailWithTemplate error for ${to}:`, error.response?.body || error.message);
-        return { success: false, error: error.response?.body || error.message };
-    }
-}
 
 /**
  * Sends a batch of personalized emails using either a Template ID or direct HTML.
@@ -79,56 +50,78 @@ export async function sendBatchEmails(chunk, options = {}) {
         throw new Error('sendBatchEmails: Missing templateId or htmlContent');
     }
 
-    try {
-        // Brevo's sendTransacEmail can send to multiple recipients with DIFFERENT params
-        // only if we send multiple distinct messages in one call, or use iterate.
-        // Actually, Brevo SDK's sendTransacEmail accepts a single object which represents ONE email 
-        // that can have multiple 'to' recipients, but they all share the same 'params'.
-        // For individual personalization (per-recipient params), we must iterate 
-        // or use their Batch API (v3/smtp/email/batch) which supports individual params.
+    const MAX_RETRIES = 3;
+    const INITIAL_BACKOFF = 1000; // 1 second
+    // Use an idempotency key if provided, or generate a stable one from the chunk and template
+    const idempotencyKey = options.idempotencyKey ||
+        `batch-${options.templateId || 'html'}-${chunk[0].to}-${chunk.length}-${Date.now()}`;
 
-        // Note: The standard SDK might not have a direct 'sendBatch' that supports individual params 
-        // in a single call in older versions, but the API itself does.
-        // We'll use Promise.allSettled for now to ensure 
-        // individual parameters like 'token' and 'name' are correctly mapped.
+    let lastError;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            if (attempt > 0) {
+                const backoff = INITIAL_BACKOFF * Math.pow(2, attempt - 1);
+                console.log(`🔄 Retrying batch send (attempt ${attempt}/${MAX_RETRIES}) in ${backoff}ms...`);
+                await new Promise(r => setTimeout(r, backoff));
+            }
+            const sendSmtpEmail = {
+                sender: {
+                    name: config.admin.name || 'ZerosByKai',
+                    email: config.admin.email || 'kai@zerosbykai.com'
+                },
+                ...(options.templateId && { templateId: options.templateId }),
+                ...(options.htmlContent && { htmlContent: options.htmlContent }),
+                ...(options.subject && { subject: options.subject }),
+                ...(options.tags && { tags: options.tags }),
+                ...(options.headers && { headers: options.headers }),
+                // Global defaults for all message versions
+                ...(options.globalParams && { params: options.globalParams }),
+                messageVersions: chunk.map(recipient => ({
+                    to: [{ email: recipient.to, name: recipient.params?.name || 'Hustler' }],
+                    // Per-recipient overrides
+                    params: recipient.params,
+                    ...(recipient.headers && { headers: recipient.headers }),
+                    // Allow per-recipient subject override if present in params
+                    ...(recipient.params?.subject && { subject: recipient.params.subject })
+                }))
+            };
 
-        const results = await Promise.allSettled(
-            chunk.map(recipient => {
-                if (options.templateId) {
-                    return sendEmailWithTemplate({
-                        to: recipient.to,
-                        templateId: options.templateId,
-                        params: recipient.params,
-                        subject: options.subject,
-                        tags: options.tags,
-                        headers: recipient.headers || options.headers
-                    });
-                } else {
-                    return sendEmail({
-                        to: recipient.to,
-                        html: options.htmlContent,
-                        subject: options.subject,
-                        params: recipient.params,
-                        tags: options.tags,
-                        headers: recipient.headers || options.headers
-                    });
-                }
-            })
-        );
+            const data = await brevoClient.sendTransacEmail(sendSmtpEmail, {
+                headers: { 'Idempotency-Key': idempotencyKey }
+            });
 
-        const failures = results.filter(r => r.status === 'rejected' || !r.value.success);
+            // The Brevo SDK returns { response, body }. Message IDs are in body.
+            const messageIds = data?.body?.messageIds || data?.messageIds || [];
+            const acceptedCount = messageIds.length;
+            const requestedCount = chunk.length;
 
-        if (failures.length > 0) {
-            console.warn(`⚠️ Batch had ${failures.length} failures out of ${chunk.length}`);
+            if (acceptedCount < requestedCount) {
+                console.warn(`⚠️ Batch partial success: ${acceptedCount}/${requestedCount} accepted by Brevo.`);
+            }
+
+            return {
+                success: true,
+                successCount: acceptedCount,
+                failCount: requestedCount - acceptedCount,
+                messageIds,
+                data
+            };
+        } catch (error) {
+            lastError = error;
+            const statusCode = error?.response?.status || error?.status;
+            // Retry on 429, 5xx, or network errors (statusCode undefined)
+            const isTransient = !statusCode || statusCode === 429 || (statusCode >= 500 && statusCode < 600);
+
+            if (!isTransient || attempt === MAX_RETRIES) {
+                const errorBody = error?.response?.body || error?.body || error.message;
+                console.error(`❌ Brevo sendBatchEmails final error (status ${statusCode}):`, JSON.stringify(errorBody, null, 2));
+                return { success: false, successCount: 0, failCount: chunk.length, error: errorBody };
+            }
         }
-
-        return {
-            success: failures.length < chunk.length,
-            successCount: chunk.length - failures.length,
-            failCount: failures.length
-        };
-    } catch (error) {
-        console.error('❌ Brevo sendBatchEmails error:', error.message);
-        return { success: false, successCount: 0, failCount: chunk.length, error: error.message };
     }
+    // This part should ideally not be reached if the loop always returns or throws.
+    // However, to satisfy the return type in case of an unexpected fall-through after retries,
+    // we can return the last error.
+    const errorBody = lastError?.response?.body || lastError?.body || lastError?.message || 'Unknown error after retries';
+    return { success: false, successCount: 0, failCount: chunk.length, error: errorBody };
 }

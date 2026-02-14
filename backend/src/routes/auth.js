@@ -71,14 +71,19 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
     const { email, name } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (typeof email !== 'string' || !emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     if (!supabaseAdmin) {
       return res.status(503).json({ error: 'Subscription service unavailable' });
     }
 
-    // Check for existing subscriber
+    // Check for existing subscriber (include name to avoid overwriting)
     const { data: subscriber, error: fetchError } = await supabaseAdmin
       .from('subscribers')
-      .select('welcomed, unsubscribed_at')
+      .select('welcomed, unsubscribed_at, name')
       .eq('email', email)
       .maybeSingle();
 
@@ -86,19 +91,23 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
 
     const wasUnsubscribed = !!subscriber?.unsubscribed_at;
 
-    const { error: upsertError } = await supabaseAdmin
-      .from('subscribers')
-      .upsert(
-        { email, name: name || null, subscribed_at: new Date().toISOString(), unsubscribed_at: null, unsubscribe_reason: null },
-        { onConflict: 'email' }
-      );
+    // Build upsert data: preserve existing name, only reset subscribed_at for new/re-subscribers
+    const upsertData = { email, unsubscribed_at: null, unsubscribe_reason: null };
+    if (name) upsertData.name = name;
+    if (!subscriber || wasUnsubscribed) upsertData.subscribed_at = new Date().toISOString();
 
-    if (upsertError) throw upsertError;
+    // Parallelize DB update and Brevo sync for better reliability
+    const [upsertResult, syncSuccess] = await Promise.all([
+      supabaseAdmin
+        .from('subscribers')
+        .upsert(upsertData, { onConflict: 'email' }),
+      syncContact({ email, name: name || subscriber?.name })
+    ]);
 
-    if (!subscriber?.welcomed) {
-      // New subscriber: sync + welcome email
-      syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
+    if (upsertResult.error) throw upsertResult.error;
 
+    if (!subscriber?.welcomed && syncSuccess) {
+      // New subscriber + confirmed Brevo sync: send welcome email
       const token = generateEmailToken(email, email);
       const welcomeHtml = generateWelcomeEmail({ name: name || null, email, token });
 
@@ -113,15 +122,20 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
         }
       });
 
+      if (success && wasUnsubscribed) {
+        // Re-subscriber: also ensure they are unblocked in Brevo
+        unblockContact(email).catch(err => console.error('Brevo Unblock Error:', err.message));
+      }
       if (success) {
         await supabaseAdmin.from('subscribers').update({ welcomed: true }).eq('email', email);
       } else {
         console.error('Welcome Email failed to send during subscription');
       }
-    } else if (wasUnsubscribed) {
-      // Re-subscriber: re-sync + unblock in Brevo, no duplicate welcome email
-      syncContact({ email, name }).catch(err => console.error('Brevo Sync Error:', err.message));
+    } else if (syncSuccess && wasUnsubscribed) {
+      // Re-subscriber (already welcomed): unblock in Brevo (sync already handled above)
       unblockContact(email).catch(err => console.error('Brevo Unblock Error:', err.message));
+    } else if (!syncSuccess) {
+      console.warn(`⚠️ Subscription proceeded but Brevo sync failed for ${email}`);
     }
 
     res.json({ message: "You're in!" });
@@ -207,43 +221,90 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
     // If trigger didn't fire (e.g. Supabase reactivated a soft-deleted user), create the record
     if (!subscriber) {
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || '';
+      const upsertData = {
+        user_id: user.id, email: user.email,
+        unsubscribed_at: null, unsubscribe_reason: null,
+        subscribed_at: new Date().toISOString()
+      };
+      if (userName) upsertData.name = userName;
+
+      // Pre-capture unsusbscribed status before the upsert clears it
+      const { data: preExisting } = await supabaseAdmin
+        .from('subscribers')
+        .select('unsubscribed_at')
+        .eq('email', user.email)
+        .maybeSingle();
+      const wasPreregisteredUnsubscribed = !!preExisting?.unsubscribed_at;
+
       await supabaseAdmin
         .from('subscribers')
-        .upsert(
-          { user_id: user.id, email: user.email, name: userName || null, unsubscribed_at: null, unsubscribe_reason: null },
-          { onConflict: 'email' }
-        );
-      subscriber = { welcomed: false, name: userName || null, created_at: new Date().toISOString() };
+        .upsert(upsertData, { onConflict: 'email' });
+
+      // Read actual DB state
+      const { data: actual } = await supabaseAdmin
+        .from('subscribers')
+        .select('welcomed, name, created_at, unsubscribed_at')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      subscriber = actual || { welcomed: false, name: userName || null, created_at: new Date().toISOString() };
+
+      // If the row existed and was unsubscribed BEFORE the upsert, restore that flag for the sync logic below
+      if (wasPreregisteredUnsubscribed && !subscriber.unsubscribed_at) {
+        subscriber.unsubscribed_at = preExisting.unsubscribed_at;
+      }
     }
 
-    // Creating an account implies re-engagement — clear any previous unsubscribe
-    if (subscriber.unsubscribed_at) {
-      await supabaseAdmin.from('subscribers')
-        .update({ unsubscribed_at: null, unsubscribe_reason: null })
-        .eq('user_id', user.id);
-      syncContact({ email: user.email, name: subscriber.name }).catch(err => console.error('Brevo Sync Error:', err.message));
-      unblockContact(user.email).catch(err => console.error('Brevo Unblock Error:', err.message));
+    // 1. Sync User Data (OAuth names, clear unsubscriptions)
+    const metadataName = user.user_metadata?.name || user.user_metadata?.full_name || null;
+    const nameChanged = metadataName && metadataName !== subscriber.name;
+    const wasUnsubscribed = !!subscriber.unsubscribed_at;
+
+    let syncPerformed = false;
+    if (nameChanged || wasUnsubscribed) {
+      console.log(`🔄 Re-syncing subscriber ${user.email} (Name changed: ${!!nameChanged}, Was Unsubscribed: ${wasUnsubscribed})`);
+
+      const updateData = {
+        unsubscribed_at: null,
+        unsubscribe_reason: null,
+        welcomed: subscriber.unsubscribed_at ? true : subscriber.welcomed
+      };
+      if (metadataName) updateData.name = metadataName;
+
+      await supabaseAdmin.from('subscribers').update(updateData).eq('user_id', user.id);
+
+      // Update local subscriber object for subsequent logic
+      if (metadataName) subscriber.name = metadataName;
+      if (wasUnsubscribed) {
+        subscriber.unsubscribed_at = null;
+        subscriber.welcomed = true;
+      }
+
+      syncPerformed = await syncContact({ email: user.email, name: metadataName || subscriber.name });
+
+      if (wasUnsubscribed) {
+        unblockContact(user.email).catch(err => console.error('Brevo Unblock Error:', err.message));
+      }
+
+      if (wasUnsubscribed) return res.json({ isNewUser: false });
     }
 
-    if (subscriber.welcomed) return res.json({ isNewUser: false });
-
-    // Check if this is actually a new signup or an old one without the welcomed flag set
-    const signupDate = new Date(subscriber.created_at);
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const isNewSignup = signupDate > oneDayAgo;
-
-    if (!isNewSignup) {
-      // Silently mark as welcomed so we don't repeat this check
-      await supabaseAdmin.from('subscribers').update({ welcomed: true }).eq('user_id', user.id);
+    // 2. Welcome Email (Strictly based on !welcomed flag)
+    if (subscriber.welcomed) {
       return res.json({ isNewUser: false });
     }
 
-    // New user tasks
-    const userName = subscriber.name || user.user_metadata?.name || null;
-    syncContact({ email: user.email, name: userName }).catch(err => console.error('Brevo Sync Error:', err.message));
+    console.log(`📧 Sending Welcome Email to ${user.email} (First session login)`);
+    // Only sync if we haven't already performed one in step 1
+    const syncSuccess = syncPerformed || await syncContact({ email: user.email, name: subscriber.name });
+
+    if (!syncSuccess) {
+      console.warn(`⚠️ Post-login sync failed for ${user.email}. Welcome email deferred.`);
+      return res.json({ isNewUser: true, emailError: true, message: 'Sync failed' });
+    }
 
     const token = generateEmailToken(user.id, user.email);
-    const welcomeHtml = generateWelcomeEmail({ name: userName, email: user.email, token });
+    const welcomeHtml = generateWelcomeEmail({ name: subscriber.name, email: user.email, token });
 
     const { success } = await sendEmail({
       to: user.email,
@@ -267,7 +328,7 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
 });
 
 // POST /api/auth/verify - Verify magic link token
-router.post('/verify', async (req, res, next) => {
+router.post('/verify', tokenLimiter, async (req, res, next) => {
   try {
     const { token, type } = req.body;
     const { data, error } = await supabase.auth.verifyOtp({

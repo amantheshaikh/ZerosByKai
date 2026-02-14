@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 import { config } from '../config/env.js';
 
@@ -14,9 +15,13 @@ router.post('/brevo', async (req, res) => {
     try {
         const { token } = req.query;
 
-        // Security check — reject if secret is missing or mismatched
-        if (!config.brevo.webhookSecret || token !== config.brevo.webhookSecret) {
-            console.warn(`⚠️  Unauthorized Brevo webhook attempt (invalid token): ${token}`);
+        // Security check — reject if secret is missing or mismatched (timing-safe)
+        const secret = config.brevo.webhookSecret;
+        const isValid = token && secret && token.length === secret.length &&
+            crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+
+        if (!isValid) {
+            console.warn(`⚠️  Unauthorized Brevo webhook attempt (invalid token): ${token ? '***' + token.slice(-4) : 'none'}`);
             return res.status(401).json({ error: 'Unauthorized: Invalid webhook token' });
         }
 
@@ -29,6 +34,12 @@ router.post('/brevo', async (req, res) => {
         }
 
         console.log(`📡 Brevo Webhook Received: ["${event}"] for ${email}`);
+
+        // Debug logging (development only, no PII)
+        if (!event && process.env.NODE_ENV === 'development') {
+            console.log('📦 Debug: Received Brevo webhook with missing event');
+            // Full payload logging is DISABLED in production to protect PII
+        }
 
         // Handle Contact Deletion
         if (event === 'contact_deleted' || event === 'contactDeleted') {
@@ -55,18 +66,20 @@ router.post('/brevo', async (req, res) => {
         else if (
             event === 'unsubscribe' ||
             event === 'unsubscribed' ||
-            event === 'hardBounce' ||
             event === 'hard_bounce' ||
-            event === 'softBounce' ||
+            event === 'hardBounce' ||
             event === 'soft_bounce' ||
+            event === 'soft_bounced' ||
+            event === 'softBounce' ||
             event === 'spam' ||
+            event === 'complaint' ||
             event === 'blocked' ||
             event === 'blocklisted' ||
             event === 'invalid'
         ) {
             const { error } = await supabaseAdmin
                 .from('subscribers')
-                .update({ unsubscribed_at: new Date().toISOString() })
+                .update({ unsubscribed_at: new Date().toISOString(), unsubscribe_reason: event })
                 .eq('email', email);
 
             if (error) throw error;

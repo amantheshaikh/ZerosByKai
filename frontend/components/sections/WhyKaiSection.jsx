@@ -1,4 +1,4 @@
-import Reveal, { RevealContainer, RevealItem } from '@/components/animations/Reveal';
+import Reveal, { RevealContainer, RevealItem } from '@/components/Reveal';
 import RotatingText from '@/components/RotatingText';
 
 export default function WhyKaiSection() {

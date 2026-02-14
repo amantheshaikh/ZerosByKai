@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { RevealContainer, RevealItem } from '@/components/animations/Reveal';
+import { RevealContainer, RevealItem } from '@/components/Reveal';
 import { MISSION_DESIGNATIONS } from '@/data/sampleData';
 
 export default function DesignationTiers() {

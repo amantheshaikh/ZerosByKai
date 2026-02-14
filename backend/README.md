@@ -20,6 +20,8 @@ SUPABASE_SERVICE_KEY=xxx
 
 # Email (Brevo)
 BREVO_API_KEY=xkeysib-...
+BREVO_WEEKLY_DIGEST_TEMPLATE_ID=3
+BREVO_WEBHOOK_SECRET=your_secret_token
 
 # AI
 GEMINI_API_KEY=xxx
@@ -29,8 +31,10 @@ PORT=3001
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
-# JWT for email tokens
-JWT_SECRET=your_secure_random_string
+# Security
+JWT_SECRET=legacy_secret             # (Deprecated for new tokens)
+EMAIL_TOKEN_SECRET=secure_secret      # Used for sign-in/unsub links
+EMAIL_TOKEN_EXPIRY=7d
 
 # Admin Config
 ADMIN_EMAIL=kai@zerosbykai.com
@@ -41,7 +45,7 @@ BACKLOG_THRESHOLD=10
 ### 3. Database Setup
 Run the SQL schema in Supabase SQL Editor:
 ```bash
-# Copy contents of schema.sql and run in Supabase Dashboard > SQL Editor
+# Apply final_schema.sql via Supabase Dashboard > SQL Editor
 ```
 
 ### 4. Run Locally
@@ -53,46 +57,24 @@ npm run dev
 
 ## Deployment to Fly.io
 
-### 1. Install Fly CLI
-```bash
-curl -L https://fly.io/install.sh | sh
-```
-
-### 2. Login
-```bash
-fly auth login
-```
-
-### 3. Create App
-```bash
-fly launch
-# Follow prompts, say NO to Postgres (using Supabase)
-```
-
-### 4. Set Secrets
+### 1. Set Secrets
 ```bash
 fly secrets set SUPABASE_URL="your_url"
 fly secrets set SUPABASE_ANON_KEY="your_key"
 fly secrets set SUPABASE_SERVICE_KEY="your_service_key"
 fly secrets set BREVO_API_KEY="xkeysib-..."
+fly secrets set BREVO_WEEKLY_DIGEST_TEMPLATE_ID="3"
+fly secrets set BREVO_WEBHOOK_SECRET="your_secret"
 fly secrets set GEMINI_API_KEY="your_gemini_key"
-fly secrets set JWT_SECRET="your_jwt_secret"
+fly secrets set EMAIL_TOKEN_SECRET="your_secret"
 fly secrets set FRONTEND_URL="https://zerosbykai.com"
 fly secrets set NODE_ENV="production"
-fly secrets set ADMIN_EMAIL="your_admin_email"
-fly secrets set ADMIN_NAME="Kai"
-fly secrets set BACKLOG_THRESHOLD="10"
+fly secrets set ADMIN_EMAIL="kai@zerosbykai.com"
 ```
 
-### 5. Deploy
+### 2. Deploy
 ```bash
 fly deploy
-```
-
-### 6. Check Status
-```bash
-fly status
-fly logs
 ```
 
 ---
@@ -101,136 +83,62 @@ fly logs
 
 ### Public (Ideas)
 - `GET /health` - Health check
-- `GET /api/ideas/weekly` - Current week's ideas (Cache-Control: 60s)
-- `GET /api/ideas/leaderboard` - Top 3 winners from last week (Cache-Control: 60s)
-- `GET /api/ideas/weekly-batches` - Paginated past batches (Cache-Control: 300s)
-- `GET /api/ideas/weekly-batch/:date` - Specific week's batch (Cache-Control: 300s)
+- `GET /api/ideas/weekly` - Current week's ideas (Cached)
+- `GET /api/ideas/leaderboard` - Last week's winner
+- `GET /api/ideas/weekly-batches` - Past newsletter archive
 
-### Public (Emails)
-- `GET /api/emails/view/:type` - Mirror link renderer (welcome, magic-link)
-
-### Auth Endpoints
-- `POST /api/auth/check` - Check if subscriber exists
-- `POST /api/auth/subscribe` - Newsletter-only subscription (no account)
-- `POST /api/auth/signup` - Send magic link (creates account)
-- `POST /api/auth/verify` - Verify magic link OTP
-- `POST /api/auth/verify-email-token` - Verify email token for auto-login
-- `POST /api/auth/post-login` - Post-login hook (welcome email, sync)
-- `GET /api/auth/user` - Get current user (auth required)
-- `POST /api/auth/signout` - Sign out
-- `GET /api/auth/unsubscribe` - Verify unsubscribe token (rate limited)
-- `POST /api/auth/unsubscribe` - Perform unsubscription (rate limited)
-- `DELETE /api/auth/user` - Delete own account (auth required)
-- `DELETE /api/auth/admin/user` - Admin delete user (service key required)
-
-### Voting (Auth Required)
-- `POST /api/votes` - Cast vote (one per week)
-- `GET /api/votes/user` - Get user's current vote
-- `GET /api/votes/last-week` - Get last week's vote result
-- `GET /api/votes/badges` - Get user's badges
+### Auth & Subscription
+- `POST /api/auth/subscribe` - Newsletter-only signup
+- `POST /api/auth/post-login` - Sync logic & welcome email
+- `POST /api/auth/verify-email-token` - Secure auto-login
+- `POST /api/auth/unsubscribe` - RFC 8058 compliant opt-out
 
 ### Webhooks
-- `POST /api/webhooks/brevo` - Brevo event sync (requires webhook secret)
+- `POST /api/webhooks/brevo` - Event sync (Bounces, Spams, Deletions)
 
 ---
 
-## Scheduled Jobs
+## Management Scripts
 
-### Server Cron (node-cron, Fly.io)
+All administrative tasks are consolidated into `src/scripts/manage_templates.js`.
 
-**Wed/Fri/Sun 9 AM UTC**
-- **Schedule Health Check** (`jobs/backlog_check.js`)
-  - Verifies if next week's newsletter is scheduled.
-  - Alerts Admin if actionable work is needed.
+```bash
+# Sync local HTML to Brevo
+node src/scripts/manage_templates.js update [id]
 
-### GitHub Actions
+# Send previews to yourself
+node src/scripts/manage_templates.js preview [email]
+
+# Register production webhooks
+node src/scripts/manage_templates.js webhooks
+
+# Simulate Monday workflow (Safe, no DB writes)
+node src/scripts/manage_templates.js simulate
+```
+
+---
+
+## Monitoring & Jobs
+
+### Scheduled Jobs (GitHub Actions)
+**Monday 14:00 UTC** — Weekly Digest Delivery
+- Calculates winner, flip statuses, sends batch emails via Brevo.
+- **Robustness**: Uses exponential backoff and idempotency keys to ensure zero-duplicate delivery.
 
 **Sunday** — Multi-source Scraping
-- Scrapes 20+ sources (Reddit, HN, IH, X)
-- Generates ideas via Gemini AI → `status: 'backlog'`
-
-**Monday 14:00 UTC (9 AM EST)** — Weekly Digest (`.github/workflows/weekly-digest.yml`)
-- Calculates last week's winner & awards badges.
-- Flips `scheduled` ideas → `published`.
-- Sends digest via Brevo Template API (50/batch, per-subscriber params).
+- Reddit, HN, IH, X → Gemini AI → Backlog ideas.
 
 ---
 
-## Project Structure
+## 🧪 Testing
+We maintain a >90% code coverage target for critical business logic.
 
-```
-backend/
-├── src/
-│   ├── server.js                     # Entry point + Cron jobs
-│   ├── config/
-│   │   └── supabase.js               # Supabase client setup
-│   ├── routes/                       # API routes
-│   │   ├── ideas.js                  # Ideas endpoints (leaderboard, weekly, batches)
-│   │   ├── votes.js                  # Voting endpoints (cast, user vote, badges)
-│   │   ├── auth.js                   # Auth endpoints (subscribe, login, unsubscribe)
-│   │   ├── emails.js                 # Email mirror link renderer
-│   │   └── webhooks.js               # Brevo webhook handler
-│   ├── jobs/                         # Production cron jobs
-│   │   ├── reddit_scraper.js         # Sunday: Reddit scraping
-│   │   ├── weekly.js                 # Monday: publish, winner, digest
-│   │   └── backlog_check.js          # Wed/Fri/Sun: Health check
-│   ├── services/                     # Business Logic
-│   │   ├── aiService.js              # AI Logic
-│   │   ├── brevoService.js           # CRM Logic
-│   │   └── newsletterService.js      # Scheduling Logic
-│   ├── emails/                       # Email templates
-│   │   └── templates/
-│   │       ├── shared.js             # Shared components
-│   │       ├── brevo_template.html   # Weekly digest (Brevo-hosted template)
-│   │       ├── welcome.js            # Welcome email
-│   │       └── magic-link.js         # Magic link email
-│   ├── utils/                        # Utilities
-│   │   └── emailToken.js             # JWT token generation/verification
-│       └── delete-user-by-email.sql  # User deletion script
-│       └── migration_v2.sql          # Schema alignment script
-│       └── update_status_enum.sql    # Status enum migration (scheduled)
-├── fly.toml                          # Fly.io deployment config
-└── package.json
-```
-
----
-
-### Run Migration
 ```bash
-# Run migration_v2.sql in Supabase SQL Editor to align production
-```
+# Run all tests
+npm test
 
-### Test Reddit Scraping
-```bash
-npm run scrape:local
-```
-
----
-
-## Admin Management
-
-### Managing Ideas
-Use Supabase Dashboard:
-1. Go to https://supabase.com/dashboard
-2. Select your project
-3. Navigate to Table Editor → `ideas`
-4. Edit, delete, or approve ideas directly
-
-### Managing Users
-Use Supabase Dashboard:
-1. Navigate to Authentication → Users
-2. View, edit, or delete users
-
-### Deleting a User
-```bash
-# Run SQL script in Supabase SQL Editor
-# See: src/scripts/delete-user-by-email.sql
-```
-
-### Resetting All Users (Dev Only)
-```bash
-# Run migrations/reset_all_users.sql in Supabase SQL Editor
-# WARNING: Deletes ALL users/subs. Preserves votes (via SET NULL).
+# Run with coverage report
+npm run coverage
 ```
 
 ---
@@ -240,58 +148,17 @@ Use Supabase Dashboard:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `BREVO_API_KEY` | Brevo API key (v3) | ✅ |
+| `BREVO_WEBHOOK_SECRET` | Security for Brevo webhooks | ✅ |
+| `EMAIL_TOKEN_SECRET` | Secret for secure link tokens | ✅ |
 | `GEMINI_API_KEY` | Google Gemini API key | ✅ |
-| `JWT_SECRET` | Secret for email token signing | ✅ |
-| `FRONTEND_URL` | Frontend URL for CORS | ✅ |
-| `ADMIN_EMAIL` | Administrator alert email | ✅ |
-| `ADMIN_NAME` | Administrator name | ❌ |
-| `BACKLOG_THRESHOLD` | Ideas needed for health | ❌ |
-| `PORT` | Server port (default: 3001) | ❌ |
-| `NODE_ENV` | Environment (development/production) | ❌ |
+| `SUPABASE_SERVICE_KEY` | Admin DB access | ✅ |
 
 ---
 
-- ✅ **Security**: Fixed admin delete scalability (subscriber lookup), secured webhook auth, rate-limited `POST /unsubscribe`.
-- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), `Cache-Control` headers on read endpoints, parallelized DB calls.
-- ✅ **Auth**: Updated `verify-email-token` to use magic link generation + verification for session creation.
-- ✅ **Cleanup**: Removed dead endpoints, service exports, and unused imports across the API.
-- ✅ **Logging**: Enhanced PII masking in logs, UTC standardized dates.
+## Recent Milestones (2026-02-14)
+- ✅ **Test Coverage**: Achieved >90% backend statement coverage.
+- ✅ **Subscription Reliability**: Implemented exponential backoff and idempotency for email batches.
+- ✅ **Auth Refinement**: Hardened post-login hooks with OAuth name sync and re-engagement logic.
+- ✅ **Admin**: Consolidated all template/webhook/simulation tools into `manage_templates.js`.
 
-
-
----
-
-## Troubleshooting
-
-### Server won't start
-- Check `.env` file exists and has all required variables
-- Verify port 3001 is not in use: `lsof -i :3001`
-- Check Supabase keys are correct
-
-### Emails not sending
-- Verify `BREVO_API_KEY` is set correctly in Fly secrets
-- Check Brevo Dashboard for logs
-
-### Reddit scraping fails
-- Check `GEMINI_API_KEY` is valid
-- Verify API quota hasn't been exceeded
-- Check for rate limiting (429 errors)
-
-### Cron jobs not running
-- Check server logs: `fly logs`
-- Verify cron expressions in `server.js`
-- Ensure server is running (Fly.io auto-restarts)
-
----
-
-## Links
-
-- **Frontend**: https://zerosbykai.com
-- **API**: https://zerosbykai-api-prod.fly.dev
-- **Supabase Dashboard**: https://supabase.com/dashboard
-- **Brevo Dashboard**: https://app.brevo.com
-- **Fly.io Dashboard**: https://fly.io/dashboard
-
----
-
-**Last Updated**: 2026-02-11
+**Last Updated**: 2026-02-14

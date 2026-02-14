@@ -14,7 +14,7 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 14: - **Mocks:** Use centralized mocks in `frontend/unit_tests/__mocks__` and `backend/unit_tests/test_utils.js`
 - **Build:** `npm run build` in `frontend/`
 - **Structure:** See `docs/ai-context/project-structure.md` for full file tree
-- **Docs:** See `docs/ai-context/docs-overview.md` for 3-tier doc system
+- **Docs:** See `docs/README.md` for 3-tier indexing and routing
 - **Main Docs:** See `README.md` for comprehensive guide
 
 ## Code Standards
@@ -95,14 +95,20 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`lib/auth.js`** - Auth context
 - **`unit_tests/`** - React component & lib tests
 
-## Recent Major Changes (Feb 12, 2026)
+## Recent Major Changes (Feb 14, 2026)
 
-### Routes Optimization & Refinement (Feb 12)
+### Subscription Reliability & Test Coverage (Feb 14)
+- ✅ **Coverage**: Expanded backend test suite to >90% line coverage (161+ tests passing).
+- ✅ **Robustness**: Implemented exponential backoff retries and idempotency keys for Brevo Batch API.
+- ✅ **Auth**: Refined `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement hardening.
+- ✅ **Reliability**: Implemented `!welcomed` flag for simpler welcome email logic and fixed data race conditions in auth flows.
+- ✅ **Admin**: Consolidated all template, webhook, and simulation logic into `src/scripts/manage_templates.js`.
+
+### Previous (Feb 12)
 - ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for all read endpoints.
 - ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation.
 - ✅ **Auth**: Enforced name entry only for new users; removed redundant name field from subscribe modal.
 - ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching via Clearbit API.
-- ✅ **Tests**: Refactored frontend test suite with centralized utilities and mocks for faster, isolated testing.
 - ✅ **Cleanup**: Removed dead endpoints and unused services across the backend.
 
 ### Previous (Feb 11)
@@ -121,7 +127,7 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - ✅ **Subject Override**: Email subject from Supabase `weekly_batches.subject_line` passed via Brevo API.
 
 ## Documentation Hierarchy
-- **Tier 1 (Foundation):** This file - Master context
-- **Tier 2 (Guides):** `docs/MASTER_WORKFLOW.md`, `docs/BREVO_GUIDE.md`
+- **Tier 1 (Foundation):** `CLAUDE.md` (Master), `docs/README.md` (Routing Index), `docs/ai-context/architecture.md` (Design/Infra)
+- **Tier 2 (Component):** `backend/CONTEXT.md`, `frontend/CONTEXT.md`, `docs/MASTER_WORKFLOW.md`
 - **Tier 3 (Features):** `docs/AUTH_DOCUMENTATION.md`
 - **Reference:** `README.md`

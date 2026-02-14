@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { sendEmail } from '../utils/emailService.js';
-import { ADMIN_CONFIG } from '../utils/helpers.js';
+import { config } from '../config/env.js';
 import { getMonday } from '../utils/dateUtils.js';
 
-const adminEmail = ADMIN_CONFIG.email;
+const adminEmail = config.admin.email;
 
 /**
  * Checks if the upcoming Monday's newsletter is scheduled.

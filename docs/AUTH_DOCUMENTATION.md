@@ -90,13 +90,17 @@ await subscribeNewsletter('user@example.com', 'Jane Doe');
 
 ---
 
+---
+
 ## Post-Login Hook
 
 After any successful authentication, the post-login hook runs to:
 
-1. **Sync subscriber record** - Links auth user to subscriber table
-2. **Send welcome email** - For new users only (checked via `welcomed` flag)
-3. **Mark as welcomed** - Prevents duplicate welcome emails
+1. **Synchronize OAuth Name**: If the user's name on GitHub/Google has changed, it is automatically updated in the database.
+2. **Re-engagement Unblocking**: If a previously unsubscribed user logs in, their `unsubscribed_at` timestamp is reset in Supabase, and they are unblocked in Brevo.
+3. **Sync Subscriber Record**: Links the authenticated user to the `subscribers` table.
+4. **Send Welcome Email**: Triggered only if the `welcomed` flag is false.
+5. **Mark as Welcomed**: Sets `welcomed = true` to prevent duplicate welcome emails.
 
 **Backend endpoint:** `POST /api/auth/post-login`
 

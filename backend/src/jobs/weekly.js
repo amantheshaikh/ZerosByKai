@@ -236,10 +236,14 @@ export async function sendWeeklyDigest() {
 
     // 4. Resolve Subject Line
     let emailSubject = currentBatch?.subject_line;
+    const ideaWithSubject = ideas.find(i => i.subject);
     const defaultSubject = `Kai's Zeros: Week of ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
     if (emailSubject) {
-      console.log(`📌 Using pre-scheduled subject: "${emailSubject}"`);
+      console.log(`📌 Using pre-scheduled batch subject: "${emailSubject}"`);
+    } else if (ideaWithSubject?.subject) {
+      emailSubject = ideaWithSubject.subject;
+      console.log(`📌 Using subject from idea: "${emailSubject}"`);
     } else {
       console.log('📌 No subject line found in DB, using default.');
       emailSubject = defaultSubject;
@@ -271,9 +275,30 @@ export async function sendWeeklyDigest() {
     let failCount = 0;
     let page = 0;
     const PAGE_SIZE = 500; // Fetch 500 at a time
-    const SEND_BATCH_SIZE = 50; // Send to Brevo in batches of 50
+    const SEND_BATCH_SIZE = 100; // Send to Brevo in optimized batches of 100
 
-    console.log(`🚀 Sending emails via Brevo template (${ideas.length} ideas) to subscribers in groups of ${PAGE_SIZE}...`);
+    // 6a. Construct Global Params (Shared by all users in all batches for this week)
+    const globalParams = {
+      weekDate: new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      threadCount: threadCount.toLocaleString(),
+      ideasCount: ideas.length,
+      mirrorLinkUrl: weekStart ? `${config.frontendUrl}/view/weekly/${weekStart}` : `${config.frontendUrl}/view/weekly`,
+      frontendUrl: config.frontendUrl,
+      winner: lastWeekBatch?.winner ? {
+        name: lastWeekBatch.winner.name,
+        title: lastWeekBatch.winner.title
+      } : null,
+      ideas: ideas.map((idea, idx) => ({
+        name: idea.name,
+        title: idea.title,
+        problem: idea.problem,
+        solution: idea.solution,
+        index_plus_one: idx + 1,
+        tags: formatTags(idea.tags)
+      }))
+    };
+
+    console.log(`🚀 Sending emails via Brevo Batch API (${ideas.length} ideas) to subscribers in groups of ${PAGE_SIZE}...`);
 
     while (true) {
       const { data: subscriberPage, error: pageError } = await supabaseAdmin
@@ -295,35 +320,16 @@ export async function sendWeeklyDigest() {
           const token = generateEmailToken(subscriber.user_id || subscriber.email, subscriber.email);
           let voteUrl = `${config.frontendUrl}?utm_source=email`;
           if (subscriber.user_id) {
-            const authToken = generateEmailToken(subscriber.user_id, subscriber.email);
-            voteUrl += `&token=${encodeURIComponent(authToken)}`;
+            voteUrl += `&token=${encodeURIComponent(token)}`;
           }
           const unsubscribeUrl = `${config.frontendUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}&token=${encodeURIComponent(token)}`;
 
           return {
             to: subscriber.email,
             params: {
-              name: 'Hustler',
-              subject: emailSubject,
-              weekDate: new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-              threadCount: threadCount.toLocaleString(),
-              ideasCount: ideas.length,
+              name: subscriber.name || 'Hustler',
               voteUrl,
               unsubscribeUrl,
-              mirrorLinkUrl: weekStart ? `${config.frontendUrl}/view/weekly/${weekStart}` : `${config.frontendUrl}/view/weekly`,
-              frontendUrl: config.frontendUrl,
-              winner: lastWeekBatch?.winner ? {
-                name: lastWeekBatch.winner.name,
-                title: lastWeekBatch.winner.title
-              } : null,
-              ideas: ideas.map((idea, idx) => ({
-                name: idea.name,
-                title: idea.title,
-                problem: idea.problem,
-                solution: idea.solution,
-                index_plus_one: idx + 1,
-                tags: formatTags(idea.tags)
-              }))
             },
             headers: {
               'List-Unsubscribe': `<${unsubscribeUrl}>`,
@@ -335,7 +341,9 @@ export async function sendWeeklyDigest() {
         const result = await sendBatchEmails(chunkParams, {
           templateId,
           subject: emailSubject,
-          tags: ['weekly-digest']
+          tags: ['weekly-digest'],
+          globalParams, // Send shared content once per batch
+          idempotencyKey: `weekly-${weekStart}-${page}-${i}` // Resilient retry key
         });
         successCount += result.successCount || 0;
         failCount += result.failCount || 0;
@@ -357,10 +365,14 @@ export async function sendWeeklyDigest() {
     }
 
     // Update batch status
-    await supabaseAdmin
+    const { error: batchUpdateError } = await supabaseAdmin
       .from('weekly_batches')
       .update({ email_sent_at: new Date().toISOString() })
       .eq('week_start_date', weekStart);
+
+    if (batchUpdateError) {
+      throw new Error(`[FATAL] Failed to mark batch as sent for ${weekStart}: ${batchUpdateError.message}`);
+    }
 
     console.log(`✅ Weekly cycle complete for ${weekStart}`);
 

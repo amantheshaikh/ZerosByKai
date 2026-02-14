@@ -174,19 +174,13 @@ vi.mock('@/components/Particles', () => ({
 }));
 
 // --- Animation Component Mocks ---
-vi.mock('@/components/animations/Reveal', () => ({
+vi.mock('@/components/Reveal', () => ({
     __esModule: true,
     default: ({ children, className }) => <div className={className} data-testid="mock-reveal">{children}</div>,
     RevealContainer: ({ children, className }) => <div className={className} data-testid="mock-reveal-container">{children}</div>,
     RevealItem: ({ children, className }) => <div className={className} data-testid="mock-reveal-item">{children}</div>,
 }));
 
-vi.mock('@/components/animations/CountUp', () => ({
-    __esModule: true,
-    default: ({ value, prefix = '', suffix = '', className }) => (
-        <span className={className} data-testid="mock-countup">{prefix}{value}{suffix}</span>
-    ),
-}));
 
 // --- Custom Library Mocks ---
 vi.mock('@/lib/auth', () => ({

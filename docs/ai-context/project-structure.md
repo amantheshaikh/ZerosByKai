@@ -8,7 +8,7 @@ This document documents the technology stack and file tree structure for ZerosBy
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Supabase** - Database and Authentication (magic link, Google OAuth, email tokens)
-- **Google Gemini** - AI analysis (`gemini-3-flash-preview`, fallback: `gemini-3-pro-preview`)
+- **Google Gemini** - AI analysis (`gemini-2.0-flash`, fallback: `gemini-flash-latest`)
 - **Brevo** - Email delivery service (Transactional + Batch)
 - **node-cron** - Cron job scheduling
 - **Fly.io** - Deployment platform
@@ -38,7 +38,6 @@ ZerosByKai/
 │   ├── migrations/                     # Database migrations
 │   │   ├── fix_auth_trigger.sql        # Fix for auth user creation trigger
 │   │   ├── add_vote_count_to_ideas.sql # Optimization: vote_count column
-│   │   ├── reset_all_users.sql         # Utilities to reset user base
 │   │   └── sync_production_v2.sql      # Schema synchronization
 │   ├── src/                            # Source code
 │   │   ├── server.js                   # Main entry point + health crons
@@ -101,18 +100,19 @@ ZerosByKai/
 │   ├── unit_tests/                     # Frontend test suite
 │   └── package.json                    # Dependencies
 │
-└── docs/                               # Documentation
-    ├── CLAUDE-CODE-GUIDE.md            # AI coding guide
-    ├── CLAUDE.md                       # AI context (legacy)
-    ├── CONTEXT-tier2-component.md      # Component context template
-    ├── CONTEXT-tier3-feature.md        # Feature context template
-    ├── README.md                       # Docs overview
-    └── ai-context/                     # AI documentation
-        ├── project-structure.md        # This file
-        ├── docs-overview.md            # Documentation system overview
-        ├── deployment-infrastructure.md
-        ├── system-integration.md
-        └── handoff.md
+│
+└── docs/                               # Documentation Hub
+    ├── README.md                       # Main routing guide (Tier 1)
+    ├── MASTER_WORKFLOW.md              # Newsletter lifecycle (Tier 2)
+    ├── AUTH_DOCUMENTATION.md           # Identity & Auth docs (Tier 3)
+    ├── idea_extraction_logic.md        # AI heuristics (Tier 3)
+    ├── ai-context/                     # AI Agent Foundation
+    │   ├── project-structure.md        # This file
+    │   ├── architecture.md             # Integration & Deployment
+    │   └── handoff.md                  # Session continuity
+    └── templates/                      # Documentation Templates
+        ├── CONTEXT-tier2-component.md
+        └── CONTEXT-tier3-feature.md
 ```
 
 ## File Organization Principles
@@ -210,14 +210,12 @@ vercel --prod
 ```
 
 ## Recent Changes
-- ✅ **Routes Optimization (Feb 11)**: Removed dead endpoints/exports, added caching (in-memory + Cache-Control), parallelized DB calls, fixed admin delete scalability, secured webhook auth.
-- ✅ **Auth (Feb 11)**: Updated `verify-email-token` to use magic link generation + verification for session creation; removed name field from subscribe modal.
-- ✅ **Toolbox Implementation**: Added `tools.jsx` and `stash-data.js` for curated resource listing.
-- ✅ **Tool Logos**: Dynamic logo fetching via Clearbit API integration.
+- ✅ **Subscription Reliability (Feb 14)**: Achieved >90% backend test coverage. Implemented exponential backoff and idempotency for Brevo Batch API.
+- ✅ **Auth Refinement (Feb 14)**: Hardened `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement logic.
+- ✅ **Admin Consolidation**: All template management, webhook registration, and weekly simulations consolidated into `src/scripts/manage_templates.js`.
+- ✅ **Performance**: parallelized DB calls, added `vote_count` optimization, and ISR for landing page.
 - ✅ **Email System**: Fully migrated to Brevo (Transactional + Batch API), with RFC 8058 one-click unsubscribe support.
-- ✅ **Performance**: Added `vote_count` column for O(1) leaderboard and ISR for landing page scaling.
-
 
 ---
 
-**Last Updated:** February 11, 2026
+**Last Updated:** February 14, 2026

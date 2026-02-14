@@ -49,7 +49,7 @@ export async function scheduleNewsletter() {
                 .from('ideas')
                 .select('*')
                 .eq('week_published', weekStart)
-                .eq('status', 'published');
+                .eq('status', 'scheduled');
             ideas = fetchedIdeas;
         }
 
@@ -74,19 +74,8 @@ export async function scheduleNewsletter() {
         } else {
             console.log('🤖 Generating AI Subject Line...');
 
-            // Get last week's winner for context
-            const lastWeekStart = getLastMonday(new Date(weekStart));
-            const { data: lastWeekBatch } = await supabaseAdmin
-                .from('weekly_batches')
-                .select(`
-                    *,
-                    winner:ideas!fk_weekly_batches_winner_idea (*)
-                `)
-                .eq('week_start_date', lastWeekStart)
-                .maybeSingle();
-
             const aiService = new AIService(config);
-            const dynamicSubject = await aiService.generateNewsletterSubject(ideas, lastWeekBatch?.winner);
+            const dynamicSubject = await aiService.generateNewsletterSubject(ideas);
 
             if (dynamicSubject) {
                 console.log(`✨ Generated Subject: "${dynamicSubject}"`);

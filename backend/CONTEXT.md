@@ -54,12 +54,13 @@ Secure auto-login via JWT tokens in emails:
 ## Environment Variables
 Required variables are documented in [backend/README.md](../backend/README.md).
 
-## Recent Changes (Feb 11, 2026)
-- ✅ **Security**: Fixed admin delete scalability (subscriber lookup), secured webhook auth.
-- ✅ **Performance**: In-memory cache for `getVotingWeek()` (60s TTL), added `Cache-Control` headers.
-- ✅ **Auth**: Optimized verify-token flow using magic link verification.
-- ✅ **Cleanup**: Removed deprecated routes and unused service exports.
+## Recent Changes (Feb 14, 2026)
+- ✅ **Coverage**: Expanded backend test suite to >90% line coverage (161+ tests passing).
+- ✅ **Robustness**: Implemented exponential backoff retries and idempotency keys for Brevo Batch API.
+- ✅ **Admin**: Consolidated all template, webhook, and simulation logic into `src/scripts/manage_templates.js`.
+- ✅ **Auth**: Refined `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement hardening.
+- ✅ **Security**: Improved PII masking in debug logs and secured Brevo webhook integration.
 
 ---
 
-**Last Updated:** February 11, 2026
+**Last Updated:** February 14, 2026

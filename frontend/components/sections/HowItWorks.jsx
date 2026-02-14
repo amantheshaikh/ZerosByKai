@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { TypingAnimation } from '@/components/ui/typing-animation';
-import { RevealContainer, RevealItem } from '@/components/animations/Reveal';
+import { RevealContainer, RevealItem } from '@/components/Reveal';
 
 export default function HowItWorks() {
     return (

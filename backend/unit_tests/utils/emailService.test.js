@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendEmail, sendEmailWithTemplate, sendBatchEmails } from '../../src/utils/emailService.js';
+import { sendEmail, sendBatchEmails } from '../../src/utils/emailService.js';
 import { brevoClient } from '../../src/config/brevo.js';
 import { config } from '../../src/config/env.js';
 
@@ -91,88 +91,28 @@ describe('emailService.js', () => {
             expect(result.success).toBe(false);
             expect(result.error).toBe('Network Error');
         });
-    });
 
-    describe('sendEmailWithTemplate()', () => {
-        it('should send email with template ID and params', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: '456' });
+        it('should pass custom headers (List-Unsubscribe) to Brevo', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: '123' });
 
-            const result = await sendEmailWithTemplate({
-                to: 'user@example.com',
-                templateId: 5,
-                params: { name: 'Test User', weekDate: 'Feb 10, 2026' }
+            const result = await sendEmail({
+                ...emailParams,
+                headers: {
+                    'List-Unsubscribe': '<https://example.com/unsub>',
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                }
             });
 
             expect(result.success).toBe(true);
             expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                to: [{ email: 'user@example.com' }],
-                templateId: 5,
-                params: { name: 'Test User', weekDate: 'Feb 10, 2026' }
+                headers: {
+                    'List-Unsubscribe': '<https://example.com/unsub>',
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                }
             }));
-        });
-
-        it('should include subject override when provided', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: '789' });
-
-            await sendEmailWithTemplate({
-                to: 'user@example.com',
-                templateId: 5,
-                params: { name: 'User' },
-                subject: 'Custom Subject'
-            });
-
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                subject: 'Custom Subject'
-            }));
-        });
-
-        it('should not include subject when not provided', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: '789' });
-
-            await sendEmailWithTemplate({
-                to: 'user@example.com',
-                templateId: 5,
-                params: { name: 'User' }
-            });
-
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
-                expect.not.objectContaining({ subject: expect.anything() })
-            );
-        });
-
-        it('should pass tags and headers when provided', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: '101' });
-
-            await sendEmailWithTemplate({
-                to: 'user@example.com',
-                templateId: 5,
-                params: {},
-                tags: ['weekly-digest'],
-                headers: { 'List-Unsubscribe': '<https://example.com/unsub>' }
-            });
-
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                tags: ['weekly-digest'],
-                headers: { 'List-Unsubscribe': '<https://example.com/unsub>' }
-            }));
-        });
-
-        it('should handle Brevo API errors', async () => {
-            brevoClient.sendTransacEmail.mockRejectedValue({
-                response: { body: 'Template Error' },
-                message: 'Bad Request'
-            });
-
-            const result = await sendEmailWithTemplate({
-                to: 'user@example.com',
-                templateId: 5,
-                params: {}
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Template Error');
         });
     });
+
 
     describe('sendBatchEmails()', () => {
         const chunk = [
@@ -180,46 +120,50 @@ describe('emailService.js', () => {
             { to: 'u2@example.com', params: { name: 'User2' } }
         ];
 
-        it('should throw if templateId is missing', async () => {
+        it('should throw if templateId and htmlContent are missing', async () => {
             await expect(sendBatchEmails(chunk, {}))
                 .rejects.toThrow('Missing templateId or htmlContent');
         });
 
-        it('should send all emails in batch successfully', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
+        it('should send all emails in a single batch call successfully', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['id1', 'id2'] });
 
             const result = await sendBatchEmails(chunk, { templateId: 5 });
 
             expect(result.success).toBe(true);
             expect(result.successCount).toBe(2);
             expect(result.failCount).toBe(0);
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledTimes(2);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledTimes(1);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    templateId: 5,
+                    messageVersions: expect.arrayContaining([
+                        expect.objectContaining({ to: [{ email: 'u1@example.com', name: 'User1' }] }),
+                        expect.objectContaining({ to: [{ email: 'u2@example.com', name: 'User2' }] })
+                    ])
+                }),
+                expect.objectContaining({
+                    headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) })
+                })
+            );
         });
 
-        it('should handle partial failures and return accurate counts', async () => {
-            brevoClient.sendTransacEmail
-                .mockRejectedValueOnce(new Error('fail'))
-                .mockResolvedValueOnce({ messageId: 'ok' });
-
-            const result = await sendBatchEmails(chunk, { templateId: 5 });
-
-            expect(result.success).toBe(true);
-            expect(result.successCount).toBe(1);
-            expect(result.failCount).toBe(1);
-        });
-
-        it('should return success false if all emails fail', async () => {
-            brevoClient.sendTransacEmail.mockRejectedValue(new Error('down'));
+        it('should handle Brevo API errors for the entire batch', async () => {
+            brevoClient.sendTransacEmail.mockRejectedValue({
+                response: { body: 'Batch Error' },
+                message: 'Bad Request'
+            });
 
             const result = await sendBatchEmails(chunk, { templateId: 5 });
 
             expect(result.success).toBe(false);
             expect(result.successCount).toBe(0);
             expect(result.failCount).toBe(2);
+            expect(result.error).toBe('Batch Error');
         });
 
-        it('should pass subject and tags from options', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
+        it('should pass global subject and tags to the batch request', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['ok'] });
 
             await sendBatchEmails(chunk, {
                 templateId: 5,
@@ -227,48 +171,143 @@ describe('emailService.js', () => {
                 tags: ['weekly-digest']
             });
 
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                subject: 'Weekly Subject',
-                tags: ['weekly-digest']
-            }));
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    subject: 'Weekly Subject',
+                    tags: ['weekly-digest']
+                }),
+                expect.objectContaining({
+                    headers: { 'Idempotency-Key': expect.any(String) }
+                })
+            );
         });
 
-        it('should prefer per-recipient headers over option headers', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
+        it('should include per-recipient headers and params in messageVersions', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['ok'] });
 
-            const chunkWithHeaders = [
+            const chunkWithExtras = [
                 {
                     to: 'u1@example.com',
-                    params: { name: 'User1' },
+                    params: { name: 'User1', subject: 'Custom Hi' },
                     headers: { 'List-Unsubscribe': '<https://example.com/unsub/u1>' }
                 }
             ];
 
-            await sendBatchEmails(chunkWithHeaders, {
+            await sendBatchEmails(chunkWithExtras, {
                 templateId: 5,
                 headers: { 'X-Global': 'fallback' }
             });
 
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                headers: { 'List-Unsubscribe': '<https://example.com/unsub/u1>' }
-            }));
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    headers: { 'X-Global': 'fallback' },
+                    messageVersions: [
+                        expect.objectContaining({
+                            to: [{ email: 'u1@example.com', name: 'User1' }],
+                            subject: 'Custom Hi',
+                            headers: { 'List-Unsubscribe': '<https://example.com/unsub/u1>' }
+                        })
+                    ]
+                }),
+                expect.objectContaining({
+                    headers: { 'Idempotency-Key': expect.any(String) }
+                })
+            );
         });
 
-        it('should fall back to option headers when recipient has none', async () => {
-            brevoClient.sendTransacEmail.mockResolvedValue({ messageId: 'ok' });
+        it('should pass globalParams to the batch request', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['ok'] });
 
-            const chunkNoHeaders = [
-                { to: 'u1@example.com', params: { name: 'User1' } }
-            ];
-
-            await sendBatchEmails(chunkNoHeaders, {
+            const globalParams = { weeklyTitle: 'Shared Title', ideas: [1, 2, 3] };
+            await sendBatchEmails(chunk, {
                 templateId: 5,
-                headers: { 'X-Global': 'value' }
+                globalParams
             });
 
-            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(expect.objectContaining({
-                headers: { 'X-Global': 'value' }
-            }));
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    params: globalParams
+                }),
+                expect.any(Object)
+            );
+        });
+
+        it('should retry on transient errors (429, 5xx) and succeed if next attempt works', async () => {
+            vi.useFakeTimers();
+            const transientError = { status: 429, response: { body: 'Rate limit' } };
+
+            brevoClient.sendTransacEmail
+                .mockRejectedValueOnce(transientError)
+                .mockResolvedValueOnce({ messageIds: ['id1', 'id2'] });
+
+            const promise = sendBatchEmails(chunk, { templateId: 5 });
+
+            // Fast-forward through backoff
+            await vi.runAllTimersAsync();
+
+            const result = await promise;
+
+            expect(result.success).toBe(true);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledTimes(2);
+            vi.useRealTimers();
+        });
+
+        it('should fail after maximum retries for transient errors', async () => {
+            vi.useFakeTimers();
+            const transientError = { status: 500, response: { body: 'Server Error' } };
+
+            brevoClient.sendTransacEmail.mockRejectedValue(transientError);
+
+            const promise = sendBatchEmails(chunk, { templateId: 5 });
+
+            await vi.runAllTimersAsync();
+
+            const result = await promise;
+
+            expect(result.success).toBe(false);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
+            vi.useRealTimers();
+        });
+
+        it('should NOT retry on non-transient errors (e.g., 400 Bad Request)', async () => {
+            const fatalError = { status: 400, response: { body: 'Invalid Payload' } };
+            brevoClient.sendTransacEmail.mockRejectedValue(fatalError);
+
+            const result = await sendBatchEmails(chunk, { templateId: 5 });
+
+            expect(result.success).toBe(false);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledTimes(1);
+        });
+
+        it('should work with htmlContent instead of templateId', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['id1', 'id2'] });
+
+            const result = await sendBatchEmails(chunk, {
+                htmlContent: '<html>{{params.name}}</html>',
+                subject: 'Direct HTML'
+            });
+
+            expect(result.success).toBe(true);
+            expect(brevoClient.sendTransacEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    htmlContent: '<html>{{params.name}}</html>',
+                    subject: 'Direct HTML'
+                }),
+                expect.any(Object)
+            );
+            // Should NOT have templateId
+            const callArgs = brevoClient.sendTransacEmail.mock.calls[0][0];
+            expect(callArgs.templateId).toBeUndefined();
+        });
+
+        it('should handle partial success when acceptedCount < requestedCount', async () => {
+            brevoClient.sendTransacEmail.mockResolvedValue({ messageIds: ['id1'] }); // Only 1 accepted out of 2
+
+            const result = await sendBatchEmails(chunk, { templateId: 5 });
+
+            expect(result.success).toBe(true);
+            expect(result.successCount).toBe(1);
+            expect(result.failCount).toBe(1);
         });
     });
 });

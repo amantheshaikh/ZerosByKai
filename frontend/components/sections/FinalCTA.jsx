@@ -1,5 +1,5 @@
 import { Sparkles, Zap, Mail, ChevronRight } from 'lucide-react';
-import { RevealContainer, RevealItem } from '@/components/animations/Reveal';
+import { RevealContainer, RevealItem } from '@/components/Reveal';
 
 export default function FinalCTA({ email, setEmail, subscribeStatus, subscribeError, onSubscribe, onOpenAuth, noValidate }) {
     return (

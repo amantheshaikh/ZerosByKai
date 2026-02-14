@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZerosByKai - {{ params.weekDate }}</title>
+  <title>ZerosByKai - {{params.weekDate}}</title>
   <meta name="color-scheme" content="light dark">
   <meta name="supported-color-schemes" content="light dark">
   <style type="text/css">
@@ -139,7 +139,7 @@
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <!-- Mirror Link -->
     <div style="font-size: 11px; text-align: center; margin-bottom: 20px; color: #666;">
-      Not rendering correctly? <a href="{{ params.mirrorLinkUrl }}" class="footer-link"
+      Not rendering correctly? <a href="{{params.mirrorLinkUrl}}" class="footer-link"
         style="color: #000; font-weight: 700;">View in browser</a>
     </div>
 
@@ -154,7 +154,7 @@
       </div>
       <div class="text-main"
         style="font-size: 14px; color: #000; font-weight: 700; margin-top: 8px; border-top: 2px solid #000; padding-top: 8px; display: inline-block;">
-        Week of {{ params.weekDate }}
+        Week of {{params.weekDate}}
       </div>
       <p class="text-main" style="margin: 8px 0 0 0; font-size: 13px;">Your weekly dose of real Startup Ideas</p>
     </div>
@@ -162,10 +162,10 @@
     <!-- Summary -->
     <div class="summary-box"
       style="background: #fafafa; border-left: 3px solid #000; padding: 16px; margin-bottom: 32px;">
-      <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">Hi {{ params.name }},</p>
+      <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">Hi {{params.name}},</p>
       <p style="margin: 0; font-size: 14px; line-height: 1.6;">
-        <strong>This week's analysis:</strong> {{ params.threadCount }} threads scraped.
-        {{ params.ideasCount }} opportunities identified. No AI fluff. Real problems. Real opportunities.
+        <strong>This week's analysis:</strong> {{params.threadCount}} threads scraped.
+        {{params.ideasCount}} opportunities identified. No AI fluff. Real problems. Real opportunities.
       </p>
     </div>
 
@@ -179,13 +179,13 @@
         style="font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
         🏆 LAST WEEK'S WINNER
       </div>
-      <h3 class="text-main" style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">{{ params.winner.name }}</h3>
-      <p class="text-muted" style="font-size: 13px; color: #666; margin-bottom: 12px;">{{ params.winner.title }}</p>
+      <h3 class="text-main" style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">{{params.winner.name}}</h3>
+      <p class="text-muted" style="font-size: 13px; color: #666; margin-bottom: 12px;">{{params.winner.title}}</p>
       <p class="text-main" style="font-size: 13px; color: #333; margin-bottom: 16px;">
         Did you pick the winner? Check your profile to find out.
       </p>
       <div style="text-align: center; margin-bottom: 12px;">
-        <a href="{{ params.frontendUrl }}/profile?utm_source=email"
+        <a href="{{params.frontendUrl}}/profile?utm_source=email"
           style="display: inline-block; padding: 14px 28px; background: #000; color: #FCD933; text-decoration: none; font-weight: 700; border-radius: 6px; font-size: 15px;">
           CHECK YOUR PROFILE →
         </a>
@@ -201,7 +201,6 @@
     <hr style="border: none; border-top: 1px solid #d4d4d4; margin: 24px 0;">
 
     <!-- Ideas Loop -->
-    <!-- Ideas Loop -->
     {% for idea in params.ideas %}
     <div class="card-bg comic-shadow"
       style="margin-bottom: 48px; border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 24px; background: #ffffff;">
@@ -210,11 +209,11 @@
           <td valign="middle">
             <span class="label-badge"
               style="background: #000; color: #fff; font-size: 12px; font-weight: 700; padding: 4px 8px; text-transform: uppercase; letter-spacing: 1px;">
-              #{{ idea.index_plus_one }}
+              #{{idea.index_plus_one}}
             </span>
           </td>
           <td valign="middle" align="right">
-            <a href="{{ params.voteUrl }}" class="font-mono comic-shadow-sm"
+            <a href="{{params.voteUrl}}" class="font-mono comic-shadow-sm"
               style="font-family: 'Courier Prime', monospace; font-size: 11px; color: #000; text-decoration: none; font-weight: 700; background: #FCD933; border: 2px solid #000; padding: 6px 10px; box-shadow: 3px 3px 0 #000; display: inline-block;">
               BET ON THIS
             </a>
@@ -224,16 +223,15 @@
 
       <h3 class="font-mono text-main"
         style="font-family: 'Courier Prime', monospace; font-size: 22px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;">
-        {{ idea.name }}
+        {{idea.name}}
       </h3>
-      <p class="text-muted" style="font-size: 14px; color: #444; margin-bottom: 16px; font-style: italic;">{{ idea.title
-        }}</p>
+      <p class="text-muted" style="font-size: 14px; color: #444; margin-bottom: 16px; font-style: italic;">{{idea.title}}</p>
 
       <div class="divider-main" style="margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 8px;">
         {% for tag in idea.tags %}
         <span class="text-main"
           style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 12px;">
-          🏷️ {{ tag }}
+          🏷️ {{tag}}
         </span>
         {% endfor %}
       </div>
@@ -242,14 +240,14 @@
         <div class="label-badge"
           style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">
           THE PROBLEM</div>
-        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{ idea.problem }}</p>
+        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{idea.problem}}</p>
       </div>
 
       <div style="margin: 0;">
         <div class="label-badge"
           style="font-size: 12px; font-weight: 700; background: #000; color: #fff; display: inline-block; padding: 2px 6px; margin-bottom: 8px;">
           THE SOLUTION</div>
-        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{ idea.solution }}</p>
+        <p class="text-main" style="font-size: 14px; line-height: 1.5; color: #000; margin: 0;">{{idea.solution}}</p>
       </div>
     </div>
     {% endfor %}
@@ -269,7 +267,7 @@
         Cast your vote. Pick the winner. Earn the badge.
       </p>
       <div>
-        <a href="{{ params.voteUrl }}" class="font-comic comic-shadow"
+        <a href="{{params.voteUrl}}" class="font-comic comic-shadow"
           style="display: inline-block; background: #000; color: #FCD933; font-family: 'Bangers', Impact, Charcoal, 'Arial Black', sans-serif; font-size: 24px; text-decoration: none; padding: 12px 32px; border: 2px solid #FCD933; box-shadow: 4px 4px 0 #000; transform: rotate(1deg);">
           PROVE IT NOW &rarr;
         </a>
@@ -286,7 +284,7 @@
         <strong class="text-main" style="color: #000;">Kai</strong>
       </p>
       <p style="font-size: 11px; color: #999;">
-        <a href="{{ params.unsubscribeUrl }}" class="footer-link" style="color: #666;">Unsubscribe</a>
+        <a href="{{params.unsubscribeUrl}}" class="footer-link" style="color: #666;">Unsubscribe</a>
       </p>
     </div>
   </div>

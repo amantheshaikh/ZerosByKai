@@ -228,6 +228,69 @@ describe('AIService', () => {
         });
     });
 
+    describe('refineExistingIdeas()', () => {
+        const mockIdeas = [
+            { id: '1-db', name: 'Old Name 1', title: 'r/SaaS Solution', problem: 'I saw on Reddit...', target_audience: 'Devs' },
+            { id: '2-db', name: 'Old Name 2', title: 'Title 2', problem: 'Problem 2', target_audience: 'Devs' }
+        ];
+
+        it('should return empty array if no ideas provided', async () => {
+            expect(await aiService.refineExistingIdeas(null)).toEqual([]);
+            expect(await aiService.refineExistingIdeas([])).toEqual([]);
+        });
+
+        it('should refine ideas using AI heuristics', async () => {
+            const mockResponse = [
+                {
+                    id: 1,
+                    name: 'Refined Name 1',
+                    title: 'Clean Title 1',
+                    problem: 'Clean Problem 1',
+                    solution: 'Sol 1',
+                    target_audience: 'Niche 1',
+                    tags: ['Tag1']
+                },
+                {
+                    id: 2,
+                    name: 'Refined Name 2',
+                    title: 'Clean Title 2',
+                    problem: 'Clean Problem 2',
+                    solution: 'Sol 2',
+                    target_audience: 'Niche 2',
+                    tags: ['Tag2']
+                }
+            ];
+            const modelMock = new GoogleGenerativeAI().getGenerativeModel();
+            modelMock.generateContent.mockResolvedValue({
+                response: {
+                    text: () => JSON.stringify(mockResponse)
+                }
+            });
+
+            const result = await aiService.refineExistingIdeas(mockIdeas);
+            expect(result[0].name).toBe('Refined Name 1');
+            expect(result[0].title).toBe('Clean Title 1');
+            expect(result[0].id).toBe('1-db'); // Preserves DB ID
+            expect(result[1].name).toBe('Refined Name 2');
+        });
+
+        it('should preserve original fields if AI match is missing', async () => {
+            const mockResponse = [
+                { id: 1, name: 'Refined Name 1' }
+            ];
+            const modelMock = new GoogleGenerativeAI().getGenerativeModel();
+            modelMock.generateContent.mockResolvedValue({
+                response: {
+                    text: () => JSON.stringify(mockResponse)
+                }
+            });
+
+            const result = await aiService.refineExistingIdeas(mockIdeas);
+            expect(result[0].name).toBe('Refined Name 1');
+            expect(result[1].name).toBe('Old Name 2');
+        });
+    });
+
     describe('dedupeAndSynthesizeIdeas()', () => {
         it('should return empty array if no ideas provided', async () => {
             const result = await aiService.dedupeAndSynthesizeIdeas({});
@@ -258,14 +321,14 @@ describe('AIService', () => {
 
     describe('generateNewsletterSubject()', () => {
         it('should use fallback if ideas are missing', async () => {
-            const result = await aiService.generateNewsletterSubject([], null);
-            expect(result.subject).toBe("Kai's Zeros: This Week's Startup Opportunities");
+            const result = await aiService.generateNewsletterSubject([]);
+            expect(result).toBe("Kai's Zeros: This Week's Startup Opportunities");
         });
 
         it('should generate subject using AI', async () => {
             const ideas = [{ title: 'Idea 1', tags: ['T1'] }];
-            const winner = { name: 'Winner', title: 'Winner Title' };
             const mockResponse = {
+                // ...
                 response: {
                     text: () => JSON.stringify({ subject: 'AI Generated Subject' })
                 }
@@ -273,12 +336,13 @@ describe('AIService', () => {
             const modelMock = new GoogleGenerativeAI().getGenerativeModel();
             modelMock.generateContent.mockResolvedValue(mockResponse);
 
-            const result = await aiService.generateNewsletterSubject(ideas, winner);
+            const result = await aiService.generateNewsletterSubject(ideas);
             expect(result).toBe('AI Generated Subject');
 
             const prompt = modelMock.generateContent.mock.calls[0][0];
             expect(prompt).toContain('Idea 1');
-            expect(prompt).toContain('Winner Title');
+            expect(prompt).toContain('& more - ZerosByKai');
+            expect(prompt).not.toContain('Winner Title');
         });
     });
 

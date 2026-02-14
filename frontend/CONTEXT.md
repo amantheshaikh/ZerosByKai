@@ -247,15 +247,15 @@ npm run build
 # - Successful page generation
 ```
 
-## Recent Changes (Feb 11, 2026)
-- ✅ **Tools**: Launched **Kai's Toolbox** (`/tools`) for curated startup resources.
-- ✅ **Logos**: Dynamic logo fetching via Clearbit API integration for tool cards.
-- ✅ **Auth**: Removed name field from subscribe modal; enforced only for new users.
-- ✅ **Email Auth**: Updated verification flow for more robust session creation.
-- ✅ **Leaderboard**: Standardized tag extraction from new `tags` array structure.
+## Recent Changes (Feb 14, 2026)
+- ✅ **Auth**: Refined `/post-login` and `/subscribe` flows for better name sync and re-engagement.
+- ✅ **Email Auth**: Hardened auto-login verification for more robust session creation in all environments.
+- ✅ **Design**: Standardized tag extraction from the new `tags` array structure in the leaderboard.
+- ✅ **Toolbox**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching.
 
+---
 
-## Common Patterns
+**Last Updated:** February 14, 2026
 
 ### Protected Routes
 ```javascript
