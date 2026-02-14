@@ -34,9 +34,9 @@ export const config = {
     gemini: {
         apiKey: process.env.GEMINI_API_KEY,
         models: {
-            primary: 'gemini-3-flash-preview',
-            fallback: 'gemini-2.5-flash',
-            fallbackBackup: 'gemini-pro-latest',
+            primary: 'gemini-2.0-flash',
+            fallback: 'gemini-1.5-flash',
+            fallbackBackup: 'gemini-1.5-pro',
         },
     },
 
