@@ -90,7 +90,11 @@ export default function Header({ variant = 'landing' }) {
       )}
 
       {/* Desktop Navigation */}
-      <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-2 sm:gap-3">
+      <nav
+        aria-label="Main navigation"
+        className="hidden lg:flex items-center gap-2 sm:gap-3"
+        data-auth-state={isLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated'}
+      >
         <Link
           href="/story"
           className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors"
@@ -119,8 +123,34 @@ export default function Header({ variant = 'landing' }) {
         >
           Feedback
         </button>
-        {isLoading ? null : user && !profile?.unsubscribed_at ? (
+        {isLoading ? null : user ? (
           <>
+            {profile?.unsubscribed_at && (
+              <motion.div
+                whileHover={{
+                  x: 1,
+                  y: 1,
+                  boxShadow: "2px 2px 0px 0px #000"
+                }}
+                whileTap={{
+                  x: 3,
+                  y: 3,
+                  boxShadow: "0px 0px 0px 0px #000"
+                }}
+                className="border-2 border-black shadow-[3px_3px_0px_0px_#000]"
+              >
+                <button
+                  onClick={() => {
+                    closeAuthModal();
+                    openSubscribeModal();
+                  }}
+                  className="px-4 py-2 bg-white comic-title text-sm text-black hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  SUBSCRIBE
+                </button>
+              </motion.div>
+            )}
             <BadgeDisplay />
             <Link
               href="/profile"
@@ -248,8 +278,36 @@ export default function Header({ variant = 'landing' }) {
 
           <div className="w-full h-px bg-gray-200 my-2" />
 
-          {isLoading ? null : user && !profile?.unsubscribed_at ? (
+          {isLoading ? null : user ? (
             <div className="flex flex-col items-center gap-6">
+              {profile?.unsubscribed_at && (
+                <motion.div
+                  whileHover={{
+                    x: 2,
+                    y: 2,
+                    boxShadow: "4px 4px 0px 0px #000"
+                  }}
+                  whileTap={{
+                    x: 6,
+                    y: 6,
+                    boxShadow: "0px 0px 0px 0px #000"
+                  }}
+                  className="w-full max-w-xs border-3 border-black shadow-[6px_6px_0px_0px_#000]"
+                >
+                  <button
+                    onClick={() => {
+                      closeAuthModal();
+                      openSubscribeModal();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block w-full px-6 py-4 bg-white text-black comic-title text-xl text-center hover:bg-gray-50 flex items-center justify-center gap-3"
+                  >
+                    <Mail className="w-5 h-5" />
+                    SUBSCRIBE
+                  </button>
+                </motion.div>
+              )}
+
               <div onClick={() => setIsMenuOpen(false)}>
                 <div className="scale-125 origin-center">
                   <BadgeDisplay />

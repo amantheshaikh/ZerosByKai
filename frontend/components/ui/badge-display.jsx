@@ -21,14 +21,19 @@ export default function BadgeDisplay() {
       .catch(() => { });
   }, [session]);
 
-  if (!data || data.count === 0) return null;
+  try {
+    if (!data || !data.count || data.count === 0) return null;
 
-  const emoji = TIER_EMOJI[data.tier] || '🕵️';
+    const emoji = TIER_EMOJI[data.tier] || '🕵️';
 
-  return (
-    <Link href="/profile" className="flex items-center gap-1.5 px-3 py-1 border-2 border-black bg-yellow-100 hover:bg-yellow-200 transition-colors comic-body text-sm font-bold text-black">
-      <span>{emoji}</span>
-      <span>{data.count}</span>
-    </Link>
-  );
+    return (
+      <Link href="/profile" className="flex items-center gap-1.5 px-3 py-1 border-2 border-black bg-yellow-100 hover:bg-yellow-200 transition-colors comic-body text-sm font-bold text-black">
+        <span>{emoji}</span>
+        <span>{data.count}</span>
+      </Link>
+    );
+  } catch (err) {
+    console.error('BadgeDisplay rendering error:', err);
+    return null;
+  }
 }

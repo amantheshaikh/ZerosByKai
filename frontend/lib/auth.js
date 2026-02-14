@@ -297,6 +297,14 @@ export function AuthProvider({ children }) {
     isInitialized.current = true;
 
     const initializeAuth = async () => {
+      // 5-second failsafe: Ensure isLoading is never stuck at true
+      const failsafeTimeout = setTimeout(() => {
+        if (isLoading) {
+          console.warn('⚠️ Auth initialization exceeded timeout. Forcing isLoading to false.');
+          setIsLoading(false);
+        }
+      }, 5000);
+
       try {
         // Check for email token first
         await checkEmailToken();
@@ -341,21 +349,28 @@ export function AuthProvider({ children }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
+        // Unblock UI as soon as session is identified
+        setIsLoading(false);
+        clearTimeout(failsafeTimeout);
+
         if (currentSession?.user) {
-          const { data: userProfile } = await supabase
+          supabase
             .from('subscribers')
             .select('*')
             .eq('user_id', currentSession.user.id)
-            .maybeSingle();
-          setProfile(userProfile);
+            .maybeSingle()
+            .then(({ data: userProfile }) => {
+              setProfile(userProfile ?? null);
+            })
+            .catch(err => console.error('Error fetching profile:', err));
         }
 
         console.log('✅ Auth initialized:', currentSession ? 'Authenticated' : 'Not authenticated');
       } catch (error) {
         console.error('❌ Auth initialization failed:', error.message);
         setError('Failed to initialize authentication');
-      } finally {
         setIsLoading(false);
+        clearTimeout(failsafeTimeout);
       }
     };
 
@@ -369,23 +384,27 @@ export function AuthProvider({ children }) {
       async (event, newSession) => {
         console.log('🔐 Auth event:', event);
 
+        // Force immediate re-rendering for any valid session event
+        setIsLoading(false);
+
         // Update state
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        // Fetch profile if user exists
+        // Fetch profile if user exists (non-blocking)
         if (newSession?.user) {
-          const { data: userProfile } = await supabase
+          supabase
             .from('subscribers')
             .select('*')
             .eq('user_id', newSession.user.id)
-            .maybeSingle();
-          setProfile(userProfile);
+            .maybeSingle()
+            .then(({ data: userProfile }) => {
+              setProfile(userProfile ?? null);
+            })
+            .catch(err => console.error('Error fetching profile in state change:', err));
         } else {
           setProfile(null);
         }
-
-        setIsLoading(false);
 
         // Schedule session refresh before expiry
         if (newSession?.expires_at) {
