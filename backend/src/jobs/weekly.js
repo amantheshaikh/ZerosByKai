@@ -44,7 +44,7 @@ export async function calculateWinner() {
     // 1. Get ideas for that week
     const { data: ideas, error: ideasError } = await supabaseAdmin
       .from('ideas')
-      .select('id, name, title')
+      .select('id, name, title, created_at')
       .eq('week_published', weekStart)
       .eq('status', 'published');
 
@@ -68,12 +68,13 @@ export async function calculateWinner() {
     }
 
     const totalVotes = ideaVotes.reduce((sum, i) => sum + i.voteCount, 0);
-    const maxVotes = Math.max(...ideaVotes.map(i => i.voteCount));
+
+    // Sort by votes DESC, then by created_at ASC (earliest idea wins ties)
+    ideaVotes.sort((a, b) => b.voteCount - a.voteCount || new Date(a.created_at) - new Date(b.created_at));
 
     let winner = null;
     if (totalVotes > 0) {
-      // Find the idea with the most votes (first one in case of tie)
-      winner = ideaVotes.find(idea => idea.voteCount === maxVotes);
+      winner = ideaVotes[0];
       console.log(`Winner identified: ${winner.name} (${winner.voteCount} votes)`);
     } else {
       console.log(`No winner identified for week ${weekStart}: Total votes is 0.`);

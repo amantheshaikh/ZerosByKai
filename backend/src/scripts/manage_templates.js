@@ -280,11 +280,10 @@ async function simulateWeekly() {
 
         const totalVotes = ideaVotes.reduce((sum, i) => sum + i.voteCount, 0);
         if (totalVotes > 0) {
-            const maxVotes = Math.max(...ideaVotes.map(i => i.voteCount));
-            simulatedWinner = ideaVotes.find(i => i.voteCount === maxVotes);
+            ideaVotes.sort((a, b) => b.voteCount - a.voteCount || new Date(a.created_at) - new Date(b.created_at));
+            simulatedWinner = ideaVotes[0];
             console.log(`   Winner: ${simulatedWinner.name} (${simulatedWinner.voteCount}/${totalVotes} votes)`);
             ideaVotes
-                .sort((a, b) => b.voteCount - a.voteCount)
                 .forEach(i => console.log(`   ${i.voteCount === maxVotes ? '→' : ' '} ${i.name}: ${i.voteCount} votes`));
         } else {
             console.log('   No votes cast yet — winner section will be omitted.');

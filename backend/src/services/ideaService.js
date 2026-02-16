@@ -57,6 +57,7 @@ export const getLeaderboardForWeek = async (weekStart) => {
         .eq('week_published', weekStart)
         .in('status', ['published', 'archived'])
         .order('vote_count', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(3);
 
     if (error) throw error;

@@ -47,7 +47,7 @@ export const config = {
     // Admin Config
     admin: {
         email: process.env.ADMIN_EMAIL,
-        name: process.env.ADMIN_NAME || 'Admin',
+        name: process.env.ADMIN_NAME || 'Kai',
         backlogThreshold: parseInt(process.env.BACKLOG_THRESHOLD || '10', 10),
     },
 
