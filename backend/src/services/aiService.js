@@ -42,11 +42,7 @@ export class AIService {
 
         const prompt = this._buildPrompt(sanitizedPosts, adjustedCount, exclusionList);
 
-        const chain = [
-            this.models.primary,
-            this.models.fallback,
-            this.models.fallbackBackup
-        ].filter(Boolean);
+        const chain = Object.values(this.models).filter(Boolean);
 
         if (chain.length === 0) {
             throw new Error("No AI models configured. Please check GEMINI_API_KEY and model configuration.");
@@ -99,10 +95,7 @@ export class AIService {
 
         const prompt = this._buildDedupePrompt(ideasText, allGeneratedIdeas.length);
 
-        const chain = [
-            this.models.primary,
-            this.models.fallback
-        ].filter(Boolean);
+        const chain = Object.values(this.models).filter(Boolean);
 
         for (const model of chain) {
             try {
@@ -128,10 +121,7 @@ export class AIService {
         const prompt = this._buildSubjectPrompt(ideas);
 
         // Try using the primary model, fall back if needed
-        const chain = [
-            this.models.primary,
-            this.models.fallback
-        ].filter(Boolean);
+        const chain = Object.values(this.models).filter(Boolean);
 
         for (const model of chain) {
             try {
@@ -175,7 +165,7 @@ export class AIService {
             ]
         `;
 
-        const chain = [this.models.primary, this.models.fallback].filter(Boolean);
+        const chain = Object.values(this.models).filter(Boolean);
         for (const model of chain) {
             try {
                 const result = await this._callGeminiGeneric(model, prompt);
@@ -208,6 +198,7 @@ Problem: ${idea.problem}
 Solution: ${idea.solution}
 Target Audience: ${idea.target_audience}
 Tags: ${idea.tags ? idea.tags.join(', ') : 'None'}
+Why It Matters: ${idea.why_it_matters || 'None'}
             `.trim())
             .join('\n\n---\n\n');
 
@@ -236,12 +227,13 @@ Tags: ${idea.tags ? idea.tags.join(', ') : 'None'}
                 "problem": "Refined Problem (No subreddit mentions)",
                 "solution": "Refined Solution (No subreddit mentions)",
                 "target_audience": "Specific Niche Audience",
-                "tags": ["Tag1", "Tag2"]
+                "tags": ["Tag1", "Tag2"],
+                "why_it_matters": "Refined Market sizing/why now (No subreddit mentions)"
               }
             ]
         `;
 
-        const chain = [this.models.primary, this.models.fallback].filter(Boolean);
+        const chain = Object.values(this.models).filter(Boolean);
         for (const model of chain) {
             try {
                 const result = await this._callGeminiGeneric(model, prompt);
@@ -259,7 +251,8 @@ Tags: ${idea.tags ? idea.tags.join(', ') : 'None'}
                         problem: aiMatch.problem || idea.problem,
                         solution: aiMatch.solution || idea.solution,
                         target_audience: aiMatch.target_audience || idea.target_audience,
-                        tags: aiMatch.tags || idea.tags
+                        tags: aiMatch.tags || idea.tags,
+                        why_it_matters: aiMatch.why_it_matters || idea.why_it_matters
                     };
                 });
             } catch (e) {

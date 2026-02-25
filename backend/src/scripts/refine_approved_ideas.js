@@ -57,6 +57,7 @@ async function main() {
                         console.log(`Title: ${refinedIdea.title}`);
                         console.log(`Problem: ${refinedIdea.problem}`);
                         console.log(`Tags: ${refinedIdea.tags.join(', ')}`);
+                        console.log(`Why It Matters: ${refinedIdea.why_it_matters}`);
                     } else {
                         const { error: updateError } = await supabaseAdmin
                             .from('ideas')
@@ -66,7 +67,8 @@ async function main() {
                                 problem: refinedIdea.problem,
                                 solution: refinedIdea.solution,
                                 target_audience: refinedIdea.target_audience,
-                                tags: refinedIdea.tags
+                                tags: refinedIdea.tags,
+                                why_it_matters: refinedIdea.why_it_matters
                             })
                             .eq('id', refinedIdea.id);
 
@@ -80,6 +82,11 @@ async function main() {
                 }
             } catch (batchError) {
                 console.error(`❌ Batch failed:`, batchError.message);
+            }
+
+            if (i + BATCH_SIZE < ideas.length) {
+                console.log('⏳ Waiting 35s before next batch to respect API limits...');
+                await new Promise(r => setTimeout(r, 35000));
             }
         }
 
