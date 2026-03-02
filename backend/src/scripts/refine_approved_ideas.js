@@ -64,11 +64,11 @@ async function main() {
                             .update({
                                 name: refinedIdea.name,
                                 title: refinedIdea.title,
-                                problem: refinedIdea.problem,
-                                solution: refinedIdea.solution,
+                                problem: (refinedIdea.problem || '').substring(0, 180),
+                                solution: (refinedIdea.solution || '').substring(0, 180),
                                 target_audience: refinedIdea.target_audience,
                                 tags: refinedIdea.tags,
-                                why_it_matters: refinedIdea.why_it_matters
+                                why_it_matters: (refinedIdea.why_it_matters || '').substring(0, 180)
                             })
                             .eq('id', refinedIdea.id);
 

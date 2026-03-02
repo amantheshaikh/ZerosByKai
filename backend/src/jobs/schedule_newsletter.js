@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { AIService } from '../services/aiService.js';
 import { config } from '../config/env.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
+import { execSync } from 'child_process';
 
 /**
  * Schedule Newsletter Script
@@ -91,6 +92,19 @@ export async function scheduleNewsletter() {
             } else {
                 console.error('❌ Failed to generate subject line.');
             }
+        }
+
+        console.log('\n🎨 Generating X Post Images for Ideas...');
+        try {
+            // Trigger generate_x_content for IDEAS ONLY (Winner is generated on Monday)
+            // We use the 'scheduled' status since they aren't live yet.
+            const genCommand = `node src/jobs/generate_x_content.js --mode=ideas --status=scheduled --date=${weekStart}`;
+            console.log(`   Running: ${genCommand}`);
+            execSync(genCommand, { stdio: 'inherit' });
+            console.log('✅ X Post Images Generated!');
+        } catch (genError) {
+            console.error('⚠️  Image generation failed, but scheduling was successful:', genError.message);
+            // We don't exit(1) here because the core scheduling (DB) is done.
         }
 
         console.log('\n✅ Scheduling Complete!');

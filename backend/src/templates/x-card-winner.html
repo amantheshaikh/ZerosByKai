@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bangers&family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1200px;
+      height: 600px;
+      overflow: hidden;
+    }
+
+    .card {
+      width: 1200px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 3px solid #000;
+      overflow: hidden;
+    }
+
+    /* ── TOPBAR (~60px) ───────────────────────────── */
+    .topbar {
+      flex-shrink: 0;
+      height: 60px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      border-bottom: 3px solid #000;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .topbar-name {
+      font-family: 'Bangers', cursive;
+      font-size: 42px;
+      letter-spacing: 4px;
+      color: #000;
+      line-height: 1;
+    }
+
+    .topbar-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .topbar-week {
+      font-family: 'Courier Prime', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .topbar-tagline {
+      font-family: 'Courier Prime', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.35);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    /* ── WINNER HERO (~170px) — white bg ─────────── */
+    .winner-hero {
+      flex-shrink: 0;
+      height: 140px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 36px;
+    }
+
+    .trophy-badge {
+      flex-shrink: 0;
+      width: 90px;
+      height: 90px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(-2deg);
+      font-size: 52px;
+      line-height: 1;
+    }
+
+    .hero-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .hero-tagline {
+      font-family: 'Courier Prime', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #000;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      line-height: 1;
+      background: #facc15;
+      border: 3px solid #000;
+      padding: 8px 16px;
+      transform: rotate(1.5deg);
+      display: inline-block;
+    }
+
+    .winner-name-block {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .winner-eyebrow {
+      font-family: 'Courier Prime', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.45);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    .winner-name {
+      font-family: 'Bangers', cursive;
+      font-size: 80px;
+      font-style: italic;
+      letter-spacing: 1px;
+      color: #000;
+      text-transform: uppercase;
+      line-height: 0.9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 20px;
+    }
+
+    .winner-title {
+      font-family: 'Courier Prime', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.45);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 20px;
+    }
+
+    /* ── PANEL SECTIONS (flex:1 each) ─────────────── */
+    .panel-section {
+      flex: 1;
+      position: relative;
+      margin: 15px 40px 20px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-pill {
+      position: absolute;
+      top: -18px;
+      left: 20px;
+      background: #000;
+      color: #fff;
+      font-family: 'Courier Prime', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 5px 16px;
+      display: inline-block;
+      line-height: 1.2;
+      z-index: 2;
+    }
+
+    .panel-box {
+      flex: 1;
+      border: 3px solid #000;
+      padding: 28px 24px 24px;
+      overflow: hidden;
+    }
+
+    .idea-box {
+      background: #FFF1F2;
+    }
+
+    .why-box {
+      background: #F0FDF4;
+    }
+
+    .panel-text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 36px;
+      line-height: 1.35;
+      color: #111;
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── FOOTER (~100px) ──────────────────────────── */
+    .footer-strip {
+      flex-shrink: 0;
+      height: 100px;
+      background: #fff;
+      border-top: 3px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 36px;
+    }
+
+    .footer-content {
+      text-align: center;
+    }
+
+    .footer-line {
+      font-family: 'Courier Prime', monospace;
+      font-size: 28px;
+      font-style: italic;
+      color: #000;
+      line-height: 1.35;
+    }
+
+    .footer-highlight {
+      background: #facc15;
+      color: #000;
+      font-weight: 700;
+      font-style: normal;
+      padding: 2px 8px;
+    }
+
+    .footer-cta {
+      background: #881337;
+      color: #fff;
+      font-weight: 700;
+      font-style: normal;
+      padding: 2px 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-brand">
+        <img class="topbar-logo" src="data:image/png;base64,{{FAVICON_BASE64}}" alt="" />
+
+        <span class="topbar-name">ZEROS BY KAI</span>
+      </div>
+      <div class="topbar-right">
+
+
+      </div>
+    </div>
+
+    <!-- Winner hero -->
+    <div class="winner-hero">
+      <div class="trophy-badge">🏆</div>
+      <div class="winner-name-block">
+        <div class="winner-eyebrow">LAST WEEK'S WINNER</div>
+        <div class="hero-name-row">
+          <div class="winner-name">{{IDEA_NAME}}</div>
+          <div class="hero-tagline">⚡ 10 FRESH IDEAS EVERY WEEK</div>
+        </div>
+        <div class="winner-title">{{IDEA_TITLE}}</div>
+      </div>
+    </div>
+
+    <!-- THE IDEA panel -->
+    <div class="panel-section">
+      <span class="panel-pill">THE IDEA</span>
+      <div class="panel-box idea-box">
+        <div class="panel-text">{{IDEA_SOLUTION}}</div>
+      </div>
+    </div>
+
+
+    <!-- Footer -->
+    <div class="footer-strip">
+      <div class="footer-content">
+        <div class="footer-line">"In a world where <span class="footer-highlight">0 → 1</span> has become super easy,
+          find the</div>
+        <div class="footer-line"><span class="footer-cta">right ZERO.</span>"</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+
+</html>

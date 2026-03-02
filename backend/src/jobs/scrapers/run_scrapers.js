@@ -157,10 +157,10 @@ export async function runScraperFlow() {
         const rows = finalIdeas.map(idea => ({
             name: idea.name,
             title: idea.title,
-            problem: idea.problem,
-            solution: idea.solution,
+            problem: (idea.problem || '').substring(0, 180),
+            solution: (idea.solution || '').substring(0, 180),
             target_audience: idea.target,
-            why_it_matters: idea.why,
+            why_it_matters: (idea.why || '').substring(0, 180),
             tags: idea.tags,
             status: 'backlog'
         }));

@@ -2,8 +2,9 @@ name: Weekly Digest Email
 
 on:
   schedule:
-    # Runs at 14:00 UTC every Monday (9:00 AM EST / 6:00 AM PST)
-    - cron: '0 14 * * 1'
+    # Runs at 14:15 UTC every Monday (9:15 AM EST / 6:15 AM PST)
+    # Using 15 past the hour avoids GitHub's top-of-the-hour heavy usage queues.
+    - cron: '15 14 * * 1'
   workflow_dispatch: # Allows manual triggering from GitHub UI for testing
 
 jobs:
@@ -47,3 +48,20 @@ jobs:
           EMAIL_TOKEN_SECRET: ${{ secrets.EMAIL_TOKEN_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Generate X Content (images + CSV)
+        run: node src/jobs/generate_x_content.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+
+      - name: Upload X Posts as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-posts-${{ github.run_id }}
+          path: backend/x_posts/
+          retention-days: 90

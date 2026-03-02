@@ -16,7 +16,9 @@
     "lint": "eslint src/**",
     "test": "vitest run ./unit_tests",
     "coverage": "vitest run ./unit_tests --coverage",
-    "dry-run-weekly": "node scripts/dry-run-weekly.js"
+    "dry-run-weekly": "node scripts/dry-run-weekly.js",
+    "x:cover": "node src/jobs/generate_x_cover.js",
+    "x:cards": "node src/jobs/generate_x_content.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
@@ -39,6 +41,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.0.0",
     "nodemon": "^3.0.2",
+    "playwright": "^1.58.2",
     "supertest": "^7.2.2",
     "vitest": "^4.0.18"
   }

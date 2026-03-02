@@ -213,7 +213,11 @@ Why It Matters: ${idea.why_it_matters || 'None'}
                - FORBIDDEN (Metaphorical): Overly artistic "The [Noun]" names (e.g., "The Skeptic", "The Well").
             2. **Clean Content**: Remove ALL mentions of specific subreddits (e.g., "r/SaaS", "Reddit") from the Title, Problem, and Solution. Use general terms like "online communities".
             3. **Tags**: Standardize tags into 1-2 word categories.
-            4. **Character**: The tone should be punchy, insightful, and professional.
+            4. **Character Limits**: 
+               - **Problem**: Max 180 characters.
+               - **Solution**: Max 180 characters.
+               - **Why It Matters**: Max 180 characters.
+            5. **Tone**: The tone should be punchy, insightful, and professional.
 
             **Ideas to Refine:**
             ${ideasText}
@@ -300,6 +304,10 @@ Why It Matters: ${idea.why_it_matters || 'None'}
                - FORBIDDEN: Generic descriptors (Optimizer, Platform, Tool, System, Suite, Utility, Solution, Hub, Center) and metaphorical "The [Noun]" names (The Skeptic, The Well).
             2. **Clean Content**: Remove ALL mentions of specific subreddits (e.g., "r/SaaS", "Reddit") from all fields.
             3. **Tags**: Use standard 1-2 word categories.
+            4. **Character Limits**:
+               - **Problem**: Max 180 characters.
+               - **Solution**: Max 180 characters.
+               - **Why/Market sizing**: Max 180 characters.
 
             **Output Format (Strict JSON array of objects):**
             [
@@ -358,6 +366,10 @@ Why It Matters: ${idea.why_it_matters || 'None'}
                         - Feasibility: Should be buildable as an MVP
                             - Diversity: Different industries / verticals preferred
             - **Clean Content**: ABSOLUTELY NO subreddit mentions (r/SaaS etc.) in the output.
+            - **Character Limits**: 
+               - **Problem**: Max 180 characters.
+               - **Solution**: Max 180 characters.
+               - **Why/Market sizing**: Max 180 characters.
 
                                 ** Output Requirements:**
                                     - Return up to 40 final ideas(can be fewer if quality is the priority)
