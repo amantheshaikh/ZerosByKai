@@ -164,7 +164,7 @@ export default function KaiStory() {
                 <meta property="og:description" content="When building became easy, knowing what to build became the goldmine. The origin story of Kai." />
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content="https://zerosbykai.com/story" />
-                <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
+                <meta property="og:image" content="https://zerosbykai.com/og-hero.png" />
                 <meta name="twitter:title" content="The Story of Kai | Zeros By Kai" />
                 <meta name="twitter:description" content="When building became easy, knowing what to build became the goldmine." />
             </Head>

@@ -39,7 +39,7 @@ export default function ArchivePage() {
                 <meta property="og:description" content="Explore the complete archive of validated startup ideas and opportunities curated from millions of conversations. See winners and all past ideas." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/archive" />
-                <meta property="og:image" content="https://zerosbykai.com/kai-hero.jpg" />
+                <meta property="og:image" content="https://zerosbykai.com/og-hero.png" />
                 <meta name="twitter:title" content="Complete Startup Ideas Archive | Zeros By Kai" />
                 <meta name="twitter:description" content="Explore hundreds of validated startup ideas. See winners and browse the complete archive." />
                 <link rel="canonical" href="https://zerosbykai.com/archive" />
