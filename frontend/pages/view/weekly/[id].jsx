@@ -38,6 +38,12 @@ export default function WeeklyDigestView() {
                 <title>Weekly Startup Ideas Digest: {weekLabel} | Zeros By Kai</title>
                 <meta name="description" content={`View the curated startup ideas for the week of ${weekLabel}. 10 validated opportunities from Zeros By Kai.`} />
                 <meta name="robots" content="noindex" />
+                <meta property="og:title" content={`Weekly Startup Ideas Digest: ${weekLabel} | Zeros By Kai`} />
+                <meta property="og:description" content={`View the curated startup ideas for the week of ${weekLabel}. 10 validated opportunities from Zeros By Kai.`} />
+                <meta property="og:image" content="https://zerosbykai.com/og-hero.png" />
+                <meta name="twitter:title" content={`Weekly Startup Ideas Digest: ${weekLabel} | Zeros By Kai`} />
+                <meta name="twitter:description" content={`View the curated startup ideas for the week of ${weekLabel}. 10 validated opportunities from Zeros By Kai.`} />
+                <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" />
             </Head>
 
 
