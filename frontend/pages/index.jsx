@@ -172,10 +172,10 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
                 <meta property="og:title" content="Zeros By Kai | Real Problems. Real Startup Ideas" />
                 <meta property="og:description" content="Stop brainstorming. Start building. Get 10 validated startup opportunities delivered every Monday." />
                 <meta property="og:url" content="https://zerosbykai.com/" />
-                <meta property="og:image" content="https://zerosbykai.com/og-hero.png" />
+                <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
                 <meta name="twitter:title" content="Zeros By Kai | Real Problems. Real Startup Ideas" />
                 <meta name="twitter:description" content="10 validated startup ideas. No AI slop. Just real problems." />
-                <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" />
+                <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" key="twitterimage" />
                 <link rel="canonical" href="https://zerosbykai.com/" />
             </Head>
             <HeroSection />

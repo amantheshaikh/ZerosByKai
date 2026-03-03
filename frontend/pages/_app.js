@@ -56,10 +56,10 @@ export default function App({ Component, pageProps }) {
                     {/* Default OG fallbacks — overridden per page */}
                     <meta property="og:site_name" content="Zeros By Kai" />
                     <meta property="og:locale" content="en_US" />
-                    <meta property="og:image" content="https://zerosbykai.com/og-hero.png" />
+                    <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:site" content="@zerosbykai" />
-                    <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" />
+                    <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" key="twitterimage" />
                     <meta name="robots" content="index, follow" />
                 </Head>
                 <Script
