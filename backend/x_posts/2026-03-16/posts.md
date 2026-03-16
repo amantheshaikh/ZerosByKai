@@ -1,6 +1,36 @@
-# 🐦 X Post Gallery - 2026-03-16T17:00:00.000Z
+# 🐦 X Post Gallery - 2026-03-16T14:30:00.000Z
 
 This file provides a preview of all generated posts. You can copy-paste the text directly into X.
+
+---
+
+## 🕒 Scheduled: 2026-03-16T14:30:00.000Z
+
+### 📝 Tweet Text:
+```text
+🏆 Last week's winner is in.
+
+The ZerosByKai community voted — and the startup idea that got the most votes this week was:
+
+Snapshot — On-Demand Market Intelligence
+
+The Idea:
+A premium marketplace connecting expert analysts with buyers seeking productized, one-time research deliverables. It standardizes the delivery of high-ticket reports, detailed datasets, and competitive swipe files as standalone purchases.
+
+Why:
+There is a growing fatigue toward recurring SaaS subscriptions for data that is only needed once. Founders and investors often require a deep-dive, one-time snapshot of a niche or competitor rather than a monthly monitoring tool they rarely open.
+
+The community saw the opportunity. Do you?
+
+🆕 10 brand-new startup ideas just dropped today. One of them could be the next big thing.
+
+Vote for your favourite → zerosbykai.com
+
+#startup #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject #saas
+```
+
+### 🖼️ Image Preview:
+![00-winner.png](./images/00-winner.png)
 
 ---
 
