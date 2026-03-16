@@ -44,15 +44,9 @@ export default function Footer() {
                                         href="https://foundrlist.com/product/zerosbykai"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="hover:opacity-80 transition-opacity shrink-0"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-600 text-gray-400 hover:text-yellow-400 hover:border-yellow-400 transition-colors text-xs font-mono shrink-0"
                                     >
-                                        <img
-                                            src="https://foundrlist.com/api/badge/zerosbykai"
-                                            alt="Live on FoundrList"
-                                            width="180"
-                                            height="72"
-                                            className="h-auto w-24 sm:w-32"
-                                        />
+                                        🚀 FoundrList
                                     </a>
                                     <a
                                         href="https://www.producthunt.com/products/zeros-by-kai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-zeros-by-kai"

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth, apiFetch } from '@/lib/auth';
 
-// ─── data ────────────────────────────────────────────────────────────────────
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const TIERS = [
   { min: 1, max: 2,  label: 'CONDEMNED',  emoji: '💀', accent: 'text-rose-700',  bg: 'bg-rose-50',   border: 'border-rose-700'  },
@@ -17,35 +17,19 @@ const TIERS = [
   { min: 9, max: 10, label: 'SHIP IT',    emoji: '🚀', accent: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-600'  },
 ];
 
-function getTier(score) {
-  return TIERS.find(t => score >= t.min && score <= t.max) || TIERS[0];
-}
+const BAR_COLORS = { 2: 'bg-rose-700', 4: 'bg-orange-500', 6: 'bg-yellow-400', 8: 'bg-lime-500' };
+const ACCENT_HEADER_MAP = {
+  'text-rose-700':  'text-rose-400',
+  'text-blue-700':  'text-blue-300',
+  'text-yellow-700':'text-yellow-400',
+  'text-green-700': 'text-green-400',
+};
 
 const HOW_IT_WORKS = [
-  {
-    num: '01',
-    title: 'SPILL YOUR GUTS',
-    body: 'Describe your startup idea — the problem, who pays, why now. The more specific, the more surgical the roast. Vague ideas earn vague burns.',
-    icon: '📝',
-  },
-  {
-    num: '02',
-    title: 'KAI WARMS UP THE GRILL',
-    body: "Our AI — trained on startup postmortems and years of internet chaos — tears your pitch apart line by line. No exceptions.",
-    icon: '🔥',
-  },
-  {
-    num: '03',
-    title: 'THE VERDICT LANDS',
-    body: 'A score, a tier badge, surgical damage points, a competition reality check, and — buried at the bottom — one actual piece of useful advice.',
-    icon: '💀',
-  },
-  {
-    num: '04',
-    title: 'CARRY THE SHAME (OR GLORY)',
-    body: "Share your roast publicly so other founders learn from your sacrifice. Or keep it private. We're not your therapist.",
-    icon: '🏆',
-  },
+  { num: '01', title: 'SPILL YOUR GUTS',       icon: '📝', body: 'Describe your startup idea — the problem, who pays, why now. The more specific, the more surgical the roast. Vague ideas earn vague burns.' },
+  { num: '02', title: 'KAI WARMS UP THE GRILL', icon: '🔥', body: "Our AI — trained on startup postmortems and years of internet chaos — tears your pitch apart line by line. No exceptions." },
+  { num: '03', title: 'THE VERDICT LANDS',      icon: '💀', body: 'A score, a tier badge, surgical damage points, a competition reality check, and — buried at the bottom — one actual piece of useful advice.' },
+  { num: '04', title: 'CARRY THE SHAME (OR GLORY)', icon: '🏆', body: "Share your roast publicly so other founders learn from your sacrifice. Or keep it private. We're not your therapist." },
 ];
 
 const LOADING_MESSAGES = [
@@ -62,39 +46,32 @@ const LOADING_MESSAGES = [
 ];
 
 const FAQ_DATA = [
-  {
-    q: 'What exactly does the roast include?',
-    a: "A score from 1–10 with a tier badge (from CONDEMNED to SHIP IT), a one-line verdict, three specific problems with your idea, a competition reality check naming who's already doing it, your founder archetype, a 12-month survivability prognosis, and — buried at the end — one actually useful piece of advice. Think of it as a startup autopsy. Except you\'re still alive.",
-  },
-  {
-    q: 'Is this actually useful, or just mean for sport?',
-    a: 'Both, ideally. Every section of the roast is grounded in real startup failure patterns — market saturation, vague customer definition, lack of defensibility. The "one useful thing" at the end is intentionally the most actionable output. The savagery is the delivery mechanism. The insight is the actual product.',
-  },
-  {
-    q: 'Will Kai steal my startup idea?',
-    a: "Kai doesn't want your idea. If it's not in the public roast board (which you control via the toggle), it stays between you and the AI. And honestly, if your idea is so good that an AI roasting tool is your biggest IP threat, you probably have bigger problems to worry about.",
-  },
-  {
-    q: 'What if I get a terrible score?',
-    a: "Good. That\'s the point. A low score means you found the problems before you spent 18 months and your savings account on them. Most funded startups get roasted hard in early feedback — the ones that survive are the ones that listened. Getting a 2/10 from Kai is cheaper than getting a 0/10 from the market.",
-  },
-  {
-    q: 'Can I roast an idea I\'m already building?',
-    a: 'Especially then. The earlier you get honest feedback, the cheaper it is to pivot. A roast at the idea stage costs you nothing. A roast at the Series A stage costs you everything. Use this before you use your runway.',
-  },
-  {
-    q: 'What makes a better roast submission?',
-    a: 'Specificity. "An app for productivity" gets a generic roast. "A time-blocking tool for ADHD freelancers who miss deadlines because of context-switching, not laziness" gets a surgical one. Name the customer. Name the problem. Name why existing solutions fail them. The more precise your pitch, the more precise the damage.',
-  },
-  {
-    q: 'How is this different from asking ChatGPT for feedback?',
-    a: "ChatGPT is trained to be helpful and agreeable. It will find something encouraging to say about almost anything. Kai is specifically designed to apply startup validation frameworks — market size, competition moats, customer willingness to pay, timing — without softening the conclusion. You\'re not here for validation. You\'re here for the truth.",
-  },
-  {
-    q: 'Does a good score mean I should build it?',
-    a: "A high score means the idea holds up to AI scrutiny, which is a low bar. The real test is still customer interviews, a landing page, and pre-orders. Think of a good score as permission to keep digging — not a green light to quit your job on a Monday.",
-  },
+  { q: 'What exactly does the roast include?',    a: "A score from 1–10 with a tier badge (from CONDEMNED to SHIP IT), a one-line verdict, three specific problems with your idea, a competition reality check naming who's already doing it, your founder archetype, a 12-month survivability prognosis, and — buried at the end — one actually useful piece of advice. Think of it as a startup autopsy. Except you're still alive." },
+  { q: 'Is this actually useful, or just mean for sport?', a: 'Both, ideally. Every section of the roast is grounded in real startup failure patterns — market saturation, vague customer definition, lack of defensibility. The "one useful thing" at the end is intentionally the most actionable output. The savagery is the delivery mechanism. The insight is the actual product.' },
+  { q: 'Will Kai steal my startup idea?',          a: "Kai doesn't want your idea. If it's not in the public roast board (which you control via the toggle), it stays between you and the AI. And honestly, if your idea is so good that an AI roasting tool is your biggest IP threat, you probably have bigger problems to worry about." },
+  { q: 'What if I get a terrible score?',          a: "Good. That's the point. A low score means you found the problems before you spent 18 months and your savings account on them. Most funded startups get roasted hard in early feedback — the ones that survive are the ones that listened. Getting a 2/10 from Kai is cheaper than getting a 0/10 from the market." },
+  { q: "Can I roast an idea I'm already building?", a: 'Especially then. The earlier you get honest feedback, the cheaper it is to pivot. A roast at the idea stage costs you nothing. A roast at the Series A stage costs you everything. Use this before you use your runway.' },
+  { q: 'What makes a better roast submission?',    a: 'Specificity. "An app for productivity" gets a generic roast. "A time-blocking tool for ADHD freelancers who miss deadlines because of context-switching, not laziness" gets a surgical one. Name the customer. Name the problem. Name why existing solutions fail them. The more precise your pitch, the more precise the damage.' },
+  { q: 'How is this different from asking ChatGPT for feedback?', a: "ChatGPT is trained to be helpful and agreeable. It will find something encouraging to say about almost anything. Kai is specifically designed to apply startup validation frameworks — market size, competition moats, customer willingness to pay, timing — without softening the conclusion. You're not here for validation. You're here for the truth." },
+  { q: 'Does a good score mean I should build it?', a: "A high score means the idea holds up to AI scrutiny, which is a low bar. The real test is still customer interviews, a landing page, and pre-orders. Think of a good score as permission to keep digging — not a green light to quit your job on a Monday." },
 ];
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function getTier(score) {
+  return TIERS.find(t => score >= t.min && score <= t.max) || TIERS[0];
+}
+
+function getBarColor(score) {
+  for (const [max, color] of Object.entries(BAR_COLORS)) {
+    if (score <= Number(max)) return color;
+  }
+  return 'bg-green-500';
+}
+
+function truncate(str, len) {
+  return str?.length > len ? str.slice(0, len) + '…' : str;
+}
 
 // ─── sub-components ──────────────────────────────────────────────────────────
 
@@ -105,7 +82,6 @@ function PublicToggle({ checked, onChange }) {
       onClick={() => onChange(!checked)}
       className="flex items-center gap-3 group w-full text-left focus:outline-none"
     >
-      {/* Track */}
       <div className={`relative flex-shrink-0 w-11 h-6 border-2 border-black transition-colors ${checked ? 'bg-black' : 'bg-white'}`}>
         <motion.div
           className={`absolute top-[2px] w-4 h-4 border-2 border-black ${checked ? 'bg-yellow-400' : 'bg-gray-300'}`}
@@ -131,7 +107,6 @@ function PublicToggle({ checked, onChange }) {
 function SeverityBar({ score }) {
   const tier = getTier(score);
   const pct = (score / 10) * 100;
-  const barColor = score <= 2 ? 'bg-rose-700' : score <= 4 ? 'bg-orange-500' : score <= 6 ? 'bg-yellow-400' : score <= 8 ? 'bg-lime-500' : 'bg-green-500';
 
   return (
     <div>
@@ -147,7 +122,7 @@ function SeverityBar({ score }) {
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 1.2, ease: 'easeOut', delay: 0.4 }}
-          className={`h-full ${barColor} relative`}
+          className={`h-full ${getBarColor(score)} relative`}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </motion.div>
@@ -161,15 +136,125 @@ function SeverityBar({ score }) {
 }
 
 function RoastRow({ label, accent = 'text-rose-700', children }) {
+  const headerColor = ACCENT_HEADER_MAP[accent] || 'text-gray-400';
   return (
     <div className="border-b-2 border-black last:border-b-0">
       <div className="px-5 py-1 bg-black">
-        <span className={`comic-title text-xs ${accent === 'text-rose-700' ? 'text-rose-400' : accent === 'text-blue-700' ? 'text-blue-300' : accent === 'text-yellow-700' ? 'text-yellow-400' : accent === 'text-green-700' ? 'text-green-400' : 'text-gray-400'}`}>
-          {label}
-        </span>
+        <span className={`comic-title text-xs ${headerColor}`}>{label}</span>
       </div>
-      <div className="px-5 py-4 bg-white">
-        {children}
+      <div className="px-5 py-4 bg-white">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Shared report card body used by both RoastResults (inline) and RoastDetailModal (modal).
+ * `compact` reduces score box size for the modal context.
+ */
+function RoastReport({ roast, idea, score, compact = false }) {
+  const tier = getTier(score);
+  const scoreBoxSize   = compact ? 'w-16 h-16' : 'w-20 h-20';
+  const scoreTextSize  = compact ? 'text-3xl'  : 'text-4xl';
+
+  return (
+    <div className="border-3 border-black border-t-0 shadow-[6px_6px_0px_rgba(0,0,0,0.8)]">
+
+      {/* Subject */}
+      <div className="bg-yellow-50 border-b-2 border-black px-5 py-4">
+        <p className="comic-title text-xs text-gray-400 mb-1.5">SUBJECT MATTER</p>
+        <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{idea}&rdquo;</p>
+      </div>
+
+      {/* Score + verdict */}
+      <div className="bg-white border-b-2 border-black px-5 py-5">
+        <div className="flex items-start gap-5">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.25, type: 'spring', stiffness: 260, damping: 20 }}
+            className={`flex-shrink-0 ${scoreBoxSize} border-3 border-black flex flex-col items-center justify-center comic-shadow ${tier.bg}`}
+          >
+            <span className={`comic-title ${scoreTextSize} leading-none ${tier.accent}`}>{score}</span>
+            <span className="comic-body text-[10px] text-gray-500">/ 10</span>
+          </motion.div>
+          <div className="flex-1 min-w-0">
+            <div className={`inline-flex items-center gap-1.5 comic-title text-xs px-3 py-1 border-2 border-black mb-2.5 ${tier.bg} ${tier.accent}`}>
+              {tier.emoji} {tier.label}
+            </div>
+            <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{roast.verdict}&rdquo;</p>
+          </div>
+        </div>
+        <div className="mt-5">
+          <SeverityBar score={score} />
+        </div>
+      </div>
+
+      {/* Damage report */}
+      <RoastRow label="DAMAGE REPORT" accent="text-rose-700">
+        <ul className="space-y-3">
+          {(roast.what_went_wrong || []).map((problem, i) => (
+            <motion.li
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              className="flex items-start gap-3"
+            >
+              <span className="flex-shrink-0 w-5 h-5 bg-rose-700 text-white comic-title text-[10px] flex items-center justify-center mt-0.5">
+                {i + 1}
+              </span>
+              <p className="comic-body text-sm text-gray-700 leading-relaxed">{problem}</p>
+            </motion.li>
+          ))}
+        </ul>
+      </RoastRow>
+
+      {/* Competition + Archetype */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 border-b-2 border-black divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-black">
+        <div>
+          <div className="px-5 py-1 bg-black">
+            <span className="comic-title text-xs text-blue-300 flex items-center gap-1.5"><Target className="w-3 h-3" /> COMPETITION INTEL</span>
+          </div>
+          <div className="px-5 py-4 bg-white">
+            <p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.who_already_did_it}</p>
+          </div>
+        </div>
+        <div>
+          <div className="px-5 py-1 bg-black">
+            <span className="comic-title text-xs text-yellow-400 flex items-center gap-1.5"><Zap className="w-3 h-3" /> FOUNDER ARCHETYPE</span>
+          </div>
+          <div className="px-5 py-4 bg-white">
+            <p className="comic-body text-sm text-gray-700 italic leading-relaxed">&ldquo;{roast.founder_archetype}&rdquo;</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Survivability */}
+      <RoastRow label="12-MONTH SURVIVAL ODDS" accent="text-gray-400">
+        <p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.survivability}</p>
+      </RoastRow>
+
+      {/* One real advice */}
+      <div className="border-b-2 border-black">
+        <div className="px-5 py-1 bg-black flex items-center justify-between">
+          <span className="comic-title text-xs text-green-400 flex items-center gap-1.5">
+            <Lightbulb className="w-3 h-3" /> THE ONE USEFUL THING KAI WILL SAY
+          </span>
+          <span className="comic-title text-[9px] text-green-600 border border-green-800 px-1.5 py-0.5 rotate-1">ONLY MERCY</span>
+        </div>
+        <div className="px-5 py-4 bg-green-50">
+          <p className="comic-body text-sm text-gray-800 leading-relaxed">{roast.one_real_advice}</p>
+        </div>
+      </div>
+
+      {/* Closing burn */}
+      <div>
+        <div className="px-5 py-1 bg-rose-700">
+          <span className="comic-title text-xs text-white flex items-center gap-1.5"><Flame className="w-3 h-3" /> CLOSING STATEMENT</span>
+        </div>
+        <div className="px-5 py-5 bg-rose-50">
+          <p className="comic-body text-base text-rose-900 italic font-bold leading-relaxed">&ldquo;{roast.closing_burn}&rdquo;</p>
+        </div>
       </div>
     </div>
   );
@@ -177,7 +262,6 @@ function RoastRow({ label, accent = 'text-rose-700', children }) {
 
 function RoastResults({ roast, idea, onReset }) {
   const score = Math.max(1, Math.min(10, Math.round(roast.roast_score)));
-  const tier = getTier(score);
   const [date, setDate] = useState('');
   useEffect(() => {
     setDate(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
@@ -189,142 +273,24 @@ function RoastResults({ roast, idea, onReset }) {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-2xl mx-auto"
     >
-      {/* Report header */}
       <div className="bg-black border-3 border-black px-5 py-3 flex items-center justify-between">
-        <span className="comic-title text-yellow-400 text-sm tracking-wider">KAI'S ROAST REPORT</span>
+        <span className="comic-title text-yellow-400 text-sm tracking-wider">KAI&apos;S ROAST REPORT</span>
         <span className="comic-body text-gray-500 text-xs">{date}</span>
       </div>
 
-      {/* Main card */}
-      <div className="border-3 border-black border-t-0 shadow-[6px_6px_0px_rgba(0,0,0,0.8)]">
+      <RoastReport roast={roast} idea={idea} score={score} />
 
-        {/* Subject row */}
-        <div className="bg-yellow-50 border-b-2 border-black px-5 py-4">
-          <p className="comic-title text-xs text-gray-400 mb-1.5">SUBJECT MATTER</p>
-          <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{idea}&rdquo;</p>
-        </div>
-
-        {/* Score + verdict */}
-        <div className="bg-white border-b-2 border-black px-5 py-5">
-          <div className="flex items-start gap-5">
-            {/* Score box */}
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.25, type: 'spring', stiffness: 260, damping: 20 }}
-              className={`flex-shrink-0 w-20 h-20 border-3 border-black flex flex-col items-center justify-center comic-shadow ${tier.bg}`}
-            >
-              <span className={`comic-title text-4xl leading-none ${tier.accent}`}>{score}</span>
-              <span className="comic-body text-[10px] text-gray-500">/ 10</span>
-            </motion.div>
-
-            {/* Verdict + tier badge */}
-            <div className="flex-1 min-w-0">
-              <div className={`inline-flex items-center gap-1.5 comic-title text-xs px-3 py-1 border-2 border-black mb-2.5 ${tier.bg} ${tier.accent}`}>
-                {tier.emoji} {tier.label}
-              </div>
-              <p className="comic-body text-sm text-gray-800 italic leading-relaxed">
-                &ldquo;{roast.verdict}&rdquo;
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <SeverityBar score={score} />
-          </div>
-        </div>
-
-        {/* Damage report */}
-        <RoastRow label="DAMAGE REPORT" accent="text-rose-700">
-          <ul className="space-y-3">
-            {(roast.what_went_wrong || []).map((problem, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + i * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <span className="flex-shrink-0 w-5 h-5 bg-rose-700 text-white comic-title text-[10px] flex items-center justify-center mt-0.5">
-                  {i + 1}
-                </span>
-                <p className="comic-body text-sm text-gray-700 leading-relaxed">{problem}</p>
-              </motion.li>
-            ))}
-          </ul>
-        </RoastRow>
-
-        {/* Competition + Archetype split */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 border-b-2 border-black divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-black">
-          <div>
-            <div className="px-5 py-1 bg-black">
-              <span className="comic-title text-xs text-blue-300 flex items-center gap-1.5">
-                <Target className="w-3 h-3" /> COMPETITION INTEL
-              </span>
-            </div>
-            <div className="px-5 py-4 bg-white">
-              <p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.who_already_did_it}</p>
-            </div>
-          </div>
-          <div>
-            <div className="px-5 py-1 bg-black">
-              <span className="comic-title text-xs text-yellow-400 flex items-center gap-1.5">
-                <Zap className="w-3 h-3" /> FOUNDER ARCHETYPE
-              </span>
-            </div>
-            <div className="px-5 py-4 bg-white">
-              <p className="comic-body text-sm text-gray-700 italic leading-relaxed">&ldquo;{roast.founder_archetype}&rdquo;</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Survivability */}
-        <RoastRow label="12-MONTH SURVIVAL ODDS" accent="text-gray-400">
-          <p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.survivability}</p>
-        </RoastRow>
-
-        {/* One real advice */}
-        <div className="border-b-2 border-black">
-          <div className="px-5 py-1 bg-black flex items-center justify-between">
-            <span className="comic-title text-xs text-green-400 flex items-center gap-1.5">
-              <Lightbulb className="w-3 h-3" /> THE ONE USEFUL THING KAI WILL SAY
-            </span>
-            <span className="comic-title text-[9px] text-green-600 border border-green-800 px-1.5 py-0.5 rotate-1">
-              ONLY MERCY
-            </span>
-          </div>
-          <div className="px-5 py-4 bg-green-50">
-            <p className="comic-body text-sm text-gray-800 leading-relaxed">{roast.one_real_advice}</p>
-          </div>
-        </div>
-
-        {/* Closing burn */}
-        <div>
-          <div className="px-5 py-1 bg-rose-700">
-            <span className="comic-title text-xs text-white flex items-center gap-1.5">
-              <Flame className="w-3 h-3" /> CLOSING STATEMENT
-            </span>
-          </div>
-          <div className="px-5 py-5 bg-rose-50">
-            <p className="comic-body text-base text-rose-900 italic font-bold leading-relaxed">
-              &ldquo;{roast.closing_burn}&rdquo;
-            </p>
-          </div>
-        </div>
-
-        {/* Card footer */}
-        <div className="bg-yellow-50 border-t-2 border-black px-5 py-3 flex items-center justify-between flex-wrap gap-3">
-          <span className="comic-body text-xs text-gray-400">generated by kai · zerosbykai.com</span>
-          <motion.button
-            onClick={onReset}
-            whileHover={{ x: 1, y: 1, boxShadow: '2px 2px 0px 0px #000' }}
-            whileTap={{ x: 3, y: 3, boxShadow: '0px 0px 0px 0px #000' }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-black border-2 border-black comic-title text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-yellow-50 transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" />
-            ROAST ANOTHER
-          </motion.button>
-        </div>
+      <div className="bg-yellow-50 border-2 border-t-0 border-black px-5 py-3 flex items-center justify-between flex-wrap gap-3">
+        <span className="comic-body text-xs text-gray-400">generated by kai · zerosbykai.com</span>
+        <motion.button
+          onClick={onReset}
+          whileHover={{ x: 1, y: 1, boxShadow: '2px 2px 0px 0px #000' }}
+          whileTap={{ x: 3, y: 3, boxShadow: '0px 0px 0px 0px #000' }}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-black border-2 border-black comic-title text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-yellow-50 transition-colors"
+        >
+          <RotateCcw className="w-3 h-3" />
+          ROAST ANOTHER
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -371,7 +337,6 @@ function FAQItem({ q, a, index }) {
 function RoastDetailModal({ entry, onClose }) {
   const roast = entry.roast || {};
   const score = entry.roast_score;
-  const tier = getTier(score);
   const date = entry.created_at
     ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
@@ -414,9 +379,8 @@ function RoastDetailModal({ entry, onClose }) {
             </button>
           </div>
 
-          {/* Card */}
-          <div className="border-3 border-black shadow-[6px_6px_0px_rgba(0,0,0,0.8)]">
-            {/* Meta */}
+          <div className="border-3 border-black border-t-0 shadow-[6px_6px_0px_rgba(0,0,0,0.8)]">
+            {/* Meta row */}
             <div className="grid grid-cols-3 border-b-2 border-black">
               {[{ label: 'DATE', value: date }, { label: 'ANALYST', value: 'KAI' }, { label: 'STATUS', value: 'FILED' }].map(({ label, value }) => (
                 <div key={label} className="px-4 py-2.5 border-r-2 border-black last:border-r-0 bg-yellow-50">
@@ -426,76 +390,8 @@ function RoastDetailModal({ entry, onClose }) {
               ))}
             </div>
 
-            {/* Subject */}
-            <div className="px-5 py-4 border-b-2 border-black bg-white">
-              <p className="comic-body text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">SUBJECT MATTER</p>
-              <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{entry.idea}&rdquo;</p>
-            </div>
-
-            {/* Score */}
-            <div className="px-5 py-5 border-b-2 border-black bg-white">
-              <div className="flex items-start gap-4">
-                <div className={`flex-shrink-0 w-16 h-16 border-3 border-black flex flex-col items-center justify-center ${tier.bg}`}>
-                  <span className={`comic-title text-3xl leading-none ${tier.accent}`}>{score}</span>
-                  <span className="comic-body text-[10px] text-gray-400">/ 10</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className={`inline-flex items-center gap-1 comic-title text-xs px-2.5 py-1 border-2 border-black mb-2 ${tier.bg} ${tier.accent}`}>
-                    {tier.emoji} {tier.label}
-                  </span>
-                  <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{roast.verdict}&rdquo;</p>
-                </div>
-              </div>
-              <SeverityBar score={score} />
-            </div>
-
-            {/* Damage report */}
-            <RoastRow label="DAMAGE REPORT" accent="text-rose-700">
-              <ul className="space-y-3">
-                {(roast.what_went_wrong || []).map((p, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 bg-rose-700 text-white comic-title text-[10px] flex items-center justify-center mt-0.5">{i + 1}</span>
-                    <p className="comic-body text-sm text-gray-700 leading-relaxed">{p}</p>
-                  </li>
-                ))}
-              </ul>
-            </RoastRow>
-
-            {/* Competition + Archetype */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 border-b-2 border-black divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-black">
-              <div>
-                <div className="px-5 py-1 bg-black"><span className="comic-title text-xs text-blue-300 flex items-center gap-1.5"><Target className="w-3 h-3" /> COMPETITION INTEL</span></div>
-                <div className="px-5 py-4 bg-white"><p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.who_already_did_it}</p></div>
-              </div>
-              <div>
-                <div className="px-5 py-1 bg-black"><span className="comic-title text-xs text-yellow-400 flex items-center gap-1.5"><Zap className="w-3 h-3" /> FOUNDER ARCHETYPE</span></div>
-                <div className="px-5 py-4 bg-white"><p className="comic-body text-sm text-gray-700 italic leading-relaxed">&ldquo;{roast.founder_archetype}&rdquo;</p></div>
-              </div>
-            </div>
-
-            {/* Survivability */}
-            <RoastRow label="12-MONTH SURVIVAL ODDS" accent="text-gray-400">
-              <p className="comic-body text-sm text-gray-700 leading-relaxed">{roast.survivability}</p>
-            </RoastRow>
-
-            {/* One real advice */}
-            <div className="border-b-2 border-black">
-              <div className="px-5 py-1 bg-black flex items-center justify-between">
-                <span className="comic-title text-xs text-green-400 flex items-center gap-1.5"><Lightbulb className="w-3 h-3" /> THE ONE USEFUL THING</span>
-                <span className="comic-title text-[9px] text-green-600 border border-green-800 px-1.5 py-0.5">ONLY MERCY</span>
-              </div>
-              <div className="px-5 py-4 bg-green-50">
-                <p className="comic-body text-sm text-gray-800 leading-relaxed">{roast.one_real_advice}</p>
-              </div>
-            </div>
-
-            {/* Closing burn */}
-            <div>
-              <div className="px-5 py-1 bg-rose-700"><span className="comic-title text-xs text-white flex items-center gap-1.5"><Flame className="w-3 h-3" /> CLOSING STATEMENT</span></div>
-              <div className="px-5 py-5 bg-rose-50">
-                <p className="comic-body text-base text-rose-900 italic font-bold leading-relaxed">&ldquo;{roast.closing_burn}&rdquo;</p>
-              </div>
-            </div>
+            {/* Shared report body */}
+            <RoastReport roast={roast} idea={entry.idea} score={score} compact />
 
             {/* Footer */}
             <div className="bg-yellow-50 border-t-2 border-black px-5 py-3">
@@ -508,13 +404,9 @@ function RoastDetailModal({ entry, onClose }) {
   );
 }
 
-function ShameCard({ entry, index, onViewDetail }) {
+function PitCard({ entry, index, onViewDetail }) {
   const score = entry.roast_score;
   const tier = getTier(score);
-  const ideaPreview = entry.idea?.length > 120 ? entry.idea.slice(0, 120) + '…' : entry.idea;
-  const verdict = entry.roast?.verdict || '';
-  const verdictPreview = verdict.length > 90 ? verdict.slice(0, 90) + '…' : verdict;
-  const archetype = entry.roast?.founder_archetype || '';
   const date = entry.created_at
     ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : '';
@@ -540,20 +432,17 @@ function ShameCard({ entry, index, onViewDetail }) {
 
       {/* Body */}
       <div className="p-4 flex-1 flex flex-col gap-3">
-        {/* Idea preview */}
-        <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{ideaPreview}&rdquo;</p>
+        <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{truncate(entry.idea, 120)}&rdquo;</p>
 
-        {/* Verdict teaser */}
-        {verdictPreview && (
+        {entry.roast?.verdict && (
           <div className="border-l-4 border-rose-700 pl-3">
-            <p className="comic-body text-xs text-gray-500 leading-relaxed">{verdictPreview}</p>
+            <p className="comic-body text-xs text-gray-500 leading-relaxed">{truncate(entry.roast.verdict, 90)}</p>
           </div>
         )}
 
-        {/* Archetype tag */}
-        {archetype && (
+        {entry.roast?.founder_archetype && (
           <p className="comic-title text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-300 px-2 py-0.5 self-start leading-relaxed truncate max-w-full">
-            {archetype.length > 50 ? archetype.slice(0, 50) + '…' : archetype}
+            {truncate(entry.roast.founder_archetype, 50)}
           </p>
         )}
       </div>
@@ -574,7 +463,7 @@ function ShameCard({ entry, index, onViewDetail }) {
   );
 }
 
-function HallOfShame() {
+function RoastPit() {
   const [roasts, setRoasts] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -589,11 +478,11 @@ function HallOfShame() {
         setRoasts(data.roasts || []);
         setHasMore(data.hasMore || false);
       })
-      .catch(() => setError('Failed to load the Hall of Shame.'))
+      .catch(() => setError('Failed to load The Roast Pit.'))
       .finally(() => setLoading(false));
   }, []);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     setLoadingMore(true);
     const nextPage = page + 1;
     try {
@@ -606,7 +495,7 @@ function HallOfShame() {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [page]);
 
   if (loading) {
     return (
@@ -641,7 +530,7 @@ function HallOfShame() {
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {roasts.map((entry, i) => (
-          <ShameCard key={entry.id} entry={entry} index={i} onViewDetail={setSelectedEntry} />
+          <PitCard key={entry.id} entry={entry} index={i} onViewDetail={setSelectedEntry} />
         ))}
       </div>
 
@@ -654,7 +543,7 @@ function HallOfShame() {
             whileTap={{ x: 3, y: 3, boxShadow: '0px 0px 0px 0px #000' }}
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black border-2 border-black comic-title text-sm shadow-[3px_3px_0px_0px_#000] hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingMore ? 'LOADING...' : 'LOAD MORE SHAME'}
+            {loadingMore ? 'LOADING...' : 'LOAD MORE FROM THE PIT'}
           </motion.button>
         </div>
       )}
@@ -681,11 +570,13 @@ export default function RoastPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [caseNumber, setCaseNumber] = useState('');
+
+  const formRef = useRef(null);
+  const msgIntervalRef = useRef(null);
+
   useEffect(() => {
     setCaseNumber(String(Math.floor(Math.random() * 9000) + 1000));
   }, []);
-  const formRef = useRef(null);
-  const msgIntervalRef = useRef(null);
 
   useEffect(() => {
     if (submitting) {
@@ -700,9 +591,7 @@ export default function RoastPage() {
 
   // Reset pendingSubmit if the auth modal is dismissed without signing in
   useEffect(() => {
-    if (!showAuthModal && !user && pendingSubmit) {
-      setPendingSubmit(false);
-    }
+    if (!showAuthModal && !user && pendingSubmit) setPendingSubmit(false);
   }, [showAuthModal, user, pendingSubmit]);
 
   const submitRoast = useCallback(async () => {
@@ -722,10 +611,11 @@ export default function RoastPage() {
       }, session);
       setResult(data);
     } catch (err) {
-      const msg = err.name === 'AbortError'
-        ? 'Kai took too long. Try again with a shorter idea.'
-        : err.message || 'Something went wrong. Try again.';
-      setError(msg);
+      setError(
+        err.name === 'AbortError'
+          ? 'Kai took too long. Try again with a shorter idea.'
+          : err.message || 'Something went wrong. Try again.'
+      );
     } finally {
       clearTimeout(timeout);
       setSubmitting(false);
@@ -750,6 +640,13 @@ export default function RoastPage() {
     }
     submitRoast();
   };
+
+  const handleReset = useCallback(() => {
+    setResult(null);
+    setIdea('');
+    setIsPublic(false);
+    setError('');
+  }, []);
 
   return (
     <div className="min-h-screen bg-yellow-50">
@@ -851,19 +748,11 @@ export default function RoastPage() {
       <section ref={formRef} className="px-4 sm:px-6 py-14 sm:py-20 text-black">
         <div className="max-w-2xl mx-auto">
           <AnimatePresence mode="wait">
-            {/* Results */}
-            {result && (
+            {result ? (
               <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <RoastResults
-                  roast={result.roast}
-                  idea={result.idea}
-                  onReset={() => { setResult(null); setIdea(''); setIsPublic(false); setError(''); }}
-                />
+                <RoastResults roast={result.roast} idea={result.idea} onReset={handleReset} />
               </motion.div>
-            )}
-
-            {/* Form */}
-            {!result && (
+            ) : (
               <motion.div key="form" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <div className="text-center mb-8">
                   <p className="comic-body text-xs text-gray-400 uppercase tracking-widest mb-2">step one</p>
@@ -873,9 +762,7 @@ export default function RoastPage() {
 
                 <div className="comic-panel bg-white comic-shadow">
                   <div className="bg-black px-5 py-3 flex items-center justify-between">
-                    <span className="comic-title text-yellow-400 text-xs tracking-widest">
-                      KAI&apos;S ROAST BUREAU
-                    </span>
+                    <span className="comic-title text-yellow-400 text-xs tracking-widest">KAI&apos;S ROAST BUREAU</span>
                     <span className="comic-body text-gray-600 text-xs">CASE #{caseNumber}</span>
                   </div>
 
@@ -906,8 +793,9 @@ export default function RoastPage() {
                       <div className="border-t-2 border-dashed border-gray-200" />
                       <PublicToggle checked={isPublic} onChange={setIsPublic} />
                       <div className="border-t-2 border-dashed border-gray-200" />
+
                       {error && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           className="border-2 border-rose-600 bg-rose-50 p-4 comic-shadow-sm"
@@ -917,15 +805,11 @@ export default function RoastPage() {
                               <AlertTriangle className="w-4 h-4 text-white" />
                             </div>
                             <div className="flex-1">
-                              <p className="comic-title text-[10px] text-rose-600 uppercase tracking-widest mb-1">
-                                CRITICAL FAILURE / KAI ERROR
-                              </p>
-                              <p className="comic-body text-sm text-rose-900 leading-relaxed mb-3">
-                                {error}
-                              </p>
+                              <p className="comic-title text-[10px] text-rose-600 uppercase tracking-widest mb-1">CRITICAL FAILURE / KAI ERROR</p>
+                              <p className="comic-body text-sm text-rose-900 leading-relaxed mb-3">{error}</p>
                               <button
                                 type="button"
-                                onClick={(e) => { e.preventDefault(); submitRoast(); }}
+                                onClick={e => { e.preventDefault(); submitRoast(); }}
                                 className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white comic-title text-xs hover:bg-rose-700 transition-colors uppercase"
                               >
                                 <RotateCcw className="w-3 h-3" />
@@ -935,6 +819,7 @@ export default function RoastPage() {
                           </div>
                         </motion.div>
                       )}
+
                       <AnimatePresence>
                         {pendingSubmit && !user && (
                           <motion.div
@@ -951,6 +836,7 @@ export default function RoastPage() {
                           </motion.div>
                         )}
                       </AnimatePresence>
+
                       <motion.button
                         type="submit"
                         disabled={submitting || idea.trim().length < 10}
@@ -961,6 +847,7 @@ export default function RoastPage() {
                         <Flame className={`w-5 h-5 ${submitting ? 'animate-pulse' : ''}`} />
                         {submitting ? 'ROASTING...' : 'ROAST ME NOW'}
                       </motion.button>
+
                       {!isLoading && !user && !pendingSubmit && (
                         <p className="comic-body text-xs text-center text-gray-400">
                           <ArrowRight className="w-3 h-3 inline mr-1 -mt-0.5" />
@@ -1035,14 +922,14 @@ export default function RoastPage() {
         </div>
       </section>
 
-      {/* ══ HALL OF SHAME ════════════════════════════════════════════════════ */}
+      {/* ══ THE ROAST PIT ════════════════════════════════════════════════════ */}
       <section className="px-4 sm:px-6 py-16 sm:py-20 bg-yellow-50 border-t-4 border-black">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="comic-body text-xs text-gray-400 uppercase tracking-widest mb-2">publicly roasted</p>
             <h2 className="comic-title text-3xl sm:text-5xl text-black mb-3 flex items-center justify-center gap-3">
               <Skull className="w-8 h-8 sm:w-10 sm:h-10" />
-              HALL OF SHAME
+              THE ROAST PIT
             </h2>
             <p className="comic-body text-sm text-gray-500 max-w-md mx-auto">
               Ideas that dared to be judged. Publicly. Learn from their sacrifice.
@@ -1053,7 +940,7 @@ export default function RoastPage() {
             </div>
           </div>
 
-          <HallOfShame />
+          <RoastPit />
         </div>
       </section>
 
