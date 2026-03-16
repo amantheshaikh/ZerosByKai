@@ -31,7 +31,7 @@ const VoteConfirmation = dynamic(() => import('@/components/ui/vote-confirmation
 
 const VOTE_ERROR_TIMEOUT = 5000;
 
-const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
+const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [], generatedAt }) => {
     const { user, profile, session, openAuthModal, subscribeNewsletter } = useAuth();
     const errorTimeoutRef = useRef(null);
 
@@ -48,15 +48,21 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
     const [voteConfirmation, setVoteConfirmation] = useState(null);
     const [voteError, setVoteError] = useState(null);
 
-    // Fetch ideas and leaderboard on mount (refresh data)
+    // Fetch ideas and leaderboard on mount (refresh data) if stale
     useEffect(() => {
-        fetchCurrentWeekIdeas().then(data => {
-            if (data.length > 0) setIdeas(data);
-        });
-        fetchLeaderboard().then(data => {
-            if (data.length > 0) setLeaderboard(data);
-        });
-    }, []);
+        // ISR relies on a 60-second revalidation
+        const STALE_TIME = 60 * 1000; 
+        const isStale = !generatedAt || (Date.now() - generatedAt > STALE_TIME);
+
+        if (isStale) {
+            fetchCurrentWeekIdeas()
+                .then(data => { if (data.length > 0) setIdeas(data); })
+                .catch(err => console.error('Failed to refresh ideas:', err));
+            fetchLeaderboard()
+                .then(data => { if (data.length > 0) setLeaderboard(data); })
+                .catch(err => console.error('Failed to refresh leaderboard:', err));
+        }
+    }, [generatedAt]);
 
     // Fetch user's current vote
     useEffect(() => {
@@ -64,7 +70,7 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
             setUserVote(null);
             return;
         }
-        getUserVote(session).then(setUserVote);
+        getUserVote(session).then(setUserVote).catch(() => setUserVote(null));
     }, [session]);
 
     // Cleanup error timeout on unmount
@@ -116,6 +122,28 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
         try {
             const data = await castVote(ideaId, session);
             const votedIdea = displayIdeas.find((i) => i.id === ideaId);
+
+            // Optimistically update the vote counts
+            setIdeas(prevIdeas => prevIdeas.map(idea => {
+                let diff = 0;
+                if (idea.id === ideaId) diff = 1;
+                else if (data.changedFrom && idea.id === data.changedFrom) diff = -1;
+                
+                return diff !== 0 
+                  ? { ...idea, voteCount: Math.max(0, (idea.voteCount || 0) + diff) }
+                  : idea;
+            }));
+
+            // Sync the leaderboard if needed
+            setLeaderboard(prevLeaderboard => prevLeaderboard.map(idea => {
+                let diff = 0;
+                if (idea.id === ideaId) diff = 1;
+                else if (data.changedFrom && idea.id === data.changedFrom) diff = -1;
+                
+                return diff !== 0 
+                  ? { ...idea, voteCount: Math.max(0, (idea.voteCount || 0) + diff) }
+                  : idea;
+            }));
 
             setVoteConfirmation({
                 ideaName: votedIdea?.name || 'Idea',
@@ -173,9 +201,12 @@ const ZerosByKaiLanding = ({ initialIdeas = [], initialLeaderboard = [] }) => {
                 <meta property="og:description" content="Stop brainstorming. Start building. Get 10 validated startup opportunities delivered every Monday." />
                 <meta property="og:url" content="https://zerosbykai.com/" />
                 <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
                 <meta name="twitter:title" content="Zeros By Kai | Real Problems. Real Startup Ideas" />
                 <meta name="twitter:description" content="10 validated startup ideas. No AI slop. Just real problems." />
                 <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" key="twitterimage" />
+                <meta name="twitter:creator" content="@zerosbykai" />
                 <link rel="canonical" href="https://zerosbykai.com/" />
             </Head>
             <HeroSection />
@@ -277,7 +308,8 @@ export async function getStaticProps() {
         return {
             props: {
                 initialIdeas: ideas || [],
-                initialLeaderboard: leaderboard || []
+                initialLeaderboard: leaderboard || [],
+                generatedAt: Date.now()
             },
             revalidate: 60
         };
@@ -286,7 +318,8 @@ export async function getStaticProps() {
         return {
             props: {
                 initialIdeas: [],
-                initialLeaderboard: []
+                initialLeaderboard: [],
+                generatedAt: Date.now()
             },
             revalidate: 60
         };

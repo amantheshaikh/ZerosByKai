@@ -104,7 +104,7 @@ export default function AuthModal() {
     e.preventDefault();
 
     const isValidEmail = EMAIL_REGEX.test(email);
-    const needsName = userStatus.checked && !userStatus.hasName;
+    const needsName = !userStatus.checked || !userStatus.hasName;
     const hasName = name.trim().length > 0;
 
     if (status === 'checking' || status === 'sending') return;
@@ -125,7 +125,11 @@ export default function AuthModal() {
     try {
       await apiFetch('/api/auth/signup', {
         method: 'POST',
-        body: JSON.stringify({ email: email.toLowerCase().trim(), name: name.trim() }),
+        body: JSON.stringify({ 
+          email: email.toLowerCase().trim(), 
+          name: name.trim(),
+          redirectTo: window.location.pathname
+        }),
       });
 
       setStep('success');

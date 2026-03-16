@@ -86,6 +86,7 @@ router.get('/weekly-batches', async (req, res, next) => {
       .from('ideas')
       .select('*')
       .in('week_published', weekStartDates)
+      .in('status', ['published', 'archived'])
       .order('created_at', { ascending: true });
 
     if (ideasError) throw ideasError;
@@ -112,6 +113,9 @@ router.get('/weekly-batches', async (req, res, next) => {
 router.get('/weekly-batch/:date', async (req, res, next) => {
   try {
     const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'Invalid date format. Expected YYYY-MM-DD.' });
+    }
 
     // 1. Fetch batch info
     const { data: batch, error: batchError } = await supabase
@@ -133,6 +137,7 @@ router.get('/weekly-batch/:date', async (req, res, next) => {
       .from('ideas')
       .select('*')
       .eq('week_published', date)
+      .in('status', ['published', 'archived'])
       .order('created_at', { ascending: true });
 
     if (ideasError) throw ideasError;

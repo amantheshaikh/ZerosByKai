@@ -25,6 +25,7 @@ The frontend communicates with the backend via a RESTful API.
 | **Login** | `AuthModal.jsx` | `POST /api/auth/post-login` | Syncs subscriber state and triggers welcome email. |
 | **Email Token** | `AuthProvider.js` | `GET /api/auth/verify-email-token` | Converts email token to Supabase session. |
 | **Subscribe** | `SubscribeModal.jsx`| `POST /api/auth/subscribe` | Creates/Updates subscriber in Supabase & Brevo. |
+| **Roasting** | `roast.jsx` | `POST /api/roast` | Generates AI startup roast using Gemini Flash Lite. |
 
 ### Data Flow: Weekly Cycle
 ```mermaid

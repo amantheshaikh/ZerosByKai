@@ -54,7 +54,7 @@ export async function sendBatchEmails(chunk, options = {}) {
     const INITIAL_BACKOFF = 1000; // 1 second
     // Use an idempotency key if provided, or generate a stable one from the chunk and template
     const idempotencyKey = options.idempotencyKey ||
-        `batch-${options.templateId || 'html'}-${chunk[0].to}-${chunk.length}-${Date.now()}`;
+        `batch-${options.templateId || 'html'}-${chunk[0].to}-${chunk.length}`;
 
     let lastError;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

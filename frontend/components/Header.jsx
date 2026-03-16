@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Mail, ArrowRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Mail, ArrowRight, ChevronDown, Flame, Wrench } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth';
 import { useAnchorNavigation, scrollEasings } from '@/lib/smoothScroll';
-import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import BadgeDisplay from './ui/badge-display';
 import HamburgerMenu from './HamburgerMenu';
 
@@ -16,6 +16,8 @@ export default function Header({ variant = 'landing' }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [stashOpen, setStashOpen] = useState(false);
+  const stashRef = useRef(null);
   const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -36,6 +38,22 @@ export default function Header({ variant = 'landing' }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Close stash dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (stashRef.current && !stashRef.current.contains(e.target)) {
+        setStashOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleRoastClick = () => {
+    setStashOpen(false);
+    router.push('/roast');
+  };
 
   const isStory = variant === 'story';
 
@@ -101,12 +119,42 @@ export default function Header({ variant = 'landing' }) {
         >
           KAI&apos;S STORY
         </Link>
-        <Link
-          href="/tools"
-          className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors"
-        >
-          SECRET STASH
-        </Link>
+        <div className="relative" ref={stashRef}>
+          <button
+            onClick={() => setStashOpen(!stashOpen)}
+            className="px-3 sm:px-4 py-2 comic-title text-xs sm:text-sm text-black hover:text-rose-700 transition-colors flex items-center gap-1"
+          >
+            SECRET STASH
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${stashOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <AnimatePresence>
+            {stashOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 mt-1 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] min-w-[200px] z-50"
+              >
+                <Link
+                  href="/tools"
+                  onClick={() => setStashOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 comic-title text-xs text-black hover:bg-yellow-50 hover:text-rose-700 transition-colors border-b-2 border-black/10"
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  TOOLS
+                </Link>
+                <button
+                  onClick={handleRoastClick}
+                  className="w-full flex items-center gap-2 px-4 py-3 comic-title text-xs text-black hover:bg-yellow-50 hover:text-rose-700 transition-colors text-left"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  ROAST MY IDEA
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <a
           href="#ideas-section"
           onClick={handleThisWeekClick}
@@ -247,17 +295,33 @@ export default function Header({ variant = 'landing' }) {
           >
             KAI&apos;S STORY
           </Link>
-          <Link
-            href="/tools"
-            onClick={() => {
-              closeAuthModal();
-              closeSubscribeModal();
-              setIsMenuOpen(false);
-            }}
-            className="text-center comic-title text-2xl text-black hover:text-rose-700 transition-colors"
-          >
-            SECRET STASH
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <span className="comic-title text-base text-gray-400 uppercase tracking-widest">Secret Stash</span>
+            <Link
+              href="/tools"
+              onClick={() => {
+                closeAuthModal();
+                closeSubscribeModal();
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center gap-2 comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+            >
+              <Wrench className="w-5 h-5" />
+              TOOLS
+            </Link>
+            <Link
+              href="/roast"
+              onClick={() => {
+                closeAuthModal();
+                closeSubscribeModal();
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center gap-2 comic-title text-2xl text-black hover:text-rose-700 transition-colors"
+            >
+              <Flame className="w-5 h-5" />
+              ROAST MY IDEA
+            </Link>
+          </div>
           <a
             href="#ideas-section"
             onClick={handleThisWeekClick}

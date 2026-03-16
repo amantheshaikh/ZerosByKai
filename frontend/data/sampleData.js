@@ -16,50 +16,50 @@ export const faqSchema = {
     "mainEntity": [
         {
             "@type": "Question",
-            "name": "What is Zeros By Kai?",
+            "name": "How does Zeros By Kai find profitable startup ideas?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Zeros By Kai is a curated weekly newsletter for entrepreneurs focused on validated startup ideas. Every Monday, our AI (Kai) scans millions of online conversations to identify real pain points that people are actively complaining about—giving you the 'Zero to One' jumpstart you need to build a profitable business."
+                "text": "Zeros By Kai uses an AI analyst (Kai) to scan millions of online conversations on Reddit, X, and Hacker News. We identify 'complaint clusters' where real people are struggling with specific pain points, ensuring every startup idea we provide is based on proven market demand."
             }
         },
         {
             "@type": "Question",
-            "name": "How is this different from a startup idea generator?",
+            "name": "Why are these ideas better than a random AI idea generator?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Most idea generators use random keywords (e.g., 'Uber for Cats'). Zeros By Kai uses social listening and sentiment analysis. We find problems that real humans are struggling with right now on platforms like Reddit, X (Twitter), and niche forums. We only surface ideas where there is demonstrable demand and 'willingness to pay' signals."
+                "text": "Unlike random generators that combine keywords (e.g., 'Uber for Cats'), Zeros By Kai uses social listening and sentiment analysis. We only surface opportunities where there is demonstrable 'willingness to pay' and where existing solutions are failing users."
             }
         },
         {
             "@type": "Question",
-            "name": "What kind of business ideas will I find?",
+            "name": "What type of business models are covered in the newsletter?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Our opportunities span various digital business models, primarily focused on SaaS (Software as a Service), Micro-SaaS tools, B2B services, Newsletters, and Content sites. Whether you are an indie hacker looking for a side project or a founder looking for your next venture-backable startup, we cover industries like Marketing Tech, DevTools, Productivity, and more."
+                "text": "Our weekly startup stash focuses on high-leverage digital models: SaaS, Micro-SaaS, B2B services, and newsletter opportunities. We prioritize niches like DevTools, Marketing Tech, and Productivity where solo founders can build and scale quickly."
             }
         },
         {
             "@type": "Question",
-            "name": "How does the 'Idea Validation' process work?",
+            "name": "How are startup ideas validated by Zeros By Kai?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "We follow a strict 'Problem-First' methodology. 1) We detect a 'Complaint Cluster' (multiple people complaining about the same thing). 2) We analyze sentiment to measure frustration levels. 3) We look for 'gap signals' (people asking 'Why doesn't this exist?'). 4) We vet the market size. Only opportunities that pass all 4 checks make it into the newsletter."
+                "text": "Our validation process involves four checks: 1) Detecting a complaint cluster. 2) Measuring frustration intensity. 3) Identifying 'gap signals' in existing products. 4) Preliminary market size vetting. Only ideas that pass all four stages are delivered to your inbox."
             }
         },
         {
             "@type": "Question",
-            "name": "Who is Zeros By Kai built for?",
+            "name": "Who should subscribe to Zeros By Kai?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Zeros By Kai is the ultimate resource for Indie Hackers, Solopreneurs, Full-stack Developers, and Aspiring Founders who have the skills to build but struggle to find the 'right idea'. It's also valuable for investors and agencies looking for emerging market trends before they go mainstream."
+                "text": "Zeros By Kai is built for Indie Hackers, Solopreneurs, and Developers who can ship code but struggle to find a winning idea. It's the primary resource for builders who want to stop brainstorming and start building validated products."
             }
         },
         {
             "@type": "Question",
-            "name": "Is Zeros By Kai free?",
+            "name": "Is Zeros By Kai a free startup idea resource?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes, the core weekly newsletter is 100% free. You get 10 fresh, validated startup ideas delivered to your inbox every single Monday based on your timezone. There is no paywall for our weekly curation—our goal is to help you stop brainstorming and start building."
+                "text": "Yes, Zeros By Kai is free. Every Monday, you get 10 fresh, validated startup ideas delivered to your inbox. There is no paywall for our weekly curation—our mission is to help more founders build products that solve real problems."
             }
         }
     ]

@@ -10,6 +10,9 @@ const router = express.Router();
 router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { ideaId } = req.body;
+    if (!ideaId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ideaId)) {
+      return res.status(400).json({ error: 'Invalid idea ID' });
+    }
     const userId = req.user.id;
 
     const weekStart = await ideaService.getVotingWeek();
@@ -28,11 +31,12 @@ router.post('/', requireAuth, async (req, res, next) => {
     }
 
     // Get this week's idea IDs, then check if user already voted
-    const { data: weekIdeas } = await supabaseAdmin
+    const { data: weekIdeas, error: weekIdeasError } = await supabaseAdmin
       .from('ideas')
       .select('id')
       .eq('week_published', weekStart);
 
+    if (weekIdeasError) throw weekIdeasError;
     const weekIdeaIds = weekIdeas?.map(i => i.id) || [];
 
     const { data: existingVotes, error: voteCheckError } = await supabaseAdmin
@@ -43,27 +47,16 @@ router.post('/', requireAuth, async (req, res, next) => {
 
     if (voteCheckError) throw voteCheckError;
 
-    // If user already voted, delete previous vote
-    if (existingVotes && existingVotes.length > 0) {
-      const { error: deleteError } = await supabaseAdmin
-        .from('votes')
-        .delete()
-        .in('id', existingVotes.map(v => v.id));
-
-      if (deleteError) throw deleteError;
-    }
-
-    // Insert new vote
-    const { data: vote, error: voteError } = await supabaseAdmin
-      .from('votes')
-      .insert({
-        idea_id: ideaId,
-        user_id: userId
-      })
-      .select()
-      .single();
+    // Atomically swap vote in a single DB transaction via RPC
+    const { data: voteRows, error: voteError } = await supabaseAdmin
+      .rpc('cast_vote', {
+        p_idea_id: ideaId,
+        p_user_id: userId,
+        p_week_start: weekStart
+      });
 
     if (voteError) throw voteError;
+    const vote = voteRows?.[0];
 
     res.json({
       message: 'Vote cast successfully',

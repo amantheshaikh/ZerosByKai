@@ -18,6 +18,7 @@ vi.mock('../../src/config/env.js', () => ({
     config: {
         frontendUrl: 'http://localhost:3000',
         nodeEnv: 'test',
+        adminApiKey: 'test-admin-key',
         supabase: {
             serviceKey: 'test-service-key'
         }
@@ -484,6 +485,7 @@ describe('auth.js routes', () => {
     describe('POST /api/auth/verify-email-token', () => {
         it('should create session for valid token', async () => {
             verifyEmailToken.mockReturnValue({ userId: 'u1', email: 'test@t.com' });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { user_id: 'u1' }, error: null }).then(f));
             supabaseAdmin.auth.admin.generateLink.mockResolvedValue({
                 data: { properties: { hashed_token: 'hashed' } },
                 error: null
@@ -503,6 +505,7 @@ describe('auth.js routes', () => {
 
         it('should throw error if magic link generation fails', async () => {
             verifyEmailToken.mockReturnValue({ userId: 'u1', email: 'test@t.com' });
+            supabaseAdmin.then.mockImplementationOnce(f => Promise.resolve({ data: { user_id: 'u1' }, error: null }).then(f));
             supabaseAdmin.auth.admin.generateLink.mockResolvedValue({ data: null, error: { message: 'Link error' } });
             const res = await request(app).post('/api/auth/verify-email-token').send({ token: 'valid' });
             expect(res.status).toBe(401);
@@ -704,7 +707,7 @@ describe('auth.js routes', () => {
         it('should return 400 if email is missing', async () => {
             const res = await request(app)
                 .delete('/api/auth/admin/user')
-                .set('Authorization', 'Bearer test-service-key')
+                .set('Authorization', 'Bearer test-admin-key')
                 .send({});
             expect(res.status).toBe(400);
         });
@@ -718,7 +721,7 @@ describe('auth.js routes', () => {
 
             const res = await request(app)
                 .delete('/api/auth/admin/user')
-                .set('Authorization', 'Bearer test-service-key')
+                .set('Authorization', 'Bearer test-admin-key')
                 .send({ email: 'admin@t.com' });
 
             expect(res.status).toBe(200);
@@ -733,7 +736,7 @@ describe('auth.js routes', () => {
 
             const res = await request(app)
                 .delete('/api/auth/admin/user')
-                .set('Authorization', 'Bearer test-service-key')
+                .set('Authorization', 'Bearer test-admin-key')
                 .send({ email: 'unknown@t.com' });
 
             expect(res.status).toBe(200);

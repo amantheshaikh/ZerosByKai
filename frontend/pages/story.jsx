@@ -165,8 +165,11 @@ export default function KaiStory() {
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content="https://zerosbykai.com/story" />
                 <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
                 <meta name="twitter:title" content="The Story of Kai | Zeros By Kai" />
                 <meta name="twitter:description" content="When building became easy, knowing what to build became the goldmine." />
+                <meta name="twitter:creator" content="@zerosbykai" />
             </Head>
 
 

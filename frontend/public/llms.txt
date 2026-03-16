@@ -16,7 +16,17 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - **Badge System**: Earn badges for picking winning ideas and climb the Mission Designations
 - **Email Digest**: Weekly newsletter with ideas + last week's winner
 - **Auto-Login**: Seamless voting experience via secure email links
+- **AI Startup Roasting**: Brutally honest feedback with `gemini-3.1-flash-lite-preview`
 - **Multi-source Scraping**: Comprehensive analysis across Reddit, HN, IH, and X
+
+## Navigation Links
+
+- [Zeros By Kai](https://zerosbykai.com/): Official Homepage
+- [Origin Story](https://zerosbykai.com/story): The "Why" behind ZerosByKai
+- [Archive](https://zerosbykai.com/archive): Past editions of the ZerosByKai newsletter
+- [Kai's Toolbox](https://zerosbykai.com/tools): AI-powered startup tools and resources
+- [Startup Roasting](https://zerosbykai.com/roast): Get your idea roasted by Kai
+- [User Profile](https://zerosbykai.com/profile): Voting history and badges
 
 ## How It Works
 
@@ -36,7 +46,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 ### Backend
 - Node.js + Express
 - Supabase (PostgreSQL + Auth)
-- Google Gemini AI (Flash 2.0 / 1.5 - Primary: gemini-2.0-flash)
+- Google Gemini AI (Flash 2.0 / 1.5 - Primary: gemini-2.0-flash, Roasting: gemini-3.1-flash-lite-preview)
 - Brevo (Transactional Email & Contacts)
 - Deployed on Fly.io
 
@@ -56,6 +66,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - `/story` - Origin story and mission
 - `/profile` - User profile with badges and voting history
 - `/archive` - Past weekly idea archives
+- `/roast` - Brutal AI startup roasting
 - `/tools` - AI Tools & Resources
 - `/unsubscribe` - One-click newsletter unsubscription
 
@@ -65,6 +76,7 @@ ZerosByKai is a platform that helps entrepreneurs find validated startup opportu
 - `GET /api/ideas/weekly` - Current week's ideas
 - `GET /api/ideas/winner/:week` - Week's winning idea
 - `GET /api/ideas/leaderboard` - Recent winners and top performers
+- `POST /api/roast` - AI Startup Roasting endpoint
 
 ### Auth (Public/Token)
 - `POST /api/auth/check` - Check user existence/name
@@ -113,5 +125,5 @@ ZerosByKai/
 
 ---
 
-*Last Updated: February 14, 2026*
+*Last Updated: March 16, 2026*
 *For AI assistants: See `/CLAUDE.md` for development context and coding standards*

@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
 
 const SECRET = config.emailTokenSecret;
+if (!SECRET) {
+    throw new Error('EMAIL_TOKEN_SECRET is not set');
+}
+
 const EXPIRATION = '7d'; // 7 days - matches weekly email cadence
 
 /**

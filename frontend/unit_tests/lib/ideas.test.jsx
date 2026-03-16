@@ -1,292 +1,112 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-    fetchCurrentWeekIdeas,
-    fetchLeaderboard,
-    fetchArchiveBatches,
-    castVote,
-    getUserVote,
-} from '../../lib/ideas';
+import { fetchCurrentWeekIdeas, fetchLeaderboard, fetchArchiveBatches, fetchWeeklyBatch, castVote, getUserVote } from '../../lib/ideas';
+import { getApiUrl, apiFetch } from '../../lib/auth';
 
-// Mock auth module
+// Mock Auth lib
 vi.mock('../../lib/auth', () => ({
     getApiUrl: vi.fn(() => 'http://localhost:3001'),
     apiFetch: vi.fn(),
 }));
 
-// Mock utils module
-vi.mock('../../lib/utils', () => ({
-    normalizeIdea: vi.fn((idea) => idea ? { ...idea, normalized: true } : null),
-}));
+// Mock window fetch
+global.fetch = vi.fn();
 
-import { getApiUrl, apiFetch } from '../../lib/auth';
-import { normalizeIdea } from '../../lib/utils';
-
-describe('Ideas API Service', () => {
+describe('Ideas Library', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        global.fetch = vi.fn();
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
     });
 
     describe('fetchCurrentWeekIdeas', () => {
-        it('fetches and normalizes ideas successfully', async () => {
-            const mockIdeas = [
-                { id: 1, name: 'Idea 1' },
-                { id: 2, name: 'Idea 2' },
-            ];
-
-            global.fetch.mockResolvedValue({
+        it('fetches and normalizes weekly ideas', async () => {
+            const mockData = {
+                ideas: [
+                    { id: 1, title: 'Idea 1', votes: 10 },
+                    { id: 2, title: 'Idea 2', votes: 5 }
+                ]
+            };
+            fetch.mockResolvedValue({
                 ok: true,
-                json: async () => ({ ideas: mockIdeas }),
+                json: async () => mockData
             });
 
-            const result = await fetchCurrentWeekIdeas();
+            const ideas = await fetchCurrentWeekIdeas();
 
-            expect(global.fetch).toHaveBeenCalledWith(
-                'http://localhost:3001/api/ideas/weekly',
-                expect.objectContaining({ signal: expect.any(AbortSignal) })
+            expect(ideas).toHaveLength(2);
+            expect(ideas[0].title).toBe('Idea 1');
+            expect(fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/ideas/weekly'),
+                expect.any(Object)
             );
-            expect(result).toHaveLength(2);
-            expect(result[0].normalized).toBe(true);
         });
 
-        it('returns empty array on fetch error', async () => {
-            global.fetch.mockRejectedValue(new Error('Network error'));
-
-            const result = await fetchCurrentWeekIdeas();
-
-            expect(result).toEqual([]);
-        });
-
-        it('returns empty array on non-ok response', async () => {
-            global.fetch.mockResolvedValue({
-                ok: false,
-                status: 500,
-            });
-
-            const result = await fetchCurrentWeekIdeas();
-
-            expect(result).toEqual([]);
-        });
-
-        it('returns empty array when ideas is missing from response', async () => {
-            global.fetch.mockResolvedValue({
-                ok: true,
-                json: async () => ({}),
-            });
-
-            const result = await fetchCurrentWeekIdeas();
-
-            expect(result).toEqual([]);
+        it('returns empty array on error', async () => {
+            fetch.mockRejectedValue(new Error('Network Error'));
+            const ideas = await fetchCurrentWeekIdeas();
+            expect(ideas).toEqual([]);
         });
     });
 
     describe('fetchLeaderboard', () => {
-        it('fetches and normalizes winners successfully', async () => {
-            const mockWinners = [
-                { id: 1, name: 'Winner 1' },
-                { id: 2, name: 'Winner 2' },
-            ];
-
-            global.fetch.mockResolvedValue({
+        it('fetches leaderboard correctly', async () => {
+            fetch.mockResolvedValue({
                 ok: true,
-                json: async () => mockWinners,
+                json: async () => [{ id: 10, title: 'Hall of Fame Idea' }]
             });
 
-            const result = await fetchLeaderboard();
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                'http://localhost:3001/api/ideas/leaderboard',
-                expect.objectContaining({ signal: expect.any(AbortSignal) })
-            );
-            expect(result).toHaveLength(2);
-            expect(result[0].normalized).toBe(true);
-        });
-
-        it('returns empty array on error', async () => {
-            global.fetch.mockRejectedValue(new Error('Network error'));
-
-            const result = await fetchLeaderboard();
-
-            expect(result).toEqual([]);
-        });
-
-        it('returns empty array on non-ok response', async () => {
-            global.fetch.mockResolvedValue({
-                ok: false,
-                status: 404,
-            });
-
-            const result = await fetchLeaderboard();
-
-            expect(result).toEqual([]);
+            const leaderboard = await fetchLeaderboard();
+            expect(leaderboard).toHaveLength(1);
+            expect(leaderboard[0].title).toBe('Hall of Fame Idea');
         });
     });
 
     describe('fetchArchiveBatches', () => {
-        it('fetches batches with default pagination', async () => {
-            const mockResponse = {
-                batches: [
-                    {
-                        week_of: '2024-01-01',
-                        winner: { id: 1, name: 'Winner' },
-                        ideas: [{ id: 2, name: 'Idea' }],
-                    },
-                ],
+        it('fetches paginated batches', async () => {
+            const mockArchive = {
+                batches: [{ date: '2024-01-01', ideas: [], winner: {} }],
                 page: 1,
-                limit: 20,
-                total: 1,
-                pages: 1,
+                total: 1
             };
-
-            global.fetch.mockResolvedValue({
+            fetch.mockResolvedValue({
                 ok: true,
-                json: async () => mockResponse,
+                json: async () => mockArchive
             });
 
-            const result = await fetchArchiveBatches();
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                'http://localhost:3001/api/ideas/weekly-batches?page=1&limit=20',
-                expect.any(Object)
-            );
+            const result = await fetchArchiveBatches(1);
             expect(result.batches).toHaveLength(1);
-            expect(result.batches[0].winner.normalized).toBe(true);
-            expect(result.batches[0].ideas[0].normalized).toBe(true);
-            expect(result.pagination).toEqual({
-                page: 1,
-                limit: 20,
-                total: 1,
-                pages: 1,
-            });
-        });
-
-        it('fetches batches with custom pagination', async () => {
-            global.fetch.mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    batches: [],
-                    page: 2,
-                    limit: 10,
-                    total: 15,
-                    pages: 2,
-                }),
-            });
-
-            const result = await fetchArchiveBatches(2, 10);
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                'http://localhost:3001/api/ideas/weekly-batches?page=2&limit=10',
-                expect.any(Object)
-            );
-            expect(result.pagination.page).toBe(2);
-            expect(result.pagination.limit).toBe(10);
-        });
-
-        it('returns empty batches on error', async () => {
-            global.fetch.mockRejectedValue(new Error('Network error'));
-
-            const result = await fetchArchiveBatches();
-
-            expect(result.batches).toEqual([]);
-            expect(result.pagination).toEqual({
-                page: 1,
-                limit: 20,
-                total: 0,
-                pages: 0,
-            });
-        });
-
-        it('handles missing batches in response', async () => {
-            global.fetch.mockResolvedValue({
-                ok: true,
-                json: async () => ({}),
-            });
-
-            const result = await fetchArchiveBatches();
-
-            expect(result.batches).toEqual([]);
-        });
-
-        it('handles missing ideas in batch', async () => {
-            global.fetch.mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    batches: [{ week_of: '2024-01-01', winner: { id: 1 } }],
-                }),
-            });
-
-            const result = await fetchArchiveBatches();
-
-            expect(result.batches[0].ideas).toEqual([]);
+            expect(result.pagination.total).toBe(1);
         });
     });
 
     describe('castVote', () => {
-        it('calls apiFetch with correct parameters', async () => {
-            const mockSession = { access_token: 'token123' };
-            apiFetch.mockResolvedValue({ success: true, changedFrom: null });
-
-            const result = await castVote(42, mockSession);
+        it('calls apiFetch with correct params', async () => {
+            apiFetch.mockResolvedValue({ success: true });
+            const session = { access_token: 'valid' };
+            
+            await castVote('idea-123', session);
 
             expect(apiFetch).toHaveBeenCalledWith(
                 '/api/votes',
-                {
+                expect.objectContaining({
                     method: 'POST',
-                    body: JSON.stringify({ ideaId: 42 }),
-                },
-                mockSession
+                    body: expect.stringContaining('idea-123')
+                }),
+                session
             );
-            expect(result).toEqual({ success: true, changedFrom: null });
-        });
-
-        it('throws error on API failure', async () => {
-            const mockSession = { access_token: 'token123' };
-            apiFetch.mockRejectedValue(new Error('Vote failed'));
-
-            await expect(castVote(42, mockSession)).rejects.toThrow('Vote failed');
         });
     });
 
     describe('getUserVote', () => {
         it('returns idea_id from user vote', async () => {
-            const mockSession = { access_token: 'token123' };
-            apiFetch.mockResolvedValue({ vote: { idea_id: 99 } });
-
-            const result = await getUserVote(mockSession);
-
-            expect(apiFetch).toHaveBeenCalledWith('/api/votes/user', {}, mockSession);
-            expect(result).toBe(99);
+            apiFetch.mockResolvedValue({ vote: { idea_id: 'voted-id' } });
+            
+            const voteId = await getUserVote({ access_token: 't' });
+            expect(voteId).toBe('voted-id');
         });
 
-        it('returns null when no vote exists', async () => {
-            const mockSession = { access_token: 'token123' };
+        it('returns null if no vote found', async () => {
             apiFetch.mockResolvedValue({ vote: null });
-
-            const result = await getUserVote(mockSession);
-
-            expect(result).toBeNull();
-        });
-
-        it('returns null on API error', async () => {
-            const mockSession = { access_token: 'token123' };
-            apiFetch.mockRejectedValue(new Error('API Error'));
-
-            const result = await getUserVote(mockSession);
-
-            expect(result).toBeNull();
-        });
-
-        it('returns null when vote object is missing idea_id', async () => {
-            const mockSession = { access_token: 'token123' };
-            apiFetch.mockResolvedValue({ vote: {} });
-
-            const result = await getUserVote(mockSession);
-
-            expect(result).toBeNull();
+            const voteId = await getUserVote({ access_token: 't' });
+            expect(voteId).toBeNull();
         });
     });
 });

@@ -58,7 +58,7 @@ To prevent generating duplicates of ideas the system has *already* published, th
 ## 4. Stage 1: Initial Idea Generation
 Total source data is sliced (up to 40 posts per source) and sent to `AIService.generateIdeas`.
 - **Source-Specific Context**: Ideas are generated one source at a time to maintain context.
-- **AI Models**: Uses a fallback chain (Gemini Flash -> Gemini Flash-8B) to ensure reliability.
+- **AI Models**: Uses `gemini-2.0-flash` for primary synthesis, with a fallback chain to ensure reliability. The specialized **Roasting** feature uses `gemini-3.1-flash-lite-preview` for high-speed, high-fidelity burns.
 - **Creative Naming**: The AI is instructed to generate **eccentric, brandable names** (e.g., "Neighborhood", "BioFlow") based on the **Solution** vibe, strictly avoiding technical descriptors like "Optimizer" or "Platform".
 
 ---

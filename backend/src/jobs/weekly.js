@@ -41,10 +41,10 @@ export async function calculateWinner() {
       return { skipped: true };
     }
 
-    // 1. Get ideas for that week
+    // 1. Get ideas for that week (vote_count is the authoritative denormalized count)
     const { data: ideas, error: ideasError } = await supabaseAdmin
       .from('ideas')
-      .select('id, name, title, created_at')
+      .select('id, name, title, created_at, vote_count')
       .eq('week_published', weekStart)
       .eq('status', 'published');
 
@@ -55,18 +55,8 @@ export async function calculateWinner() {
       return;
     }
 
-    // 2 & 3. Get vote counts for each idea (doing it sequentially to avoid parallel memory spikes on small machines)
-    const ideaVotes = [];
-    for (const idea of ideas) {
-      const { count, error } = await supabaseAdmin
-        .from('votes')
-        .select('*', { count: 'exact', head: true })
-        .eq('idea_id', idea.id);
-
-      if (error) throw error;
-      ideaVotes.push({ ...idea, voteCount: count || 0 });
-    }
-
+    // 2. Use denormalized vote_count (same source as leaderboard — keeps winner consistent)
+    const ideaVotes = ideas.map(idea => ({ ...idea, voteCount: idea.vote_count || 0 }));
     const totalVotes = ideaVotes.reduce((sum, i) => sum + i.voteCount, 0);
 
     // Sort by votes DESC, then by created_at ASC (earliest idea wins ties)
@@ -80,29 +70,7 @@ export async function calculateWinner() {
       console.log(`No winner identified for week ${weekStart}: Total votes is 0.`);
     }
 
-    // 4. Update Weekly Batch with results and mark as calculated
-    const updateData = {
-      week_start_date: weekStart,
-      total_ideas: ideas.length,
-      total_votes: totalVotes,
-      winner_calculated: true  // Mark as complete to prevent re-calculation
-    };
-
-    if (winner) {
-      updateData.winner_idea_id = winner.id;
-    }
-
-    const { data: batch, error: batchError } = await supabaseAdmin
-      .from('weekly_batches')
-      .upsert(updateData, {
-        onConflict: 'week_start_date'
-      })
-      .select()
-      .single();
-
-    if (batchError) throw batchError;
-
-    // 5. Update Idea winner flag and award badges only if a winner exists
+    // 4. Update Idea winner flag
     let winningVotersCount = 0;
     if (winner) {
       const { error: winnerStatusError } = await supabaseAdmin
@@ -116,7 +84,7 @@ export async function calculateWinner() {
       }
     }
 
-    // 6. Archived ALL ideas from that week (including winner)
+    // 5. Archived ALL ideas from that week (including winner)
     const allBatchIdeaIds = ideas.map(i => i.id);
     if (allBatchIdeaIds.length > 0) {
       const { error: archiveError } = await supabaseAdmin
@@ -161,6 +129,28 @@ export async function calculateWinner() {
       }
     }
 
+    // 7. Update Weekly Batch with results and mark as calculated ONLY after success
+    const updateData = {
+      week_start_date: weekStart,
+      total_ideas: ideas.length,
+      total_votes: totalVotes,
+      winner_calculated: true  // Mark as complete to prevent re-calculation
+    };
+
+    if (winner) {
+      updateData.winner_idea_id = winner.id;
+    }
+
+    const { data: batch, error: batchError } = await supabaseAdmin
+      .from('weekly_batches')
+      .upsert(updateData, {
+        onConflict: 'week_start_date'
+      })
+      .select()
+      .single();
+
+    if (batchError) throw batchError;
+
     return { winner, batch, badgeCount: winningVotersCount };
   } catch (error) {
     console.error('Error calculating winner:', error);
@@ -174,11 +164,13 @@ export async function sendWeeklyDigest() {
     const weekStart = getMonday();
 
     // 1. Get this week's batch metadata first (checks for pre-defined subject and duplicate send)
-    const { data: currentBatch } = await supabaseAdmin
+    const { data: currentBatch, error: batchCheckError } = await supabaseAdmin
       .from('weekly_batches')
       .select('id, subject_line, winner_idea_id, email_sent_at')
       .eq('week_start_date', weekStart)
       .maybeSingle();
+
+    if (batchCheckError) throw batchCheckError;
 
     if (currentBatch?.email_sent_at) {
       console.log(`⏭️  Weekly digest already sent for ${weekStart}. Skipping to prevent duplicates.`);
@@ -274,7 +266,7 @@ export async function sendWeeklyDigest() {
     // 6. Paginate through active subscribers (OOM prevention)
     let successCount = 0;
     let failCount = 0;
-    let page = 0;
+    let lastSeenId = null; // Cursor-based pagination — stable even if rows insert mid-send
     const PAGE_SIZE = 500; // Fetch 500 at a time
     const SEND_BATCH_SIZE = 100; // Send to Brevo in optimized batches of 100
 
@@ -301,18 +293,23 @@ export async function sendWeeklyDigest() {
 
     console.log(`🚀 Sending emails via Brevo Batch API (${ideas.length} ideas) to subscribers in groups of ${PAGE_SIZE}...`);
 
+    let pageNum = 0;
     while (true) {
-      const { data: subscriberPage, error: pageError } = await supabaseAdmin
+      let query = supabaseAdmin
         .from('subscribers')
-        .select('email, name, user_id')
+        .select('id, email, name, user_id')
         .is('unsubscribed_at', null)
-        .order('created_at', { ascending: true })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        .order('id', { ascending: true })
+        .limit(PAGE_SIZE);
+      if (lastSeenId) query = query.gt('id', lastSeenId);
+
+      const { data: subscriberPage, error: pageError } = await query;
 
       if (pageError) throw pageError;
       if (!subscriberPage || subscriberPage.length === 0) break;
 
-      console.log(`📡 Processing page ${page + 1} (${subscriberPage.length} subscribers)...`);
+      pageNum++;
+      console.log(`📡 Processing page ${pageNum} (${subscriberPage.length} subscribers)...`);
 
       for (let i = 0; i < subscriberPage.length; i += SEND_BATCH_SIZE) {
         const subscriberChunk = subscriberPage.slice(i, i + SEND_BATCH_SIZE);
@@ -344,7 +341,7 @@ export async function sendWeeklyDigest() {
           subject: emailSubject,
           tags: ['weekly-digest'],
           globalParams, // Send shared content once per batch
-          idempotencyKey: `weekly-${weekStart}-${page}-${i}` // Resilient retry key
+          idempotencyKey: `weekly-${weekStart}-${pageNum}-${i}` // Resilient retry key
         });
         successCount += result.successCount || 0;
         failCount += result.failCount || 0;
@@ -355,7 +352,7 @@ export async function sendWeeklyDigest() {
         await new Promise(r => setTimeout(r, 100)); // Be gentle
       }
 
-      page++;
+      lastSeenId = subscriberPage[subscriberPage.length - 1].id;
     }
 
     console.log(`📊 Final Result: ${successCount} sent, ${failCount} failed.`);
@@ -363,6 +360,12 @@ export async function sendWeeklyDigest() {
     // Alert if significant failure rate
     if (failCount > 0 && failCount > totalSubscribers * 0.1) {
       console.warn(`⚠️  WARNING: >10% failure rate (${failCount}/${totalSubscribers}). Check Brevo API.`);
+    }
+
+    // Only stamp email_sent_at if at least one send succeeded.
+    // If we stamp on total failure, the idempotency guard blocks all future retries.
+    if (successCount === 0) {
+      throw new Error(`[FATAL] Zero emails delivered for ${weekStart}. email_sent_at NOT updated — re-run to retry.`);
     }
 
     // Update batch status

@@ -15,7 +15,7 @@ export default function HowItWorks() {
                 <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                     <RevealItem type="slide" direction="up" spring="snappy" className="text-center group" hover={{ y: -8 }} tap={{ scale: 0.96 }}>
                         <div className="comic-panel p-3 sm:p-4 bg-yellow-100 mb-4 sm:mb-6 inline-block transform -rotate-2 group-hover:rotate-0 transition-transform">
-                            <Image src="/icon-stash.png" alt="Weekly startup ideas delivered every Monday from internet noise" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            <Image src="/icon-stash.png" alt="Weekly startup idea stash icon - 10 validated opportunities delivered every Monday" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                         </div>
                         <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">1. GET THE STASH</h3>
                         <p className="comic-body text-sm sm:text-base text-gray-700">
@@ -26,7 +26,7 @@ export default function HowItWorks() {
 
                     <RevealItem type="slide" direction="up" spring="snappy" className="text-center group" hover={{ y: -8 }} tap={{ scale: 0.96 }}>
                         <div className="comic-panel p-3 sm:p-4 bg-blue-100 mb-4 sm:mb-6 inline-block transform rotate-2 group-hover:rotate-0 transition-transform">
-                            <Image src="/icon-target.png" alt="Vote on validated startup ideas and pick the best business opportunity" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            <Image src="/icon-target.png" alt="Pick a winner icon - Selecting the best validated startup opportunity to build" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                         </div>
                         <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">2. PICK YOUR WINNER</h3>
                         <p className="comic-body text-sm sm:text-base text-gray-700">
@@ -37,7 +37,7 @@ export default function HowItWorks() {
 
                     <RevealItem type="slide" direction="up" spring="snappy" className="text-center group sm:col-span-2 md:col-span-1" hover={{ y: -8 }} tap={{ scale: 0.96 }}>
                         <div className="comic-panel p-3 sm:p-4 bg-rose-100 mb-4 sm:mb-6 inline-block badge-shine transform -rotate-1 group-hover:rotate-0 transition-transform">
-                            <Image src="/icon-trophy.png" alt="Earn badges for picking winning startup ideas" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
+                            <Image src="/icon-trophy.png" alt="Earn badges icon - Gamified startup validation with mission designations" width={128} height={128} className="w-20 h-20 sm:w-32 sm:h-32 object-contain" />
                         </div>
                         <h3 className="comic-title text-xl sm:text-2xl mb-2 sm:mb-3 text-black">3. EARN YOUR BADGE</h3>
                         <p className="comic-body text-sm sm:text-base text-gray-700">

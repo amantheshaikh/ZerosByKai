@@ -292,11 +292,10 @@ export function AuthProvider({ children }) {
    * 3. Set up auth state listener
    */
   useEffect(() => {
-    // Prevent double initialization in React StrictMode
-    if (isInitialized.current) return;
-    isInitialized.current = true;
-
+    // Initialization logic - runs only once
     const initializeAuth = async () => {
+      if (isInitialized.current) return;
+      isInitialized.current = true;
       // 5-second failsafe: Ensure isLoading is never stuck at true
       const failsafeTimeout = setTimeout(() => {
         if (isLoading) {
@@ -354,6 +353,11 @@ export function AuthProvider({ children }) {
         clearTimeout(failsafeTimeout);
 
         if (currentSession?.user) {
+          // Schedule refresh if session exists on mount
+          if (currentSession.expires_at) {
+            scheduleSessionRefresh(currentSession);
+          }
+          
           supabase
             .from('subscribers')
             .select('*')
@@ -443,8 +447,8 @@ export function AuthProvider({ children }) {
 
     return () => {
       subscription.unsubscribe();
-      isInitialized.current = false;
-      // Clean up refresh timer on unmount
+      // Do NOT reset isInitialized — keeping it true prevents StrictMode's
+      // double-invoke from re-running initializeAuth on the second mount.
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
       }
@@ -499,7 +503,7 @@ export function AuthProvider({ children }) {
 
       // Provider-specific options
       const options = {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
       };
 
       if (provider === 'google') {

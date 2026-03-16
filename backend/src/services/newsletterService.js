@@ -41,49 +41,28 @@ export async function pickAndPublishIdeas(targetDate = null) {
             currentBatch = newBatch;
         }
 
-        // Step 1: Select 10 oldest approved ideas (FIFO)
-        console.log('🔍 Picking 10 opportunities from Approved list...');
-        const { data: backlogIdeas, error: fetchError } = await supabaseAdmin
-            .from('ideas')
-            .select('id, name')
-            .eq('status', 'approved')
-            .order('created_at', { ascending: true }) // FIFO: Oldest first
-            .limit(10);
+        // Step 1 & 2: Select 10 oldest approved ideas and schedule them (ATOMIC)
+        console.log('🔍 Atomically picking and scheduling 10 opportunities from Approved list...');
+        const { data: published, error: rpcError } = await supabaseAdmin
+            .rpc('pick_and_schedule_ideas', { p_week: weekStart });
 
-        if (fetchError) throw fetchError;
-
-        if (!backlogIdeas || backlogIdeas.length < 10) {
-            // Strict validation: Must have exactly 10 approved ideas
-            const available = backlogIdeas?.length || 0;
-            throw new Error(
-                `Cannot schedule newsletter: Only ${available} approved ideas found (need 10). ` +
-                `Please approve at least 10 ideas in Supabase before scheduling.`
-            );
+        if (rpcError) {
+            throw new Error(`Failed to atomically schedule ideas: ${rpcError.message}`);
         }
 
-        // Step 2: Publish them (Atomic-ish)
-        // We update them to 'published' and link to this week
-        const ideaIds = backlogIdeas.map(i => i.id);
-        const { data: published, error: updateError } = await supabaseAdmin
-            .from('ideas')
-            .update({
-                status: 'scheduled',
-                week_published: weekStart
-            })
-            .in('id', ideaIds)
-            .select();
-
-        if (updateError) throw new Error(`Failed to publish ideas: ${updateError.message}`);
+        if (!published || published.length < 10) {
+            throw new Error(`Scheduled ${published?.length || 0} ideas which is less than 10. This should have been caught by the RPC.`);
+        }
 
         // Step 3: Update Batch Metrics
         const { error: finalBatchError } = await supabaseAdmin
             .from('weekly_batches')
-            .update({ total_ideas: backlogIdeas.length })
+            .update({ total_ideas: published.length })
             .eq('id', currentBatch.id);
 
         if (finalBatchError) console.error('Error updating batch metrics:', finalBatchError);
 
-        console.log(`✅ Successfully published ${backlogIdeas.length} opportunities for week ${weekStart}`);
+        console.log(`✅ Successfully scheduled ${published.length} opportunities for week ${weekStart}`);
         return published;
     } catch (error) {
         console.error('Error in pickAndPublishIdeas:', error);

@@ -14,7 +14,7 @@ The backend is a Node.js/Express application that provides the API and backgroun
 - **Runtime:** Node.js
 - **Framework:** Express
 - **Database:** Supabase (PostgreSQL)
-- **AI:** Google Gemini (Flash 2.0 / 1.5)
+- **AI:** Google Gemini (Flash 2.0 / 1.5 - Roasting: gemini-3.1-flash-lite-preview)
 - **Email:** Brevo
 - **Hosting:** Fly.io
 
@@ -25,6 +25,7 @@ The backend is a Node.js/Express application that provides the API and backgroun
 - `ideas.js` - Weekly batch retrieval, past editions, leaderboard data.
 - `votes.js` - Casting votes, retrieving user's current/past votes, badges.
 - `webhooks.js` - Handling Brevo webhook events (bounces, unsubscribes).
+- `roast.js` - Specialized startup roasting endpoint.
 
 ### Services (`src/services/`)
 - `aiService.js` - Gemini AI prompts and analysis logic.
@@ -54,8 +55,9 @@ Secure auto-login via JWT tokens in emails:
 ## Environment Variables
 Required variables are documented in [backend/README.md](../backend/README.md).
 
-## Recent Changes (Feb 14, 2026)
-- ✅ **Coverage**: Expanded backend test suite to >90% line coverage (161+ tests passing).
+- ✅ **Reliability & Security (Mar 16)**: Overhauled backend test suite (195 tests passing). Implemented database-level triggers for vote atomicity. Reordered winner calculation flags to prevent state races. Added JWT secret guards.
+- ✅ **Roast & UI (Mar 16)**: Updated roast model to `gemini-3.1-flash-lite-preview`. Integrated Product Hunt badge.
+- ✅ **Coverage (Feb 14)**: Expanded backend test suite to >90% line coverage.
 - ✅ **Robustness**: Implemented exponential backoff retries and idempotency keys for Brevo Batch API.
 - ✅ **Admin**: Consolidated all template, webhook, and simulation logic into `src/scripts/manage_templates.js`.
 - ✅ **Auth**: Refined `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement hardening.
@@ -63,4 +65,4 @@ Required variables are documented in [backend/README.md](../backend/README.md).
 
 ---
 
-**Last Updated:** February 14, 2026
+**Last Updated:** March 16, 2026

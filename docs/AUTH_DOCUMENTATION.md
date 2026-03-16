@@ -232,11 +232,13 @@ try {
 ## Security Features
 
 - **Supabase RLS** - Row-level security on all tables (updated for `winner` status)
+- **Open Redirect Protection** - Auth callback enforces safe local paths for the `next` parameter.
+- **AuthProvider Resilience** - Handles React StrictMode dual-mount cycles to ensure auth listeners are never dropped.
+- **Session Refresh Guard** - Explicitly schedules refresh on mount for existing sessions to prevent silent expiry.
 - **Email Security** - CRLF protection, RFC 2047 encoding, Base64 bodies
 - **Secure Token Masking** - Enhanced PII protection in logs and emails
 - **HTTPS only** - All auth flows require HTTPS in production
 - **Session management** - Automatic token refresh by Supabase
-5. **Session management** - Automatic token refresh by Supabase
 
 ---
 

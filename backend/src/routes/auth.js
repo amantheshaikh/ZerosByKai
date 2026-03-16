@@ -12,6 +12,10 @@ import { verifyEmailToken } from '../utils/emailToken.js';
 
 const router = express.Router();
 
+// Shared email validator
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isValidEmail = (email) => typeof email === 'string' && EMAIL_REGEX.test(email);
+
 // Rate limiters for public endpoints (Relaxed in non-production)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -30,8 +34,13 @@ const tokenLimiter = rateLimit({
 
 // Helper for admin key check
 const requireAdminKey = (req, res, next) => {
+  const adminKey = config.adminApiKey;
+  if (!adminKey) {
+    console.error('ADMIN_API_KEY is not set — admin endpoints are disabled');
+    return res.status(503).json({ error: 'Admin access not configured' });
+  }
   const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${config.supabase.serviceKey}`) {
+  if (authHeader !== `Bearer ${adminKey}`) {
     return res.status(401).json({ error: 'Unauthorized: Admin access required' });
   }
   next();
@@ -42,6 +51,7 @@ router.post('/check', authLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email format' });
 
     if (!supabaseAdmin) {
       return res.status(503).json({ error: 'Service temporarily unavailable' });
@@ -70,11 +80,7 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
   try {
     const { email, name } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (typeof email !== 'string' || !emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email format' });
 
     if (!supabaseAdmin) {
       return res.status(503).json({ error: 'Subscription service unavailable' });
@@ -147,16 +153,26 @@ router.post('/subscribe', authLimiter, async (req, res, next) => {
 // POST /api/auth/signup - Send magic link
 router.post('/signup', authLimiter, async (req, res, next) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, redirectTo } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email format' });
 
     if (!supabaseAdmin) throw new Error('SUPABASE_SERVICE_KEY missing');
+
+    // Build redirect URL with optional 'next' parameter
+    let callbackUrl = `${config.frontendUrl}/auth/callback`;
+    if (redirectTo) {
+      const safeNext = /^\/(?!\/)/.test(redirectTo) ? redirectTo : '/';
+      if (safeNext !== '/') {
+        callbackUrl += `?next=${encodeURIComponent(safeNext)}`;
+      }
+    }
 
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: {
-        redirectTo: `${config.frontendUrl}/auth/callback`,
+        redirectTo: callbackUrl,
         data: { name: name || '' }
       }
     });
@@ -210,6 +226,7 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      if (error) throw error;
       if (data) {
         subscriber = data;
         break;
@@ -271,7 +288,14 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
       };
       if (metadataName) updateData.name = metadataName;
 
-      await supabaseAdmin.from('subscribers').update(updateData).eq('user_id', user.id);
+      const { data: updateResult, error: updateError } = await supabaseAdmin
+        .from('subscribers').update(updateData).eq('user_id', user.id)
+        .select('user_id');
+      if (updateError) throw updateError;
+      // Fall back to email match for newsletter-only subscribers (user_id is NULL)
+      if (!updateResult || updateResult.length === 0) {
+        await supabaseAdmin.from('subscribers').update(updateData).eq('email', user.email);
+      }
 
       // Update local subscriber object for subsequent logic
       if (metadataName) subscriber.name = metadataName;
@@ -331,9 +355,11 @@ router.post('/post-login', requireAuth, async (req, res, next) => {
 router.post('/verify', tokenLimiter, async (req, res, next) => {
   try {
     const { token, type } = req.body;
+    const ALLOWED_OTP_TYPES = ['magiclink', 'email'];
+    const otpType = ALLOWED_OTP_TYPES.includes(type) ? type : 'magiclink';
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: token,
-      type: type || 'magiclink'
+      type: otpType
     });
 
     if (error) throw error;
@@ -354,6 +380,17 @@ router.post('/verify-email-token', tokenLimiter, async (req, res, next) => {
     if (!token) return res.status(400).json({ error: 'Token is required' });
 
     const { userId, email } = verifyEmailToken(token);
+
+    // Block newsletter-only subscribers (no Auth account) from getting a session.
+    // Their tokens use email as userId — check subscribers table for a real user_id.
+    const { data: subscriber } = await supabaseAdmin
+      .from('subscribers')
+      .select('user_id')
+      .eq('email', email)
+      .maybeSingle();
+    if (!subscriber?.user_id) {
+      return res.status(401).json({ error: 'No account found. Please sign up first.' });
+    }
 
     // As createSession is not available in some SDK versions, we generate a magic link
     // and immediately verify it to get a session.
@@ -380,7 +417,7 @@ router.get('/user', requireAuth, async (req, res, next) => {
   try {
     const { data: profile } = await supabase
       .from('subscribers')
-      .select('*')
+      .select('name, email, welcomed, unsubscribed_at, user_id, subscribed_at')
       .eq('user_id', req.user.id)
       .maybeSingle();
 
@@ -502,11 +539,14 @@ router.delete('/user', requireAuth, async (req, res, next) => {
     deleteContact(user.email).catch(err => console.error('Brevo Delete Error:', err.message));
 
     // Dissociate votes/badges before deletion (ON DELETE SET NULL may not fire on soft delete)
-    await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       supabaseAdmin.from('votes').update({ user_id: null }).eq('user_id', user.id),
       supabaseAdmin.from('user_badges').update({ user_id: null }).eq('user_id', user.id),
       supabaseAdmin.from('subscribers').delete().eq('user_id', user.id),
     ]);
+    if (r1.error) throw r1.error;
+    if (r2.error) throw r2.error;
+    if (r3.error) throw r3.error;
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
     if (error) throw error;
@@ -533,11 +573,14 @@ router.delete('/admin/user', requireAdminKey, async (req, res, next) => {
 
     if (subscriber?.user_id) {
       // Dissociate votes/badges before deletion (ON DELETE SET NULL may not fire on soft delete)
-      await Promise.all([
+      const [d1, d2, d3] = await Promise.all([
         supabaseAdmin.from('votes').update({ user_id: null }).eq('user_id', subscriber.user_id),
         supabaseAdmin.from('user_badges').update({ user_id: null }).eq('user_id', subscriber.user_id),
         supabaseAdmin.from('subscribers').delete().eq('user_id', subscriber.user_id),
       ]);
+      if (d1.error) throw d1.error;
+      if (d2.error) throw d2.error;
+      if (d3.error) throw d3.error;
       await supabaseAdmin.auth.admin.deleteUser(subscriber.user_id);
     } else {
       await supabaseAdmin.from('subscribers').delete().eq('email', email);

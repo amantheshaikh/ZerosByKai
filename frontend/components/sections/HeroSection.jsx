@@ -66,7 +66,7 @@ export default function HeroSection() {
                             <div className="comic-panel comic-shadow p-2 bg-gradient-to-br from-yellow-200 to-yellow-100 rotate-2 z-10 relative">
                                 <Image
                                     src="/kai-hero.jpg"
-                                    alt="Kai - AI-powered startup idea curator finding validated business opportunities from the internet's noise"
+                                    alt="Kai - The ZerosByKai AI analyst curator identifying validated startup opportunities from Reddit, X, and Hacker News"
                                     width={450}
                                     height={675}
                                     className="w-full h-auto border-2 sm:border-4 border-black"

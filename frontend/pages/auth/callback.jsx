@@ -36,9 +36,20 @@ const AuthCallback = () => {
     }, []);
 
     useEffect(() => {
+        const getNextPath = () => {
+            const raw = router.query.next || new URLSearchParams(window.location.search).get('next') || '/';
+            return /^\/(?!\/)/.test(raw) ? raw : '/';
+        };
+
+        // Handle the case where AuthProvider already processed the hash before this
+        // listener was registered — the SIGNED_IN event would have fired and been missed.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) router.push(getNextPath());
+        });
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN') {
-                router.push('/');
+                router.push(getNextPath());
             }
         });
 

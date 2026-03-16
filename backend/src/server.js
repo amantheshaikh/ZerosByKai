@@ -13,6 +13,7 @@ import authRouter from './routes/auth.js';
 import webhooksRouter from './routes/webhooks.js';
 import emailsRouter from './routes/emails.js';
 import feedbackRouter from './routes/feedback.js';
+import roastRouter from './routes/roast.js';
 
 // Config & Services
 import { config } from './config/env.js';
@@ -53,13 +54,20 @@ app.use((req, res, next) => {
     const logLevel = statusCode >= 400 ? 'error' : 'info';
     const timestamp = new Date().toISOString();
 
+    // Redact sensitive query params (e.g. unsubscribe tokens) before logging
+    const REDACTED_PARAMS = new Set(['token', 'email']);
+    const rawQuery = req.query && Object.keys(req.query).length > 0 ? req.query : null;
+    const safeQuery = rawQuery
+      ? Object.fromEntries(Object.entries(rawQuery).map(([k, v]) => [k, REDACTED_PARAMS.has(k) ? '[REDACTED]' : v]))
+      : undefined;
+
     console.log(JSON.stringify({
       timestamp,
       level: logLevel,
       requestId,
       method: req.method,
       path: req.path,
-      query: req.query && Object.keys(req.query).length > 0 ? req.query : undefined,
+      query: safeQuery,
       status: statusCode,
       duration: `${duration}ms`,
       ip: req.ip
@@ -96,7 +104,7 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || config.nodeEnv !== 'production') {
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -118,6 +126,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/webhooks', webhooksRouter);
 app.use('/api/emails', emailsRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/roast', roastRouter);
 
 // Newsletter subscribe shortcut (maps to /api/auth/subscribe)
 app.post('/api/subscribe', (req, res, next) => {

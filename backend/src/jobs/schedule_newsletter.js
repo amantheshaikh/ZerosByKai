@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { AIService } from '../services/aiService.js';
 import { config } from '../config/env.js';
 import { getMonday, getLastMonday } from '../utils/dateUtils.js';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 /**
  * Schedule Newsletter Script
@@ -98,9 +98,14 @@ export async function scheduleNewsletter() {
         try {
             // Trigger generate_x_content for IDEAS ONLY (Winner is generated on Monday)
             // We use the 'scheduled' status since they aren't live yet.
-            const genCommand = `node src/jobs/generate_x_content.js --mode=ideas --status=scheduled --date=${weekStart}`;
-            console.log(`   Running: ${genCommand}`);
-            execSync(genCommand, { stdio: 'inherit' });
+            // spawnSync with an args array avoids shell interpolation of weekStart.
+            console.log(`   Running: node src/jobs/generate_x_content.js --mode=ideas --status=scheduled --date=${weekStart}`);
+            const genResult = spawnSync(
+                'node',
+                ['src/jobs/generate_x_content.js', '--mode=ideas', '--status=scheduled', `--date=${weekStart}`],
+                { stdio: 'inherit' }
+            );
+            if (genResult.status !== 0) throw new Error(`generate_x_content exited with code ${genResult.status}`);
             console.log('✅ X Post Images Generated!');
         } catch (genError) {
             console.error('⚠️  Image generation failed, but scheduling was successful:', genError.message);

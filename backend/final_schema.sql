@@ -259,3 +259,68 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Atomic vote swap via PostgreSQL function
+-- Replaces the non-atomic delete-then-insert pattern in the
+-- votes route with a single transaction, eliminating the window
+-- where a user could temporarily have no vote on failure.
+
+CREATE OR REPLACE FUNCTION cast_vote(
+  p_idea_id  UUID,
+  p_user_id  UUID,
+  p_week_start DATE
+)
+RETURNS SETOF votes
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Delete any existing vote for this user in this week
+  DELETE FROM votes
+  WHERE user_id = p_user_id
+    AND idea_id IN (
+      SELECT id FROM ideas WHERE week_published = p_week_start
+    );
+
+  -- Insert the new vote and return it
+  RETURN QUERY
+    INSERT INTO votes (idea_id, user_id)
+    VALUES (p_idea_id, p_user_id)
+    RETURNING *;
+END;
+$$;
+
+-- Atomic scheduling of 10 backlog ideas
+-- Ensures two concurrent requests cannot schedule the same ideas.
+CREATE OR REPLACE FUNCTION pick_and_schedule_ideas(p_week DATE)
+RETURNS SETOF ideas
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_idea_ids UUID[];
+BEGIN
+  -- 1. Select and lock 10 oldest approved ideas
+  SELECT array_accum(id) INTO v_idea_ids
+  FROM (
+    SELECT id
+    FROM ideas
+    WHERE status = 'approved'
+    ORDER BY created_at ASC
+    FOR UPDATE SKIP LOCKED
+    LIMIT 10
+  ) subquery;
+
+  -- Ensure we actually got exactly 10 ideas
+  IF array_length(v_idea_ids, 1) < 10 OR v_idea_ids IS NULL THEN
+    RAISE EXCEPTION 'Not enough approved ideas found (need 10, found %)', COALESCE(array_length(v_idea_ids, 1), 0);
+  END IF;
+
+  -- 2. Update their status to 'scheduled' and assign the week
+  RETURN QUERY
+    UPDATE ideas
+    SET status = 'scheduled', week_published = p_week
+    WHERE id = ANY(v_idea_ids)
+    RETURNING *;
+END;
+$$;

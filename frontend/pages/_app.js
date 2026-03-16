@@ -24,9 +24,11 @@ const organizationSchema = {
     "@type": "Organization",
     "name": "Zeros By Kai",
     "url": "https://zerosbykai.com",
-    "logo": "https://zerosbykai.com/favicon.ico",
+    "logo": "https://zerosbykai.com/og-hero.png",
     "description": "AI-powered startup idea curation platform. Validated business opportunities mined from the internet's noise, delivered weekly.",
-    "sameAs": [],
+    "sameAs": [
+        "https://x.com/zerosbykai"
+    ],
     "contactPoint": {
         "@type": "ContactPoint",
         "email": "kai@zerosbykai.com",
@@ -57,8 +59,11 @@ export default function App({ Component, pageProps }) {
                     <meta property="og:site_name" content="Zeros By Kai" />
                     <meta property="og:locale" content="en_US" />
                     <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:site" content="@zerosbykai" />
+                    <meta name="twitter:creator" content="@zerosbykai" />
                     <meta name="twitter:image" content="https://zerosbykai.com/og-hero.png" key="twitterimage" />
                     <meta name="robots" content="index, follow" />
                 </Head>

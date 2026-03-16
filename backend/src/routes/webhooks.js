@@ -15,10 +15,14 @@ router.post('/brevo', async (req, res) => {
     try {
         const { token } = req.query;
 
-        // Security check — reject if secret is missing or mismatched (timing-safe)
+        // Security check — compare HMAC digests so length is always equal (timing-safe)
         const secret = config.brevo.webhookSecret;
-        const isValid = token && secret && token.length === secret.length &&
-            crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+        let isValid = false;
+        if (token && secret) {
+            const expected = crypto.createHmac('sha256', secret).update(secret).digest();
+            const actual = crypto.createHmac('sha256', secret).update(token).digest();
+            isValid = crypto.timingSafeEqual(expected, actual);
+        }
 
         if (!isValid) {
             console.warn(`⚠️  Unauthorized Brevo webhook attempt (invalid token): ${token ? '***' + token.slice(-4) : 'none'}`);

@@ -39,20 +39,36 @@ export default function Footer() {
                             <li><a href="mailto:kai@zerosbykai.com" className="hover:text-yellow-400 transition-colors">kai@zerosbykai.com</a></li>
                             <li><button onClick={openFeedbackModal} className="hover:text-yellow-400 transition-colors text-left">Feedback</button></li>
                             <li>
-                                <a
-                                    href="https://foundrlist.com/product/zerosbykai"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block mt-4 hover:opacity-80 transition-opacity"
-                                >
-                                    <img
-                                        src="https://foundrlist.com/api/badge/zerosbykai"
-                                        alt="Live on FoundrList"
-                                        width="180"
-                                        height="72"
-                                        className="h-auto w-32 sm:w-40 2xl:w-48"
-                                    />
-                                </a>
+                                <div className="flex flex-row items-center gap-4 mt-6 overflow-x-auto no-scrollbar">
+                                    <a
+                                        href="https://foundrlist.com/product/zerosbykai"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:opacity-80 transition-opacity shrink-0"
+                                    >
+                                        <img
+                                            src="https://foundrlist.com/api/badge/zerosbykai"
+                                            alt="Live on FoundrList"
+                                            width="180"
+                                            height="72"
+                                            className="h-auto w-24 sm:w-32"
+                                        />
+                                    </a>
+                                    <a
+                                        href="https://www.producthunt.com/products/zeros-by-kai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-zeros-by-kai"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:opacity-80 transition-opacity shrink-0"
+                                    >
+                                        <img
+                                            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1078717&theme=dark&t=1773651973799"
+                                            alt="Zeros By Kai - Real Problems. Real Startup Ideas. | Product Hunt"
+                                            width="250"
+                                            height="54"
+                                            className="h-auto w-32 sm:w-40"
+                                        />
+                                    </a>
+                                </div>
                             </li>
                         </ul>
                     </div>

@@ -8,6 +8,7 @@ import { fetchArchiveBatches } from '@/lib/ideas';
 export default function ArchivePage() {
     const [batches, setBatches] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
     const [expandedWeeks, setExpandedWeeks] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -21,10 +22,15 @@ export default function ArchivePage() {
 
     useEffect(() => {
         setLoading(true);
+        setFetchError(false);
         fetchArchiveBatches(currentPage, 20)
             .then(({ batches, pagination }) => {
                 setBatches(batches);
                 setTotalPages(pagination.pages);
+            })
+            .catch(err => {
+                console.error('Failed to load archive:', err);
+                setFetchError(true);
             })
             .finally(() => setLoading(false));
     }, [currentPage]);
@@ -40,8 +46,11 @@ export default function ArchivePage() {
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://zerosbykai.com/archive" />
                 <meta property="og:image" content="https://zerosbykai.com/og-hero.png" key="ogimage" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
                 <meta name="twitter:title" content="Complete Startup Ideas Archive | Zeros By Kai" />
                 <meta name="twitter:description" content="Explore hundreds of validated startup ideas. See winners and browse the complete archive." />
+                <meta name="twitter:creator" content="@zerosbykai" />
                 <link rel="canonical" href="https://zerosbykai.com/archive" />
             </Head>
 
@@ -215,6 +224,20 @@ export default function ArchivePage() {
                                 </button>
                             </div>
                         )}
+                    </div>
+                ) : fetchError ? (
+                    <div className="comic-panel bg-white p-12 comic-shadow text-center">
+                        <div className="text-5xl mb-4">⚠️</div>
+                        <h2 className="comic-title text-3xl mb-3 text-gray-900">COULDN&apos;T LOAD ARCHIVE</h2>
+                        <p className="comic-body text-gray-600 mb-6">
+                            Something went wrong fetching the archive. Please try again.
+                        </p>
+                        <button
+                            onClick={() => setCurrentPage(p => p)}
+                            className="inline-block px-6 py-3 bg-black text-yellow-400 comic-title text-sm hover:bg-gray-900 transition-colors"
+                        >
+                            RETRY
+                        </button>
                     </div>
                 ) : (
                     <div className="comic-panel bg-white p-12 comic-shadow text-center">

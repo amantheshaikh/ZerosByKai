@@ -8,7 +8,7 @@ This document documents the technology stack and file tree structure for ZerosBy
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Supabase** - Database and Authentication (magic link, Google OAuth, email tokens)
-- **Google Gemini** - AI analysis (`gemini-2.0-flash`, fallback: `gemini-flash-latest`)
+- **Google Gemini** - AI analysis (`gemini-2.0-flash`, `gemini-3.1-flash-lite-preview` for roasting)
 - **Brevo** - Email delivery service (Transactional + Batch)
 - **node-cron** - Cron job scheduling
 - **Fly.io** - Deployment platform
@@ -210,6 +210,7 @@ vercel --prod
 ```
 
 ## Recent Changes
+- ✅ **Roast & UI Enhancement (Mar 16)**: Updated roast model to `gemini-3.1-flash-lite-preview`. Integrated Product Hunt badge. Reordered `/roast` page sections.
 - ✅ **Subscription Reliability (Feb 14)**: Achieved >90% backend test coverage. Implemented exponential backoff and idempotency for Brevo Batch API.
 - ✅ **Auth Refinement (Feb 14)**: Hardened `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement logic.
 - ✅ **Admin Consolidation**: All template management, webhook registration, and weekly simulations consolidated into `src/scripts/manage_templates.js`.
@@ -218,4 +219,4 @@ vercel --prod
 
 ---
 
-**Last Updated:** February 14, 2026
+**Last Updated:** March 16, 2026

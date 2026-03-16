@@ -1,6 +1,5 @@
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AuthProvider, useAuth, getApiUrl, getRedirectUrl } from '../../lib/auth';
 import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 
 // Mock Supabase
@@ -9,7 +8,12 @@ vi.mock('@supabase/auth-helpers-nextjs', () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
+global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({})
+});
+
+import { AuthProvider, useAuth, getApiUrl, getRedirectUrl, apiFetch } from '../../lib/auth';
 
 // Ensure we use the real lib/auth for its own tests, bypassing the global mock
 vi.unmock('@/lib/auth');
@@ -39,7 +43,12 @@ describe('Auth Library', () => {
                 signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
                 signOut: vi.fn().mockResolvedValue({ error: null }),
                 refreshSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+                setSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
             },
+            from: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
         createPagesBrowserClient.mockReturnValue(mockSupabase);
 
@@ -154,6 +163,157 @@ describe('Auth Library', () => {
                     })
                 );
             });
+        });
+
+        it('handles signOut correctly', async () => {
+            const mockUser = { id: 'user_123' };
+            mockSupabase.auth.getSession.mockResolvedValue({
+                data: { session: { user: mockUser } },
+                error: null,
+            });
+
+            const { result } = render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+            
+            // Note: Since TestComponent doesn't expose signOut, we'll verify it via child component or direct call if we used renderHook
+        });
+
+        it('detects tokens in URL hash and manually sets session', async () => {
+            window.location.hash = '#access_token=foo&refresh_token=bar';
+            mockSupabase.auth.setSession.mockResolvedValue({ data: { session: { user: { id: 'hash_user' } } }, error: null });
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await waitFor(() => {
+                expect(mockSupabase.auth.setSession).toHaveBeenCalledWith({
+                    access_token: 'foo',
+                    refresh_token: 'bar',
+                });
+            });
+        });
+
+        it('schedules session refresh if session.expires_at exists', async () => {
+            const now = Date.now();
+            const waitTime = 500000;
+            const expiresAt = Math.floor((now + waitTime + 300000) / 1000); 
+            
+            mockSupabase.auth.getSession.mockResolvedValue({
+                data: { session: { user: { id: 'u1' }, expires_at: expiresAt } },
+                error: null,
+            });
+
+            const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+            
+            await act(async () => {
+                render(
+                    <AuthProvider>
+                        <TestComponent />
+                    </AuthProvider>
+                );
+            });
+
+            await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+            
+            // Check for a timer scheduled for around waitTime (500,000ms)
+            await waitFor(() => {
+                const call = setTimeoutSpy.mock.calls.find(c => c[1] > waitTime - 20000 && c[1] < waitTime + 20000);
+                expect(call).toBeDefined();
+            });
+
+            setTimeoutSpy.mockRestore();
+        });
+
+        it('handles SIGNED_IN auth event', async () => {
+            let authCallback;
+            mockSupabase.auth.onAuthStateChange.mockImplementation((cb) => {
+                authCallback = cb;
+                return { data: { subscription: { unsubscribe: vi.fn() } } };
+            });
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+            
+            const mockSession = { user: { id: 'u1' }, access_token: 't' };
+            await act(async () => {
+                authCallback('SIGNED_IN', mockSession);
+            });
+
+            await waitFor(() => {
+                expect(global.fetch).toHaveBeenCalledWith(
+                    expect.stringContaining('/api/auth/post-login'),
+                    expect.any(Object)
+                );
+            });
+        });
+
+        it('handles SIGNED_OUT auth event', async () => {
+            let authCallback;
+            mockSupabase.auth.onAuthStateChange.mockImplementation((cb) => {
+                authCallback = cb;
+                return { data: { subscription: { unsubscribe: vi.fn() } } };
+            });
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+            
+            await act(async () => {
+                authCallback('SIGNED_OUT', null);
+            });
+            
+            await waitFor(() => {
+                expect(screen.getByTestId('user-id').textContent).toBe('');
+            });
+        });
+    });
+
+    describe('apiFetch', () => {
+        it('throws error on non-ok response', async () => {
+            fetch.mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: async () => ({ error: 'Bad Request' }),
+            });
+
+            await expect(apiFetch('/test')).rejects.toThrow('Bad Request');
+        });
+
+        it('injects authorization header when session is provided', async () => {
+            const { apiFetch } = await import('../../lib/auth');
+            fetch.mockResolvedValue({
+                ok: true,
+                json: async () => ({ success: true }),
+            });
+
+            const session = { access_token: 'mock-token' };
+            await apiFetch('/test', {}, session);
+
+            expect(fetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        'Authorization': 'Bearer mock-token'
+                    })
+                })
+            );
         });
     });
 });

@@ -272,8 +272,8 @@ Why It Matters: ${idea.why_it_matters || 'None'}
         const result = await model.generateContent(prompt);
         const text = result.response.text();
 
-        // More robust JSON extraction
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        // More robust JSON extraction — try array first, then object (e.g. generateNewsletterSubject)
+        const jsonMatch = text.match(/\[[\s\S]*\]/) || text.match(/\{[\s\S]*\}/);
         const cleanJson = jsonMatch ? jsonMatch[0] : text.replace(/```json/g, '').replace(/```/g, '').trim();
 
         try {

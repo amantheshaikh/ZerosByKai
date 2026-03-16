@@ -29,7 +29,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://zerosbykai.com').replace(/\/$/, '');
+const FRONTEND_URL = 'zerosbykai.com';
 const X_POSTS_ROOT = path.join(__dirname, '../../x_posts');
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
@@ -309,17 +309,17 @@ async function main() {
   // 3. Final Gallery Metadata Refresh
   // We re-fetch both scheduled and published ideas to ensure posts.md is ALWAYS a full weekly overview,
   // even if we only just generated one of the items.
-  const [finalIdeas, finalWinner] = await Promise.all([
+  const [publishedIdeas, finalWinner, scheduledIdeas] = await Promise.all([
     getIdeasForWeek(weekStart, 'published'),
     getWinnerForWeek(weekStart),
-    // Also check scheduled in case we are in the middle of a week
     getIdeasForWeek(weekStart, 'scheduled')
   ]);
 
   // Combine published and scheduled ideas (deduplicate)
   const combinedIdeasMap = new Map();
-  // We prefer published over scheduled if IDs match
-  [...arguments[2] || [], ...finalIdeas].forEach(i => combinedIdeasMap.set(i.id, i));
+  // We prefer published over scheduled if IDs match, but we want all 10
+  scheduledIdeas.forEach(i => combinedIdeasMap.set(i.id, i));
+  publishedIdeas.forEach(i => combinedIdeasMap.set(i.id, i));
   const galleryIdeas = Array.from(combinedIdeasMap.values()).slice(0, 10);
 
   const galleryPosts = [];

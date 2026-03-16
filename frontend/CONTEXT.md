@@ -35,6 +35,7 @@ Fully operational with all authentication flows implemented.
 | `archive.jsx` | `/archive` | Past weekly idea archives | ✅ Indexed |
 | `profile.jsx` | `/profile` | User profile: tier, votes, badges | ❌ Noindex |
 | `tools.jsx` | `/tools` | Kai's Toolbox: resources & tools | ✅ Indexed |
+| `roast.jsx` | `/roast` | Brutal AI startup roasting | ✅ Indexed |
 | `terms.jsx` | `/terms` | Terms & guidelines | ✅ Indexed |
 
 | `privacy.jsx` | `/privacy` | Privacy policy | ✅ Indexed |
@@ -58,10 +59,11 @@ Fully operational with all authentication flows implemented.
 ### Public Assets (`public/`)
 - `favicon.ico`, `favicon-32x32.png` — Site icons
 - `kai-hero.jpg` — Hero image (also OG image)
+- `product-hunt-badge.svg` — Embedded Product Hunt badge (external)
 - `kai-about-hero.png` — About page hero
 - `icon-stash.png`, `icon-target.png`, `icon-trophy.png` — Feature icons
 - `robots.txt` — Disallows `/auth/`, `/profile`, `/unsubscribe`, `/api/`
-- `sitemap.xml` — All 6 public pages with priorities
+- `sitemap.xml` — All 7 public pages with priorities
 
 ## Design System
 
@@ -247,15 +249,16 @@ npm run build
 # - Successful page generation
 ```
 
-## Recent Changes (Feb 14, 2026)
-- ✅ **Auth**: Refined `/post-login` and `/subscribe` flows for better name sync and re-engagement.
+- ✅ **Reliability & Security (Mar 16)**: Overhauled frontend test suite (173 tests passing). Optimized `auth.test.jsx` for sub-second execution. Resolved StrictMode listener drops and session refresh gaps in `AuthProvider`. Fixed open redirect vulnerability in auth callback.
+- ✅ **Roast & UI (Mar 16)**: Updated roast model to `gemini-3.1-flash-lite-preview`. Integrated Product Hunt badge. Reordered `/roast` page sections.
+- ✅ **Auth (Feb 14)**: Refined `/post-login` and `/subscribe` flows for better name sync and re-engagement.
 - ✅ **Email Auth**: Hardened auto-login verification for more robust session creation in all environments.
 - ✅ **Design**: Standardized tag extraction from the new `tags` array structure in the leaderboard.
 - ✅ **Toolbox**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching.
 
 ---
 
-**Last Updated:** February 14, 2026
+**Last Updated:** March 16, 2026
 
 ### Protected Routes
 ```javascript

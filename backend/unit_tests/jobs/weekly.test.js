@@ -13,10 +13,12 @@ vi.mock('../../src/config/supabase.js', () => {
         is: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         range: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         upsert: vi.fn().mockReturnThis(),
         single: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
+        rpc: vi.fn().mockReturnThis(),
         // Standard thenable for await support
         then: vi.fn(function (resolve) {
             return Promise.resolve({ data: [], error: null }).then(resolve);
@@ -48,6 +50,7 @@ vi.mock('../../src/config/env.js', () => ({
 describe('weekly.js', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        supabaseAdmin.then.mockReset();
         // Default success response
         supabaseAdmin.then.mockImplementation(function (resolve) {
             return Promise.resolve({ data: [], error: null }).then(resolve);
@@ -74,18 +77,17 @@ describe('weekly.js', () => {
         });
 
         it('should calculate winner and award badges correctly', async () => {
-            const mockIdeas = [{ id: '1', name: 'Idea 1', title: 'Title 1' }];
+            const mockIdeas = [{ id: '1', name: 'Idea 1', title: 'Title 1', vote_count: 3 }];
             const mockVoters = [{ user_id: 'u1' }, { user_id: 'u2' }, { user_id: 'u3' }];
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ count: 3, error: null }).then(f)) // per-idea vote count (for Idea 1)
-                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // batch upsert
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // update winner flag
                 .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // archive all
                 .mockImplementationOnce(f => Promise.resolve({ data: mockVoters, error: null }).then(f)) // winning voters
-                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // badges
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // badges
+                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)); // batch upsert
 
             const result = await calculateWinner();
 
@@ -94,13 +96,12 @@ describe('weekly.js', () => {
         });
 
         it('should handle "no winner" case when there are no votes', async () => {
-            const mockIdeas = [{ id: '1', name: 'Idea 1' }];
+            const mockIdeas = [{ id: '1', name: 'Idea 1', vote_count: 0 }];
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ count: 0, error: null }).then(f)) // per-idea vote count (0 votes)
-                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)) // upsert batch
-                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)); // archive
+                .mockImplementationOnce(f => Promise.resolve({ error: null }).then(f)) // archive
+                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'batch1' }, error: null }).then(f)); // upsert batch
 
             const result = await calculateWinner();
             expect(result.winner).toBeNull();
@@ -112,12 +113,10 @@ describe('weekly.js', () => {
         });
 
         it('should throw error if winner status update fails', async () => {
-            const mockIdeas = [{ id: '1', name: 'Idea 1' }];
+            const mockIdeas = [{ id: '1', name: 'Idea 1', vote_count: 1 }];
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // checkBatch
                 .mockImplementationOnce(f => Promise.resolve({ data: mockIdeas, error: null }).then(f)) // getIdeas
-                .mockImplementationOnce(f => Promise.resolve({ count: 1, error: null }).then(f)) // vote count
-                .mockImplementationOnce(f => Promise.resolve({ data: { id: 'b' }, error: null }).then(f)) // upsert batch
                 .mockImplementationOnce(f => Promise.resolve({ error: new Error('Update Failed') }).then(f)); // update winner flag
 
             await expect(calculateWinner()).rejects.toThrow('Critical failure: Could not set winner status for 1');
@@ -211,7 +210,7 @@ describe('weekly.js', () => {
         it('should log warning if failCount > 10%', async () => {
             const mockIdeas = [{ id: '1', title: 'Idea 1', created_at: '2025-01-01' }];
             const mockSubscribers = [{ email: 'f@e.com' }, { email: 'f2@e.com' }];
-            sendBatchEmails.mockResolvedValueOnce({ success: false, successCount: 0, failCount: 2, error: { message: 'Brevo Down' } });
+            sendBatchEmails.mockResolvedValueOnce({ success: true, successCount: 1, failCount: 1, error: { message: 'Partial failure' } });
 
             supabaseAdmin.then
                 .mockImplementationOnce(f => Promise.resolve({ data: null, error: null }).then(f)) // currentBatch

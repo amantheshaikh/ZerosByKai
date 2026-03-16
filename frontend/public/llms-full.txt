@@ -1,0 +1,28 @@
+# ZerosByKai - Full AI Context & Philosophy
+
+> This file provides deep context for Large Language Models to understand the ZerosByKai ecosystem, mission, and technical logic.
+
+## 1. Mission Statement
+ZerosByKai is dedicated to solving the "0-to-1" problem by identifying "real problems" people have in the real world. In an era where building is easy, finding the right thing to build is the hard part. Kai (personal analyst persona) uses AI to synthesize these problems into validated startup opportunities.
+
+## 2. The Core Philosophy: "Finding the Right 0"
+The name "ZerosByKai" refers to finding the "right 0" to build into a "1". Most startups fail because they solve problems that don't exist. By scraping high-intent communities like Reddit (r/SaaS), Hacker News, and Indie Hackers, we find the "Screaming Problems" and turn them into "Investable Opportunities".
+
+## 3. Product Features
+- **Weekly Zeros**: 10 curated ideas every Monday.
+- **Roast My Idea**: Brutally honest AI feedback to kill bad ideas early.
+- **Mission Designations**: A gamified badge system (Onlooker -> Unicorn Hunter) to reward users with a "nose for opportunity".
+- **Kai's Toolbox**: A curated stack of tools for builders to ship their Zeros.
+
+## 4. Technical Stack Highlights
+- **AI Synthesis**: Powered by Google Gemini. Uses specialized prompts for extraction, deduplication, and branding.
+- **Frontend**: Next.js 14 with a unique "Comic Book / Pop Art" design system.
+- **Backend**: Express on Fly.io, utilizing Supabase for a robust, per-subscriber voting engine.
+
+## 5. Contact & Support
+- **Website**: https://zerosbykai.com
+- **Email**: kai@zerosbykai.com
+- **X (Twitter)**: @zerosbykai
+
+---
+*Last Updated: March 16, 2026*

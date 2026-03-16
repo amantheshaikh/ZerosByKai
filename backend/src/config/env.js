@@ -45,6 +45,7 @@ export const config = {
     // Auth & Security
     jwtSecret: process.env.JWT_SECRET,
     emailTokenSecret: process.env.EMAIL_TOKEN_SECRET,
+    adminApiKey: process.env.ADMIN_API_KEY,
 
     // Admin Config
     admin: {

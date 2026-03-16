@@ -10,8 +10,8 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 
 ## Quick Reference
 - **Dev:** `npm run dev` in `frontend/` (port 3000) and `backend/` (port 3001)
-- **Test:** `npm test` in either directory (Vitest - isolation enabled)
-14: - **Mocks:** Use centralized mocks in `frontend/unit_tests/__mocks__` and `backend/unit_tests/test_utils.js`
+- **Test:** `npm test` in either directory (Vitest - isolation enabled, optimized for speed)
+- **Mocks:** Use centralized mocks; `auth.test.jsx` uses surgical `vi.mock` for sub-second execution
 - **Build:** `npm run build` in `frontend/`
 - **Structure:** See `docs/ai-context/project-structure.md` for full file tree
 - **Docs:** See `docs/README.md` for 3-tier indexing and routing
@@ -19,8 +19,8 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 
 ## Code Standards
 - **Language:** JavaScript (no TypeScript). Async/await. Functional React components.
-- **Testing:** Vitest for unit/integration tests. Supertest for API testing.
-- **Security:** Secrets in env vars only. Supabase RLS for data isolation.
+- **Testing:** Vitest for unit/integration tests. Supertest for API testing. Wrap state triggers in `act()`.
+- **Security:** Secrets in env vars only. Supabase RLS for data isolation. Added open redirect protection in auth callbacks.
 - **Principles:** KISS, YAGNI, DRY. Prefer existing libraries over custom implementations.
 - **File Size:** Keep files focused and under 350 lines. Split by responsibility.
 - **Documentation:** Update `docs/` or `README.md` when architecture changes.
@@ -29,7 +29,7 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 
 ### Authentication
 - **Methods:** Supabase magic link + Google OAuth + Email token auto-login
-- **Frontend:** `AuthProvider` in `frontend/lib/auth.js` handles all auth flows
+- **Frontend:** `AuthProvider` in `frontend/lib/auth.js` handles all auth flows; ensures listeners persist across React StrictMode remounts.
 - **Backend:** JWT tokens for email auto-login, Supabase session for authenticated requests
 - **API:** `apiFetch()` helper automatically injects Bearer tokens
 - **Flows:** 
@@ -43,7 +43,8 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **Clients:** Two Supabase clients:
   - `supabase` (RLS-enabled for user operations)
   - `supabaseAdmin` (service key for admin operations)
-- **Auth:** Bearer token validation via Supabase `getUser()`
+- **Auth:** Bearer token validation via Supabase `getUser()`.
+- **Atomics:** Vote casting uses database-level triggers to ensure atomicity and prevent race conditions.
 - **Caching:** `getVotingWeek()` cached in-memory (60s TTL); read endpoints use `Cache-Control` headers
 - **Rate Limiting:** Global limiter + per-route limiters on auth/unsubscribe endpoints
 
@@ -52,13 +53,13 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **Approve:** Admin reviews `backlog` → marks as `approved` in Supabase
 - **Schedule:** Select 10 oldest approved ideas → Lock for next week (`npm run schedule`)
 - **Monday (GitHub Actions, `.github/workflows/weekly-digest.yml`):**
-    1. Calculate last week's winner & award badges
+    1. Calculate last week's winner & award badges (order prioritized to prevent flag race)
     2. Publish *scheduled* batch (`scheduled` -> `published`)
     3. Send digest via Brevo Template API (params only, no server-side HTML)
 
 ### Email System
 - **Provider:** Brevo (Transactional + Contacts Sync)
-- **Weekly Digest:** Brevo-hosted template (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`), data sent as params
+- **Weekly Digest:** Brevo-hosted template (`BREVO_WEEKLY_DIGEST_TEMPLATE_ID`), data sent as params; uses stable IDs for idempotency.
 - **Welcome / Magic Link:** Server-generated HTML in `backend/src/emails/templates/`
 - **Auto-Login:** JWT tokens in email URLs for seamless voting
 - **Trigger:** GitHub Actions cron (Monday 14:00 UTC / 9 AM EST)
@@ -95,16 +96,22 @@ AI-powered weekly startup ideas platform. Scrapes Reddit, Hacker News, Indie Hac
 - **`lib/auth.js`** - Auth context
 - **`unit_tests/`** - React component & lib tests
 
-## Recent Major Changes (Feb 14, 2026)
+## Recent Major Changes (Mar 16, 2026)
 
-### Subscription Reliability & Test Coverage (Feb 14)
-- ✅ **Coverage**: Expanded backend test suite to >90% line coverage (161+ tests passing).
-- ✅ **Robustness**: Implemented exponential backoff retries and idempotency keys for Brevo Batch API.
-- ✅ **Auth**: Refined `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement hardening.
-- ✅ **Reliability**: Implemented `!welcomed` flag for simpler welcome email logic and fixed data race conditions in auth flows.
-- ✅ **Admin**: Consolidated all template, webhook, and simulation logic into `src/scripts/manage_templates.js`.
+### Reliability & Security (Mar 16)
+- ✅ **Test Suite Overhaul**: Fixed 368 tests across frontend/backend. Optimized `auth.test.jsx` from 20s to <1s.
+- ✅ **Auth Resilience**: Resolved session refresh gap on mount and StrictMode listener drops in `AuthProvider`.
+- ✅ **Security**: Fixed open redirect vulnerability in auth callback; added JWT email token secret guard.
+- ✅ **Database Atomics**: Implemented database-level triggers for vote casting; reordered winner calculation flags to prevent state races.
+- ✅ **Infrastructure**: Migrated GitHub Actions to `pnpm` for faster, more reliable CI builds.
+- ✅ **Bug Fixes**: Resolved duplicate email dispatching by stabilizing Brevo idempotency keys.
 
-### Previous (Feb 12)
+### UI & Performance (Mar 16)
+- ✅ **AI Roasting**: Updated roast model to `gemini-3.1-flash-lite-preview` for better quality/speed.
+- ✅ **Footer**: Integrated Product Hunt badge with a responsive flex layout.
+- ✅ **Roast Page**: prioritized form/results in mobile-first layout.
+
+### Previous (Feb 14)
 - ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for all read endpoints.
 - ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` for robust session creation.
 - ✅ **Auth**: Enforced name entry only for new users; removed redundant name field from subscribe modal.

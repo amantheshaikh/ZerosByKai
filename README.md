@@ -173,7 +173,7 @@ Detailed automation and template logic is found in the [**Documentation Index**]
 Analytics and extraction heuristics are located in [**Idea Extraction Logic**](./docs/idea_extraction_logic.md).
 
 - **Multi-source**: Sunday scrapes of Reddit, HN, IH, and X.
-- **Model**: `gemini-2.0-flash` (Primary) for high-fidelity idea synthesis.
+- **Model**: `gemini-3.1-flash-lite-preview` (Roasting) & `gemini-2.0-flash` (Primary Synthesis).
 - **Workflow**: Automated synthesis → Backlog → Admin Approval → Scheduling.
 
 ---
@@ -268,16 +268,15 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-## 📝 Recent Changes (2026-02-14)
+## 📝 Recent Changes (2026-03-16)
 
-### Subscription Reliability & Test Coverage (Feb 14)
-- ✅ **Test Coverage**: Achieved >90% statement coverage across all backend files (161 tests passing).
-- ✅ **Email Robustness**: Implemented exponential backoff retries and idempotency for Brevo Batch API.
-- ✅ **Auth Refinement**: Hardened `/post-login` and `/subscribe` with automatic OAuth name sync and re-engagement logic.
-- ✅ **Security**: Secure webhook handling with RFC 8058 one-click unsubscribe support.
-- ✅ **Admin**: Consolidated all template management and simulations into `manage_templates.js`.
+### Roasting, UI & Reliability (Mar 16)
+- ✅ **AI Roasting**: Updated roast model to `gemini-3.1-flash-lite-preview`.
+- ✅ **Footer**: Integrated Product Hunt badge with responsive side-by-side layout.
+- ✅ **Roast Page**: Reordered sections to prioritize "Form/Results" over "How It Works".
+- ✅ **Reliability**: Automated cleanup of blocking node processes for smoother dev setup.
 
-### Previous (Feb 12)
+### Previous (2026-02-14)
 - ✅ **Performance**: Parallelized DB calls; implemented `Cache-Control` headers for read endpoints.
 - ✅ **Security**: Updated `verify-email-token` to use `generateLink` + `verifyOtp` sessions.
 - ✅ **Features**: Launched **Kai's Toolbox** (`/tools`) with dynamic logo fetching.
@@ -289,4 +288,4 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ---
 
-**Last Updated**: 2026-02-14
+**Last Updated**: 2026-03-16
