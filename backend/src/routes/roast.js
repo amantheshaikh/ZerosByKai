@@ -191,22 +191,7 @@ function parseRoastResponse(text) {
 
     } catch (err) {
         console.warn('[Roast] Parse/validation failed:', err.message);
-        return {
-            summary: "An inscrutable startup concept.",
-            verdict: "Even the AI couldn't make sense of this one.",
-            roast_score: 5,
-            score_label: 'INCONCLUSIVE',
-            what_went_wrong: [
-                "Kai had a moment. The response wasn't parseable.",
-                'Try submitting again with a clearer description.',
-                'Or just accept that your idea broke the AI.',
-            ],
-            who_already_did_it: "Unknown — Kai's notes got corrupted.",
-            founder_archetype: 'The Chaos Agent',
-            survivability: 'Unclear. Even the algorithm gave up.',
-            one_real_advice: 'Try again with a cleaner, more focused description of your idea.',
-            closing_burn: "The fact that you're here trying means something. Probably.",
-        };
+        throw err; // Propagate error so model loop can try next or fail properly
     }
 }
 
