@@ -173,7 +173,7 @@ export async function runScraperFlow() {
             title: idea.title,
             problem: (idea.problem || '').substring(0, 180),
             solution: (idea.solution || '').substring(0, 180),
-            target_audience: idea.target,
+            target_audience: (idea.target_audience || idea.target || 'General Niche').substring(0, 100),
             why_it_matters: (idea.why || '').substring(0, 180),
             tags: idea.tags,
             status: 'backlog'
