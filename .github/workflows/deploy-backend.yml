@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - 'backend/**'
+    paths-ignore:
+      - 'backend/src/jobs/scrapers/**'
+      - 'backend/unit_tests/jobs/scrapers/**'
+      - 'backend/README.md'
+      - 'backend/x_posts/**'
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
