@@ -6,14 +6,17 @@ const ensureTrailingPeriod = (text) => {
     return `${trimmed}.`;
 };
 
-export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdeaId, onVote }) {
+export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdeaId, onVote, dragControls }) {
     return (
         <div
-            className={`w-full relative group mb-6 transition-all ${isUserPick ? 'z-20' : 'z-10'}`}
+            className={`w-full relative group mb-6 transition-all select-text ${isUserPick ? 'z-20' : 'z-10'}`}
             style={{ animationDelay: `${index * 0.1}s` }}
         >
             {/* Main Panel */}
-            <div className={`comic-panel bg-white comic-shadow relative overflow-hidden transition-all duration-300 ${isUserPick ? 'ring-4 ring-yellow-400' : ''}`}>
+            <div 
+                className={`comic-panel bg-white comic-shadow relative overflow-hidden transition-all duration-300 ${isUserPick ? 'ring-4 ring-yellow-400' : ''}`}
+                onPointerDown={(e) => dragControls && dragControls.start(e)}
+            >
 
                 {/* Content Section */}
                 <div className="p-3 sm:p-4 pb-2">
@@ -27,7 +30,10 @@ export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdea
                         {/* Name & One-liner */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-0.5">
-                                <h3 className="comic-title text-2xl leading-tight text-gray-900 italic tracking-tight uppercase pr-2">
+                                <h3 
+                                    className="comic-title text-2xl leading-tight text-gray-900 italic tracking-tight uppercase pr-2 select-text cursor-text"
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                >
                                     {idea.name}
                                 </h3>
                                 {isUserPick && (
@@ -36,7 +42,10 @@ export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdea
                                     </div>
                                 )}
                             </div>
-                            <p className="comic-body text-[10px] sm:text-[11px] font-bold text-gray-600 uppercase tracking-[0.12em] leading-tight">
+                            <p 
+                                className="comic-body text-[10px] sm:text-[11px] font-bold text-gray-600 uppercase tracking-[0.12em] leading-tight select-text cursor-text"
+                                onPointerDown={(e) => e.stopPropagation()}
+                            >
                                 {idea.title}
                             </p>
                         </div>
@@ -66,7 +75,10 @@ export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdea
                             <h4 className="comic-body text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1 opacity-60">
                                 MARKET POTENTIAL
                             </h4>
-                            <p className="comic-body text-xs sm:text-[13px] font-bold text-rose-700 leading-snug">
+                            <p 
+                                className="comic-body text-xs sm:text-[13px] font-bold text-rose-700 leading-snug select-text cursor-text"
+                                onPointerDown={(e) => e.stopPropagation()}
+                            >
                                 {ensureTrailingPeriod(idea.why_it_matters || idea.why)}
                             </p>
                         </div>
@@ -75,7 +87,10 @@ export default function IdeaCard({ idea, index, isUserPick, btnProps, votingIdea
                             <h4 className="comic-body text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1 opacity-60">
                                 TARGET AUDIENCE
                             </h4>
-                            <p className="comic-body text-xs sm:text-[13px] font-bold text-black leading-snug">
+                            <p 
+                                className="comic-body text-xs sm:text-[13px] font-bold text-black leading-snug select-text cursor-text"
+                                onPointerDown={(e) => e.stopPropagation()}
+                            >
                                 {ensureTrailingPeriod(idea.target)}
                             </p>
                         </div>
@@ -122,7 +137,10 @@ function DetailSection({ title, content, bgColor }) {
             <div className={`absolute -top-2.5 left-3 bg-black text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm`}>
                 {title}
             </div>
-            <p className="comic-body text-[12px] sm:text-[13px] leading-relaxed text-gray-900 pt-0.5">
+            <p 
+                className="comic-body text-[12px] sm:text-[13px] leading-relaxed text-gray-900 pt-0.5 select-text cursor-text"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 {content}
             </p>
         </div>

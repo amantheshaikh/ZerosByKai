@@ -6,6 +6,7 @@ import {
   Skull, Zap, AlertTriangle, Lightbulb, Target, ChevronDown, ChevronUp, Users, X
 } from 'lucide-react';
 import { useAuth, apiFetch } from '@/lib/auth';
+import { useSmoothScroll } from '@/lib/smoothScroll';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -335,6 +336,7 @@ function FAQItem({ q, a, index }) {
 }
 
 function RoastDetailModal({ entry, onClose }) {
+  const { stop, start } = useSmoothScroll();
   const roast = entry.roast || {};
   const score = entry.roast_score;
   const date = entry.created_at
@@ -345,11 +347,13 @@ function RoastDetailModal({ entry, onClose }) {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
+    stop(); // Lock smooth scroll
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = 'unset';
+      start(); // Enable smooth scroll
     };
-  }, [onClose]);
+  }, [onClose, stop, start]);
 
   return (
     <motion.div
@@ -358,6 +362,7 @@ function RoastDetailModal({ entry, onClose }) {
       exit={{ opacity: 0 }}
       onClick={onClose}
       className="fixed inset-0 bg-black/70 z-[200] overflow-y-auto overscroll-contain"
+      data-lenis-prevent
     >
       <div className="min-h-full flex items-start justify-center p-4 py-10">
         <motion.div
@@ -432,7 +437,9 @@ function PitCard({ entry, index, onViewDetail }) {
 
       {/* Body */}
       <div className="p-4 flex-1 flex flex-col gap-3">
-        <p className="comic-body text-sm text-gray-800 italic leading-relaxed">&ldquo;{truncate(entry.idea, 120)}&rdquo;</p>
+        <p className="comic-body text-sm text-gray-800 italic leading-relaxed">
+          &ldquo;{entry.roast?.summary || truncate(entry.idea, 120)}&rdquo;
+        </p>
 
         {entry.roast?.verdict && (
           <div className="border-l-4 border-rose-700 pl-3">

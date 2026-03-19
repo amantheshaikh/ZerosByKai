@@ -143,6 +143,7 @@ ${safeIdea}
 Return ONLY a valid JSON object. No markdown fences, no backticks, no explanation. Just raw JSON matching this exact structure:
 
 {
+  "summary": "A one-line professional summary of the startup idea (max 100 characters)",
   "verdict": "One brutally honest sentence verdict on this idea (max 120 characters)",
   "roast_score": <integer 1-10, where 1 = abandoned shopping cart, 10 = actually defensible>,
   "score_label": "A snarky all-caps label for the score (e.g. CERTIFIED DUMPSTER FIRE, LUKEWARM GARBAGE, ALMOST NOT TERRIBLE)",
@@ -160,7 +161,7 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
 }
 
 const REQUIRED_STRING_FIELDS = [
-    'verdict', 'score_label', 'who_already_did_it',
+    'summary', 'verdict', 'score_label', 'who_already_did_it',
     'founder_archetype', 'survivability', 'one_real_advice', 'closing_burn',
 ];
 
@@ -191,6 +192,7 @@ function parseRoastResponse(text) {
     } catch (err) {
         console.warn('[Roast] Parse/validation failed:', err.message);
         return {
+            summary: "An inscrutable startup concept.",
             verdict: "Even the AI couldn't make sense of this one.",
             roast_score: 5,
             score_label: 'INCONCLUSIVE',

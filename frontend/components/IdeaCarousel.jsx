@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import IdeaCard from './IdeaCard';
 
@@ -99,6 +99,8 @@ export default function IdeaCarousel({
                 <AnimatePresence initial={false} custom={direction}>
                     {cardData.map((card) => {
                         const idea = ideas[card.index];
+                        const controls = useDragControls();
+
                         return (
                             <motion.div
                                 key={`${card.index}-${card.id}`}
@@ -115,6 +117,8 @@ export default function IdeaCarousel({
                                 }}
                                 {...(card.position === 'center' && {
                                     drag: "x",
+                                    dragControls: controls,
+                                    dragListener: false,
                                     dragConstraints: { left: 0, right: 0 },
                                     dragElastic: 1,
                                     onDragEnd: (e, { offset, velocity }) => {
@@ -126,7 +130,8 @@ export default function IdeaCarousel({
                                         }
                                     }
                                 })}
-                                className="absolute w-full max-w-sm sm:max-w-md lg:max-w-lg cursor-grab active:cursor-grabbing"
+                                className="absolute w-full max-w-sm sm:max-w-md lg:max-w-lg cursor-default"
+                                style={{ userSelect: 'text' }}
                             >
                                 <IdeaCard
                                     idea={idea}
@@ -135,6 +140,7 @@ export default function IdeaCarousel({
                                     btnProps={getVoteButtonProps(idea.id)}
                                     votingIdeaId={votingIdeaId}
                                     onVote={onVote}
+                                    dragControls={controls}
                                 />
                             </motion.div>
                         );
