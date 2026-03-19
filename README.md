@@ -72,10 +72,28 @@ cd frontend && npm test
 ### 2. Run All Scrapers (Backlog Fill)
 ```bash
 cd backend
-npm run scrape:local # Runs Reddit, HN, IH, X
+npm run scrape:local # Optimized Reddit (Top 15), HN, IH, X
 ```
 
-### 3. Test Monday Workflow (Simulated)
+### 3. Move Ideas to Backlog (Scored)
+```bash
+cd backend
+npm run backlog:check # Processes raw scrapes into the Ideas table
+```
+
+### 4. Schedule Newsletter (Batching)
+```bash
+cd backend
+npm run schedule # Selects 10 best ideas and schedules them for Monday
+```
+
+### 5. Send Monday Digest (Live)
+```bash
+cd backend
+npm run monday:weekly # Publishes batch, awards badges, sends Brevo emails
+```
+
+### 6. Test Workflow (Simulated)
 ```bash
 cd backend
 node src/workflows/simulate_monday_workflow.js
