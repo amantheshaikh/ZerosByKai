@@ -145,8 +145,8 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
 {
   "summary": "A one-line professional summary of the startup idea (max 100 characters)",
   "verdict": "One brutally honest sentence verdict on this idea (max 120 characters)",
-  "roast_score": <integer 1-10, where 1 = abandoned shopping cart, 10 = actually defensible>,
-  "score_label": "A snarky all-caps label for the score (e.g. CERTIFIED DUMPSTER FIRE, LUKEWARM GARBAGE, ALMOST NOT TERRIBLE)",
+  "roast_score": <integer 1-10>,
+  "score_label": "A snarky all-caps label matching the score tier (see below)",
   "what_went_wrong": [
     "Specific brutal problem #1 — be precise, not generic",
     "Specific brutal problem #2",
@@ -157,7 +157,14 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
   "survivability": "One blunt sentence on their actual probability of surviving 12 months with this idea",
   "one_real_advice": "ONE piece of genuinely useful, actionable advice. This is the one moment of mercy.",
   "closing_burn": "One final line — savage, slightly encouraging, and memorable."
-}`;
+}
+
+SCORING RUBRIC (BE FAIR BUT RUTHLESS):
+- 1-2: CERTIFIED DUMPSTER FIRE (Cringe, incoherent, or dangerously saturated)
+- 3-4: ENTHUSIASTIC AMATEUR (A cliche "Uber for X" with zero market insight)
+- 5-6: LUKEWARM GARBAGE (Has one decent idea buried in a sea of bad execution)
+- 7-8: ALMOST NOT TERRIBLE (Actually interesting. Solid problem/market fit but high risk)
+- 9-10: DEFENSIBLE (Genuinely good. Rare. Roast their hubris instead of the idea itself)`;
 }
 
 const REQUIRED_STRING_FIELDS = [
