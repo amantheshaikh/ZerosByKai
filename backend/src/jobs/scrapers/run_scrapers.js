@@ -212,12 +212,19 @@ export async function scrapeReddit() {
     for (let i = 0; i < selectedSubreddits.length; i += CHUNK_SIZE) {
         const chunk = selectedSubreddits.slice(i, i + CHUNK_SIZE);
         try {
-            const results = await Promise.all(chunk.map(s => fetchSubreddit(s.name, s.sort, s.time, 15, config)));
-            posts = [...posts, ...results.flat()];
+            const results = await Promise.all(chunk.map(s => fetchSubreddit(s.name, s.sort, s.time, 25, config)));
+            const items = results.flat();
+
+            // Quality Filter: Pick top 15 by engagement (score + comments) per source chunk
+            const filtered = items
+                .sort((a, b) => (b.score + b.num_comments) - (a.score + a.num_comments))
+                .slice(0, 15);
+
+            posts = [...posts, ...filtered];
         } catch (e) {
             console.error(`Reddit chunk failed: ${e.message}`);
         }
-        await wait(1500); // Be gentler between chunks
+        await wait(20000); // 20s delay to stay within free-tier limits
     }
 
     // Normalize and Filter Freshness

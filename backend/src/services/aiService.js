@@ -287,8 +287,8 @@ Why It Matters: ${idea.why_it_matters || 'None'}
         const exclusionText = this._formatExclusionList(exclusionList);
 
         return `
-            You are Kai, an expert opportunity analyst. 
-            Analyze these Reddit posts to identify recurring pain points and synthesize "Investable Opportunities" (Zeros).
+            You are Kai, an expert startup consultant and market researcher. 
+            Analyze these social media posts to identify recurring "pain points" that reflect real-world problems everyday people face (e.g., local logistics, fragmented services, infrastructure gaps, cultural or behavioral frictions, and untapped local markets).
 
             **Input Data:**
             ${posts.map(p => `[${p.source || (p.subreddit ? 'r/' + p.subreddit : 'unknown')}] ${p.title}: ${(p.body || '').substring(0, 300)}`).join('\n')}
@@ -296,29 +296,27 @@ Why It Matters: ${idea.why_it_matters || 'None'}
             ${exclusionText}
 
             **Task:**
-            Generate ${count} distinct, high-quality startup ideas ("Zeros").
+            Generate ${count} distinct, high-quality startup ideas ("Zeros"). Focus on practical, real-world problems, moving away from just "SaaS for founders."
             
             **Rules:**
-            1. **Naming**: Generate modern, punchy, brandable startup names (1-3 words). 
-               - Think: Stripe, DocSync, Supabase, Antigravity, Too Many Tabs, HubSpot, Third Space, Corner Office, Urban Ladder, Pantry Pulse.
-               - FORBIDDEN: Generic descriptors (Optimizer, Platform, Tool, System, Suite, Utility, Solution, Hub, Center) and metaphorical "The [Noun]" names (The Skeptic, The Well).
-            2. **Clean Content**: Remove ALL mentions of specific subreddits (e.g., "r/SaaS", "Reddit") from all fields.
-            3. **Tags**: Use standard 1-2 word categories.
-            4. **Character Limits**:
-               - **Problem**: Max 180 characters.
-               - **Solution**: Max 180 characters.
-               - **Why/Market sizing**: Max 180 characters.
+            1. **Naming**: Generate modern, punchy startup names (1-3 words).
+               - Think: Urban Ladder, Pantry Pulse, Stripe, Supabase, DocSync.
+               - FORBIDDEN: Generic technical descriptors (Optimizer, Platform, Tool) and metaphorical "The [Noun]" names.
+            2. **Problem Analysis**: Identify patterns in what keeps coming up across different posts.
+            3. **Tailored Solutions**: How does the startup solve this practically? (Consider local infrastructure, behavior, and feasibility).
+            4. **Clean Content**: Remove ALL mentions of specific communities/sources (r/SaaS etc.).
+            5. **Character Limits**: Problem/Solution/Market max 180 characters.
 
             **Output Format (Strict JSON array of objects):**
             [
               {
                 "name": "Brandable Startup Name",
-                "title": "Descriptive Title (NO subreddit mentions)",
+                "title": "Descriptive Title (NO source mentions)",
                 "tags": ["Tag1", "Tag2"],
-                "problem": "Pain point description (NO subreddit mentions).",
-                "solution": "MVP solution (Primary context for the name - BUT DO NOT DESCRIBE IT).",
-                "target_audience": "Specific Niche Audience",
-                "why": "Market sizing/why now."
+                "problem": "Specific real-world pain point analyzed from input data.",
+                "solution": "Practical solution (infrastructure-aware and feasible).",
+                "target_audience": "Specific Niche Audience (mention demographic or income segment if relevant)",
+                "why": "Potential impact and market need for this particular problem."
               }
             ]
         `;
@@ -346,50 +344,38 @@ Why It Matters: ${idea.why_it_matters || 'None'}
 
     _buildDedupePrompt(ideasText, totalCount) {
         return `
-            You are Kai, an expert opportunity analyst doing quality control and synthesis.
+            You are Kai, an expert market analyst doing quality control and synthesis.
             
-            You have received ${totalCount} startup ideas from multiple sources(Reddit, HN, Indie Hackers, X / Twitter).
-            Many may be duplicates or similar concepts.Your job is to:
+            You have received ${totalCount} startup ideas from multiple sources. Your job is to:
 
         1. ** Identify Duplicates **: Ideas that are essentially the same concept
-        2. ** Synthesize **: Merge similar ideas into one stronger idea
-        3. ** Curate **: Keep only the highest - quality, most novel ideas
-        4. ** Maintain Diversity **: Ensure ideas span different industries / categories
+        2. ** Synthesize **: Merge similar ideas into one stronger, more comprehensive solution
+        3. ** Curate **: Keep only the highest-quality, most novel ideas solving real-world everyday problems
+        4. ** Diversity **: Ensure ideas span different verticals (fintech, logistics, retail, wellness, etc.)
 
             ** Ideas to Dedupe:**
-                ${ideasText}
+                 ${ideasText}
             
             ** Selection Criteria:**
-            - Novelty: Avoid repeating concepts already in the list
-                - Clarity: Problem and solution should be clear
-                    - Market Size: Should serve a meaningful market
-                        - Feasibility: Should be buildable as an MVP
-                            - Diversity: Different industries / verticals preferred
-            - **Clean Content**: ABSOLUTELY NO subreddit mentions (r/SaaS etc.) in the output.
-            - **Character Limits**: 
-               - **Problem**: Max 180 characters.
-               - **Solution**: Max 180 characters.
-               - **Why/Market sizing**: Max 180 characters.
+            - Problem Magnitude: Is this a genuine pain point for a significant audience?
+            - Scalability: Can this grow beyond a small niche?
+            - Feasibility: Does it work with real-world infrastructure and behavior?
+            - Diversity: Mix of different industries and categories.
+            - **Character Limits**: Problem/Solution/Market max 180 chars.
+            - **No Source Mentions**: ABSOLUTELY NO social media source mentions (r/SaaS etc.).
 
-                                ** Output Requirements:**
-                                    - Return up to 40 final ideas(can be fewer if quality is the priority)
-        - DO remove near - duplicates
-            - DO merge very similar ideas
-                - DO keep ideas from all sources if they're unique
-                    - KEEP the same JSON format
-
-                        ** Output Format(Strict JSON array):**
-                            [
-                                {
-                                    "name": "Brandable Startup Name (1-3 words, modern, punchy. NO generic technical descriptors, NO metaphorical 'The [Noun]' names.)",
-                                    "title": "Descriptive Title (NO subreddit mentions)",
-                                    "tags": ["Tag1", "Tag2"],
-                                    "problem": "Pain point description (NO subreddit mentions).",
-                                    "solution": "MVP solution (NO subreddit mentions).",
-                                    "target_audience": "Niche audience.",
-                                    "why": "Market sizing/why now."
-                                }
-                            ]
+                                ** Output Format(Strict JSON array):**
+                                    [
+                                        {
+                                            "name": "Brandable Startup Name (1-3 words, NO technical generic descriptors)",
+                                            "title": "Descriptive Title (NO source mentions)",
+                                            "tags": ["Tag1", "Tag2"],
+                                            "problem": "Specific real-world pain point analyzed.",
+                                            "solution": "Practical, infrastructure-aware solution.",
+                                            "target_audience": "Niche demographic.",
+                                            "why": "Market potential/impact of this solution."
+                                        }
+                                    ]
                                 `;
     }
 

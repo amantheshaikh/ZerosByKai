@@ -36,6 +36,7 @@ export const config = {
         models: {
             primary: 'gemini-3-flash-preview',
             fallback: 'gemini-2.5-flash',
+            tertiary: 'gemini-3.1-flash-lite-preview',
             fallbackLite: 'gemini-2.5-flash-lite',
             fallbackPro: 'gemini-2.5-pro',
             fallbackLegacy: 'gemini-1.5-pro',
