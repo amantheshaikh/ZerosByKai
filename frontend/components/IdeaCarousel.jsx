@@ -130,8 +130,8 @@ export default function IdeaCarousel({
                                         }
                                     }
                                 })}
-                                className="absolute w-full max-w-sm sm:max-w-md lg:max-w-lg cursor-default"
-                                style={{ userSelect: 'text' }}
+                                className="absolute w-full max-w-sm sm:max-w-md lg:max-w-lg cursor-default origin-center"
+                                style={{ userSelect: 'text', touchAction: 'pan-y' }}
                             >
                                 <IdeaCard
                                     idea={idea}
