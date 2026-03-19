@@ -8,6 +8,7 @@ import { scrapeX } from './x_scraper_apify.js';
 import { wait } from '../../utils/helpers.js';
 
 const SUBREDDITS = [
+    // Core Business & Startup (High Signal)
     { name: 'Business_Ideas', sort: 'hot' },
     { name: 'SaaS', sort: 'hot' },
     { name: 'webdev', sort: 'hot' },
@@ -19,7 +20,20 @@ const SUBREDDITS = [
     { name: 'nocode', sort: 'hot' },
     { name: 'Entrepreneur', sort: 'hot' },
     { name: 'startup', sort: 'hot' },
-    { name: 'Startup_Ideas', sort: 'new' }
+    { name: 'Startup_Ideas', sort: 'new' },
+    
+    // New Verticals (Diversity)
+    { name: 'personalfinance', sort: 'hot' },
+    { name: 'fitness', sort: 'hot' },
+    { name: 'HealthyFood', sort: 'hot' },
+    { name: 'edtech', sort: 'hot' },
+    { name: 'ecommerce', sort: 'hot' },
+    { name: 'retail', sort: 'hot' },
+    { name: 'fintech', sort: 'hot' },
+    
+    // Local / Regional (Specific problems)
+    { name: 'nyc', sort: 'hot' },
+    { name: 'sanfrancisco', sort: 'hot' }
 ];
 
 const aiService = new AIService(config);
@@ -182,20 +196,28 @@ export async function runScraperFlow() {
 
 // source-specific wrappers
 export async function scrapeReddit() {
-    console.log('Scraping Reddit...');
+    // Pick a random subset of 12 subreddits for this run to optimize diversity and avoid rate limits
+    const numToPick = Math.min(12, SUBREDDITS.length);
+    const selectedSubreddits = [...SUBREDDITS]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, numToPick);
+
+    console.log(`Scraping Reddit (${selectedSubreddits.length} subreddits selected)...`);
+    console.log(`  Targets: ${selectedSubreddits.map(s => s.name).join(', ')}`);
+
     let posts = [];
     const CHUNK_SIZE = 4;
     const fifteenDaysAgo = Math.floor(Date.now() / 1000) - (15 * 24 * 60 * 60);
 
-    for (let i = 0; i < SUBREDDITS.length; i += CHUNK_SIZE) {
-        const chunk = SUBREDDITS.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < selectedSubreddits.length; i += CHUNK_SIZE) {
+        const chunk = selectedSubreddits.slice(i, i + CHUNK_SIZE);
         try {
-            const results = await Promise.all(chunk.map(s => fetchSubreddit(s.name, s.sort, s.time, 10, config)));
+            const results = await Promise.all(chunk.map(s => fetchSubreddit(s.name, s.sort, s.time, 15, config)));
             posts = [...posts, ...results.flat()];
         } catch (e) {
             console.error(`Reddit chunk failed: ${e.message}`);
         }
-        await wait(1000);
+        await wait(1500); // Be gentler between chunks
     }
 
     // Normalize and Filter Freshness
