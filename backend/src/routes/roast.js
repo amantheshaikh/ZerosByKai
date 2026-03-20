@@ -35,6 +35,26 @@ router.post('/', roastLimiter, requireAuth, async (req, res) => {
         return res.status(400).json({ error: 'Trim the pitch deck. Keep it under 2000 characters.' });
     }
 
+    // Per-user roast limit check
+    try {
+        const { count, error: countErr } = await supabaseAdmin
+            .from('roasts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', req.user.id);
+
+        if (countErr) throw countErr;
+
+        const limit = config.roasts?.perUserLimit || 10;
+        if (count >= limit) {
+            return res.status(403).json({ 
+                error: `Kai is exhausted. You've reached your limit of ${limit} roasts. Go build something useful instead of getting roasted again.` 
+            });
+        }
+    } catch (err) {
+        console.error('[Roast] Limit check failed:', err.message);
+        // Continue if check fails — don't block user if DB is down for this specific check
+    }
+
     const genAI = getGenAI();
     if (!genAI) {
         return res.status(503).json({ error: "Kai's logic circuits are literally on fire. The AI judge is offline." });

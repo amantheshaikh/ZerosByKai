@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   -- Metadata
   tags JSONB DEFAULT '{}'::jsonb,
   week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT CHECK (status IN ('backlog', 'scheduled', 'published', 'archived')) DEFAULT 'backlog',
+  status TEXT CHECK (status IN ('backlog', 'approved', 'scheduled', 'published', 'archived')) DEFAULT 'backlog',
   is_winner BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -301,7 +301,7 @@ DECLARE
   v_idea_ids UUID[];
 BEGIN
   -- 1. Select and lock 10 oldest approved ideas
-  SELECT array_accum(id) INTO v_idea_ids
+  SELECT array_agg(id) INTO v_idea_ids
   FROM (
     SELECT id
     FROM ideas
@@ -311,8 +311,8 @@ BEGIN
     LIMIT 10
   ) subquery;
 
-  -- Ensure we actually got exactly 10 ideas
-  IF array_length(v_idea_ids, 1) < 10 OR v_idea_ids IS NULL THEN
+  -- Ensure we actually got exactly 10 ideas (array_agg returns NULL if no rows found)
+  IF v_idea_ids IS NULL OR array_length(v_idea_ids, 1) < 10 THEN
     RAISE EXCEPTION 'Not enough approved ideas found (need 10, found %)', COALESCE(array_length(v_idea_ids, 1), 0);
   END IF;
 

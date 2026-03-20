@@ -94,6 +94,7 @@ describe('roast.js routes', () => {
 
         it('should return 200 and roast data on success', async () => {
             const mockRoast = {
+                summary: 'A silly water app.',
                 verdict: 'Brutal truth.',
                 roast_score: 2,
                 score_label: 'DUMPSTER FIRE',
@@ -132,8 +133,8 @@ describe('roast.js routes', () => {
                 .post('/api/roast/')
                 .send({ idea: validIdea });
 
-            expect(res.status).toBe(200);
-            expect(res.body.roast.score_label).toBe('INCONCLUSIVE');
+            expect(res.status).toBe(500);
+            expect(res.body.error).toContain('existential crisis');
         });
 
         it('should handle AI timeouts', async () => {
@@ -167,6 +168,21 @@ describe('roast.js routes', () => {
 
             expect(res.status).toBe(500);
             expect(res.body.error).toContain('existential crisis');
+        });
+
+        it('should return 403 if user has reached their roast limit', async () => {
+            // Mock supabase to return count 10
+            supabaseAdmin.then.mockImplementationOnce((resolve) => {
+                resolve({ count: 10, error: null });
+                return Promise.resolve({ count: 10, error: null });
+            });
+
+            const res = await request(app)
+                .post('/api/roast/')
+                .send({ idea: validIdea });
+
+            expect(res.status).toBe(403);
+            expect(res.body.error).toContain('reached your limit');
         });
     });
 

@@ -57,6 +57,8 @@ const FAQ_DATA = [
   { q: 'Does a good score mean I should build it?', a: "A high score means the idea holds up to AI scrutiny, which is a low bar. The real test is still customer interviews, a landing page, and pre-orders. Think of a good score as permission to keep digging — not a green light to quit your job on a Monday." },
 ];
 
+const ROAST_LIMIT = 10;
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function getTier(score) {
@@ -567,7 +569,7 @@ function RoastPit() {
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function RoastPage() {
-  const { user, session, isLoading, openAuthModal, showAuthModal } = useAuth();
+  const { user, session, isLoading, openAuthModal, showAuthModal, roastCount, refreshRoastCount } = useAuth();
 
   const [idea, setIdea] = useState('');
   const [isPublic, setIsPublic] = useState(false);
@@ -617,17 +619,21 @@ export default function RoastPage() {
         signal: controller.signal,
       }, session);
       setResult(data);
+      refreshRoastCount();
     } catch (err) {
       setError(
         err.name === 'AbortError'
           ? 'Kai took too long. Try again with a shorter idea.'
           : err.message || 'Something went wrong. Try again.'
       );
+      if (err.message?.includes('limit')) {
+        refreshRoastCount();
+      }
     } finally {
       clearTimeout(timeout);
       setSubmitting(false);
     }
-  }, [idea, isPublic, session]);
+  }, [idea, isPublic, session, refreshRoastCount]);
 
   // Auto-submit after sign-in
   useEffect(() => {
@@ -640,6 +646,7 @@ export default function RoastPage() {
   const handleRoastClick = (e) => {
     e?.preventDefault();
     if (idea.trim().length < 10 || submitting) return;
+    if (user && roastCount >= ROAST_LIMIT) return;
     if (!user) {
       setPendingSubmit(true);
       openAuthModal('signin');
@@ -846,14 +853,30 @@ export default function RoastPage() {
 
                       <motion.button
                         type="submit"
-                        disabled={submitting || idea.trim().length < 10}
-                        whileHover={!submitting && idea.trim().length >= 10 ? { x: 1, y: 1, boxShadow: '2px 2px 0px 0px #000' } : {}}
-                        whileTap={!submitting && idea.trim().length >= 10 ? { x: 3, y: 3, boxShadow: '0px 0px 0px 0px #000' } : {}}
+                        disabled={submitting || idea.trim().length < 10 || (!!user && roastCount >= ROAST_LIMIT)}
+                        whileHover={!submitting && idea.trim().length >= 10 && (!user || roastCount < ROAST_LIMIT) ? { x: 1, y: 1, boxShadow: '2px 2px 0px 0px #000' } : {}}
+                        whileTap={!submitting && idea.trim().length >= 10 && (!user || roastCount < ROAST_LIMIT) ? { x: 3, y: 3, boxShadow: '0px 0px 0px 0px #000' } : {}}
                         className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-black text-yellow-400 border-2 border-black comic-title text-base sm:text-lg shadow-[3px_3px_0px_0px_#000] hover:bg-gray-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                       >
                         <Flame className={`w-5 h-5 ${submitting ? 'animate-pulse' : ''}`} />
-                        {submitting ? 'ROASTING...' : 'ROAST ME NOW'}
+                        {submitting ? 'ROASTING...' : roastCount >= ROAST_LIMIT && !!user ? 'LIMIT REACHED' : 'ROAST ME NOW'}
                       </motion.button>
+
+                      {user && (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-full h-1.5 bg-gray-100 border border-black overflow-hidden relative">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(100, (roastCount / ROAST_LIMIT) * 100)}%` }}
+                              className={`h-full ${roastCount >= ROAST_LIMIT ? 'bg-rose-600' : 'bg-yellow-400'}`}
+                            />
+                          </div>
+                          <p className="comic-body text-[10px] text-gray-500 uppercase tracking-widest">
+                            {roastCount} / {ROAST_LIMIT} ROASTS USED
+                            {roastCount >= ROAST_LIMIT && <span className="text-rose-600 font-bold ml-1.5">· LIMIT REACHED</span>}
+                          </p>
+                        </div>
+                      )}
 
                       {!isLoading && !user && !pendingSubmit && (
                         <p className="comic-body text-xs text-center text-gray-400">

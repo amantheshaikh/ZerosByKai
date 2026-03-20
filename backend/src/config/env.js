@@ -63,6 +63,11 @@ export const config = {
     apify: {
         token: process.env.APIFY_API_TOKEN,
     },
+
+    // Roast Limits
+    roasts: {
+        perUserLimit: parseInt(process.env.ROAST_PER_USER_LIMIT || '10', 10),
+    },
 };
 
 // Basic validation

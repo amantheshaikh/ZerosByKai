@@ -43,15 +43,49 @@ export async function pickAndPublishIdeas(targetDate = null) {
 
         // Step 1 & 2: Select 10 oldest approved ideas and schedule them (ATOMIC)
         console.log('🔍 Atomically picking and scheduling 10 opportunities from Approved list...');
-        const { data: published, error: rpcError } = await supabaseAdmin
-            .rpc('pick_and_schedule_ideas', { p_week: weekStart });
+        let published;
+        
+        try {
+            const { data, error: rpcError } = await supabaseAdmin
+                .rpc('pick_and_schedule_ideas', { p_week: weekStart });
+            
+            if (rpcError) throw rpcError;
+            published = data;
+        } catch (rpcError) {
+            if (rpcError.message?.includes('Could not find the function') || rpcError.code === 'PGRST202') {
+                console.warn('⚠️  RPC pick_and_schedule_ideas missing. Falling back to manual scheduling...');
+                
+                // Manual Fallback: Fetch 10 oldest approved ideas
+                const { data: approved, error: fetchError } = await supabaseAdmin
+                    .from('ideas')
+                    .select('id')
+                    .eq('status', 'approved')
+                    .order('created_at', { ascending: true })
+                    .limit(10);
 
-        if (rpcError) {
-            throw new Error(`Failed to atomically schedule ideas: ${rpcError.message}`);
+                if (fetchError) throw fetchError;
+                if (!approved || approved.length < 10) {
+                    throw new Error(`Not enough approved ideas found (need 10, found ${approved?.length || 0})`);
+                }
+
+                const ids = approved.map(i => i.id);
+
+                // Update their status and week
+                const { data: updated, error: updateError } = await supabaseAdmin
+                    .from('ideas')
+                    .update({ status: 'scheduled', week_published: weekStart })
+                    .in('id', ids)
+                    .select();
+
+                if (updateError) throw updateError;
+                published = updated;
+            } else {
+                throw rpcError;
+            }
         }
 
         if (!published || published.length < 10) {
-            throw new Error(`Scheduled ${published?.length || 0} ideas which is less than 10. This should have been caught by the RPC.`);
+            throw new Error(`Scheduled ${published?.length || 0} ideas which is less than 10.`);
         }
 
         // Step 3: Update Batch Metrics

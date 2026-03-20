@@ -99,6 +99,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [roastCount, setRoastCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -166,6 +167,27 @@ export function AuthProvider({ children }) {
       }
     }, refreshAt);
   }, [supabase]);
+
+  /**
+   * Fetch current user's roast count
+   */
+  const fetchRoastCount = useCallback(async (userId = null) => {
+    const targetId = userId || user?.id;
+    if (!targetId) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('roasts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', targetId);
+
+      if (error) throw error;
+      setRoastCount(count || 0);
+    } catch (err) {
+      console.warn('⚠️ Failed to fetch roast count:', err.message);
+    }
+  }, [supabase, user?.id]);
+
 
   /**
    * Check for email token in URL and auto-login
@@ -358,15 +380,17 @@ export function AuthProvider({ children }) {
             scheduleSessionRefresh(currentSession);
           }
           
-          supabase
-            .from('subscribers')
-            .select('*')
-            .eq('user_id', currentSession.user.id)
-            .maybeSingle()
-            .then(({ data: userProfile }) => {
-              setProfile(userProfile ?? null);
-            })
-            .catch(err => console.error('Error fetching profile:', err));
+          // Parallelize initial data fetching
+          Promise.all([
+            supabase
+              .from('subscribers')
+              .select('*')
+              .eq('user_id', currentSession.user.id)
+              .maybeSingle(),
+            fetchRoastCount(currentSession.user.id)
+          ]).then(([{ data: userProfile }]) => {
+            setProfile(userProfile ?? null);
+          }).catch(err => console.error('Error fetching initial auth data:', err));
         }
 
         console.log('✅ Auth initialized:', currentSession ? 'Authenticated' : 'Not authenticated');
@@ -397,17 +421,19 @@ export function AuthProvider({ children }) {
 
         // Fetch profile if user exists (non-blocking)
         if (newSession?.user) {
-          supabase
-            .from('subscribers')
-            .select('*')
-            .eq('user_id', newSession.user.id)
-            .maybeSingle()
-            .then(({ data: userProfile }) => {
-              setProfile(userProfile ?? null);
-            })
-            .catch(err => console.error('Error fetching profile in state change:', err));
+          Promise.all([
+            supabase
+              .from('subscribers')
+              .select('*')
+              .eq('user_id', newSession.user.id)
+              .maybeSingle(),
+            fetchRoastCount(newSession.user.id)
+          ]).then(([{ data: userProfile }]) => {
+            setProfile(userProfile ?? null);
+          }).catch(err => console.error('Error fetching profile in state change:', err));
         } else {
           setProfile(null);
+          setRoastCount(0);
         }
 
         // Schedule session refresh before expiry
@@ -678,9 +704,11 @@ export function AuthProvider({ children }) {
     sendMagicLink,
     subscribeNewsletter,
     clearError,
+    refreshRoastCount: fetchRoastCount,
 
     // User Profile (for subscription status)
     profile,
+    roastCount,
 
     // Modal state
     showAuthModal,
