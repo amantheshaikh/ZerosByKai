@@ -1,6 +1,36 @@
-# 🐦 X Post Gallery - 2026-03-23T17:00:00.000Z
+# 🐦 X Post Gallery - 2026-03-23T14:30:00.000Z
 
 This file provides a preview of all generated posts. You can copy-paste the text directly into X.
+
+---
+
+## 🕒 Scheduled: 2026-03-23T14:30:00.000Z
+
+### 📝 Tweet Text:
+```text
+🏆 Last week's winner is in.
+
+The ZerosByKai community voted — and the startup idea that got the most votes this week was:
+
+SideExit — Micro-SaaS Acquisition Marketplace
+
+The Idea:
+A curated marketplace for micro-SaaS projects earning $100-$500/mo, priced between $2k and $5k. Perfect for first-time buyers looking for proof of concept and immediate ROI.
+
+Why:
+Aspiring founders want to buy cash-flowing businesses but lack capital for large acquisitions. They incorrectly assume they need six figures to enter the market.
+
+The community saw the opportunity. Do you?
+
+🆕 10 brand-new startup ideas just dropped today. One of them could be the next big thing.
+
+Vote for your favourite → zerosbykai.com
+
+#startup #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject #saas
+```
+
+### 🖼️ Image Preview:
+![00-winner.png](./images/00-winner.png)
 
 ---
 
@@ -39,35 +69,6 @@ Would you build this? Vote for your favourite idea this week → zerosbykai.com
 ```text
 💡 Week of Mar 23, 2026 — Startup Idea #2 of the week.
 
-Beatflow: Self-Publishing Beat & Milestone Monitor
-
-The Idea:
-A specialized project management environment for authors that tracks narrative beats, market categories, and launch milestones based on best-selling patterns.
-
-Why:
-Independent authors struggle to manage the complex narrative beats and logistical milestones required to publish multiple books efficiently.
-
-Market Potential:
-Data from high-volume authors show that self-publishing is now a highly structured, category-beating business model requiring professionalized workflows.
-
-Who it's for: Independent authors and author-preneurs
-
-Would you build this? Vote for your favourite idea this week → zerosbykai.com
-
-#startup #publishing #productivity #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
-```
-
-### 🖼️ Image Preview:
-![02-idea.png](./images/02-idea.png)
-
----
-
-## 🕒 Scheduled: 2026-03-25T14:00:00.000Z
-
-### 📝 Tweet Text:
-```text
-💡 Week of Mar 23, 2026 — Startup Idea #3 of the week.
-
 Polygen: Procedural Character-Based Merch
 
 The Idea:
@@ -84,6 +85,35 @@ Who it's for: Anime fans and digital collectors
 Would you build this? Vote for your favourite idea this week → zerosbykai.com
 
 #startup #e-commerce #ai #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
+```
+
+### 🖼️ Image Preview:
+![02-idea.png](./images/02-idea.png)
+
+---
+
+## 🕒 Scheduled: 2026-03-25T14:00:00.000Z
+
+### 📝 Tweet Text:
+```text
+💡 Week of Mar 23, 2026 — Startup Idea #3 of the week.
+
+Beatflow: Self-Publishing Beat & Milestone Monitor
+
+The Idea:
+A specialized project management environment for authors that tracks narrative beats, market categories, and launch milestones based on best-selling patterns.
+
+Why:
+Independent authors struggle to manage the complex narrative beats and logistical milestones required to publish multiple books efficiently.
+
+Market Potential:
+Data from high-volume authors show that self-publishing is now a highly structured, category-beating business model requiring professionalized workflows.
+
+Who it's for: Independent authors and author-preneurs
+
+Would you build this? Vote for your favourite idea this week → zerosbykai.com
+
+#startup #publishing #productivity #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
 ```
 
 ### 🖼️ Image Preview:
@@ -155,22 +185,22 @@ Would you build this? Vote for your favourite idea this week → zerosbykai.com
 ```text
 💡 Week of Mar 23, 2026 — Startup Idea #6 of the week.
 
-Crumbs: Social Media Recipe Parser
+Boutiq: Frictionless Local Experience Gifting
 
 The Idea:
-A headless API that converts any social media URL into a structured JSON recipe card using multi-modal AI models.
+A managed service that digitizes local classes and tours into giftable assets with zero technical input required from the business.
 
 Why:
-Developers building food apps struggle to scrape and structure recipes from fragmented social media video descriptions and short-form reels.
+Local businesses struggle with digital transformation because the operational friction is higher than their available bandwidth.
 
 Market Potential:
-Growing interest in developer communities for custom food tools indicates a need for a robust infrastructure layer for builders.
+Feedback from regional entrepreneur groups suggests the primary barrier to growth isn't consumer demand, but low digital adoption speeds.
 
-Who it's for: Developers building health, fitness, and cooking applications.
+Who it's for: Local experience-based businesses like workshops and tours.
 
 Would you build this? Vote for your favourite idea this week → zerosbykai.com
 
-#startup #api #dataextraction #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
+#startup #martech #retail #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
 ```
 
 ### 🖼️ Image Preview:
@@ -213,22 +243,22 @@ Would you build this? Vote for your favourite idea this week → zerosbykai.com
 ```text
 💡 Week of Mar 23, 2026 — Startup Idea #8 of the week.
 
-Boutiq: Frictionless Local Experience Gifting
+Crumbs: Social Media Recipe Parser
 
 The Idea:
-A managed service that digitizes local classes and tours into giftable assets with zero technical input required from the business.
+A headless API that converts any social media URL into a structured JSON recipe card using multi-modal AI models.
 
 Why:
-Local businesses struggle with digital transformation because the operational friction is higher than their available bandwidth.
+Developers building food apps struggle to scrape and structure recipes from fragmented social media video descriptions and short-form reels.
 
 Market Potential:
-Feedback from regional entrepreneur groups suggests the primary barrier to growth isn't consumer demand, but low digital adoption speeds.
+Growing interest in developer communities for custom food tools indicates a need for a robust infrastructure layer for builders.
 
-Who it's for: Local experience-based businesses like workshops and tours.
+Who it's for: Developers building health, fitness, and cooking applications.
 
 Would you build this? Vote for your favourite idea this week → zerosbykai.com
 
-#startup #martech #retail #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
+#startup #api #dataextraction #buildinpublic #indiehacker #startupideas #entrepreneurship #sideproject
 ```
 
 ### 🖼️ Image Preview:
