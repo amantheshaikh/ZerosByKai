@@ -1,5 +1,9 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { getMonday } from '../utils/dateUtils.js';
+import { AIService } from './aiService.js';
+import { config } from '../config/env.js';
+
+const aiService = new AIService(config);
 
 /**
  * Pull-based Publishing: Selects 10 opportunities from the backlog and 
@@ -88,16 +92,45 @@ export async function pickAndPublishIdeas(targetDate = null) {
             throw new Error(`Scheduled ${published?.length || 0} ideas which is less than 10.`);
         }
 
-        // Step 3: Update Batch Metrics
+        // Step 2b: Refine the ideas for quality and clarity
+        console.log(`✨ Refining ${published.length} ideas...`);
+        const refined = await aiService.refineExistingIdeas(published);
+        
+        // Update refined ideas in database
+        for (const idea of refined) {
+            const { error: updateError } = await supabaseAdmin
+                .from('ideas')
+                .update({
+                    name: idea.name,
+                    title: idea.title,
+                    problem: idea.problem,
+                    solution: idea.solution,
+                    target_audience: idea.target_audience,
+                    tags: idea.tags,
+                    why_it_matters: idea.why_it_matters
+                })
+                .eq('id', idea.id);
+            
+            if (updateError) console.error(`Error updating idea ${idea.id}:`, updateError);
+        }
+
+        // Step 2c: Generate Newsletter Subject Line
+        console.log(`📧 Generating subject line for batch ${weekStart}...`);
+        const subject = await aiService.generateNewsletterSubject(refined);
+
+        // Step 3: Update Batch Metrics and Subject Line
         const { error: finalBatchError } = await supabaseAdmin
             .from('weekly_batches')
-            .update({ total_ideas: published.length })
+            .update({ 
+                total_ideas: refined.length,
+                subject_line: subject 
+            })
             .eq('id', currentBatch.id);
 
         if (finalBatchError) console.error('Error updating batch metrics:', finalBatchError);
 
-        console.log(`✅ Successfully scheduled ${published.length} opportunities for week ${weekStart}`);
-        return published;
+        console.log(`✅ Successfully scheduled, refined, and set subject line for week ${weekStart}`);
+        return refined;
     } catch (error) {
         console.error('Error in pickAndPublishIdeas:', error);
         throw error;

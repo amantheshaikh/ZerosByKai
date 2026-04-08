@@ -10,80 +10,110 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Weekly Batches Table (defined first: FK target for ideas.week_published)
 CREATE TABLE IF NOT EXISTS weekly_batches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  week_start_date DATE NOT NULL UNIQUE,
-  winner_idea_id UUID,  -- FK added via ALTER TABLE below (circular dependency with ideas)
-  total_ideas INTEGER DEFAULT 0,
-  total_votes INTEGER DEFAULT 0,
-  subject_line TEXT,
-  email_sent_at TIMESTAMPTZ,
-  winner_calculated BOOLEAN DEFAULT FALSE,  -- Prevents race condition in calculateWinner()
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT check_winner_calculated_if_winner_id_exists 
-    CHECK (winner_idea_id IS NULL OR winner_calculated = TRUE)
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  week_start_date date NOT NULL UNIQUE,
+  winner_idea_id uuid,
+  total_ideas integer DEFAULT 0,
+  total_votes integer DEFAULT 0,
+  email_sent_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  subject_line text,
+  winner_calculated boolean DEFAULT false,
+  CONSTRAINT weekly_batches_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_weekly_batches_winner_idea FOREIGN KEY (winner_idea_id) REFERENCES public.ideas(id)
 );
 
 -- Ideas Table
 CREATE TABLE IF NOT EXISTS ideas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  title TEXT NOT NULL,
-  problem TEXT NOT NULL,
-  solution TEXT NOT NULL,
-  target_audience TEXT NOT NULL,
-  why_it_matters TEXT NOT NULL,
-  -- Metadata
-  tags JSONB DEFAULT '{}'::jsonb,
-  week_published DATE REFERENCES weekly_batches(week_start_date) ON UPDATE CASCADE,
-  status TEXT CHECK (status IN ('backlog', 'approved', 'scheduled', 'published', 'archived')) DEFAULT 'backlog',
-  is_winner BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  title text NOT NULL,
+  problem text NOT NULL,
+  solution text NOT NULL,
+  target_audience text NOT NULL,
+  why_it_matters text NOT NULL,
+  tags jsonb DEFAULT '[]'::jsonb,
+  week_published date,
+  status text DEFAULT 'backlog'::text CHECK (status = ANY (ARRAY['backlog'::text, 'approved'::text, 'scheduled'::text, 'published'::text, 'archived'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  is_winner boolean DEFAULT false,
+  vote_count integer DEFAULT 0,
+  CONSTRAINT ideas_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_ideas_week_published FOREIGN KEY (week_published) REFERENCES public.weekly_batches(week_start_date)
 );
 
--- Resolve circular dependency: weekly_batches.winner_idea_id → ideas(id)
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'fk_weekly_batches_winner_idea'
-  ) THEN
-    ALTER TABLE weekly_batches
-      ADD CONSTRAINT fk_weekly_batches_winner_idea
-      FOREIGN KEY (winner_idea_id) REFERENCES ideas(id);
-  END IF;
-END $$;
 
 -- Votes Table
 CREATE TABLE IF NOT EXISTS votes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  voted_at TIMESTAMPTZ DEFAULT NOW(),
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  idea_id uuid,
+  user_id uuid,
+  voted_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT votes_pkey PRIMARY KEY (id),
+  CONSTRAINT votes_idea_id_fkey FOREIGN KEY (idea_id) REFERENCES public.ideas(id),
+  CONSTRAINT votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 
-  UNIQUE(idea_id, user_id)
+-- Feedback Table
+CREATE TABLE IF NOT EXISTS feedback (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  type text NOT NULL,
+  message text NOT NULL,
+  email text,
+  path text,
+  user_id uuid,
+  CONSTRAINT feedback_pkey PRIMARY KEY (id),
+  CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Roasts Table
+CREATE TABLE IF NOT EXISTS roasts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  idea text NOT NULL,
+  roast jsonb NOT NULL,
+  roast_score integer NOT NULL CHECK (roast_score >= 1 AND roast_score <= 10),
+  is_public boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT roasts_pkey PRIMARY KEY (id),
+  CONSTRAINT roasts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- User Badges Table
 CREATE TABLE IF NOT EXISTS user_badges (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  idea_id UUID REFERENCES ideas(id) ON DELETE CASCADE,
-  badge_type TEXT CHECK (badge_type IN ('kai_pick')),
-  awarded_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  UNIQUE(user_id, idea_id)
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  idea_id uuid,
+  badge_type text CHECK (badge_type = 'kai_pick'::text),
+  awarded_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_badges_pkey PRIMARY KEY (id),
+  CONSTRAINT user_badges_idea_id_fkey FOREIGN KEY (idea_id) REFERENCES public.ideas(id),
+  CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Subscribers Table (unified: newsletter-only + authenticated users)
 CREATE TABLE IF NOT EXISTS subscribers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
-  email TEXT NOT NULL UNIQUE,
-  name TEXT,
-  welcomed BOOLEAN DEFAULT FALSE,
-  subscribed_at TIMESTAMPTZ DEFAULT NOW(),
-  unsubscribed_at TIMESTAMPTZ,
-  unsubscribe_reason TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email text NOT NULL UNIQUE,
+  name text,
+  subscribed_at timestamp with time zone DEFAULT now(),
+  unsubscribed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  user_id uuid UNIQUE,
+  welcomed boolean DEFAULT false,
+  unsubscribe_reason text,
+  CONSTRAINT subscribers_pkey PRIMARY KEY (id),
+  CONSTRAINT subscribers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Processed Posts Table (Tracking external posts to avoid re-scraping)
+CREATE TABLE IF NOT EXISTS processed_posts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  external_id text NOT NULL UNIQUE, -- reddit fullname (t3_...), hn id
+  source text NOT NULL, -- 'reddit', 'hacker_news', etc.
+  processed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT processed_posts_pkey PRIMARY KEY (id)
 );
 
 -- 3. INDEXES
@@ -104,6 +134,7 @@ ALTER TABLE weekly_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE roasts ENABLE ROW LEVEL SECURITY;
 
 -- 5. POLICIES (Drop existing to ensure clean slate if re-running)
 
@@ -146,6 +177,16 @@ CREATE POLICY "Anyone can insert feedback" ON feedback FOR INSERT WITH CHECK (tr
 DROP POLICY IF EXISTS "Only service role can view feedback" ON feedback;
 CREATE POLICY "Only service role can view feedback" ON feedback FOR SELECT USING (auth.role() = 'service_role');
 
+-- Roasts
+DROP POLICY IF EXISTS "Anyone can view public roasts" ON roasts;
+CREATE POLICY "Anyone can view public roasts" ON roasts FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create roasts" ON roasts;
+CREATE POLICY "Users can create roasts" ON roasts FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own roasts" ON roasts;
+CREATE POLICY "Users can update own roasts" ON roasts FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
 -- 6. FUNCTIONS & TRIGGERS
 
 -- Sync Total Votes in Weekly Batches
@@ -153,24 +194,31 @@ CREATE OR REPLACE FUNCTION public.sync_weekly_batch_vote_count()
 RETURNS TRIGGER AS $$
 DECLARE
     target_week DATE;
+    target_idea_id UUID;
 BEGIN
-    IF (TG_OP = 'INSERT') THEN
-        SELECT week_published INTO target_week FROM ideas WHERE id = NEW.idea_id;
+    if (TG_OP = 'INSERT') THEN
+        target_idea_id := NEW.idea_id;
     ELSIF (TG_OP = 'DELETE') THEN
-        SELECT week_published INTO target_week FROM ideas WHERE id = OLD.idea_id;
+        target_idea_id := OLD.idea_id;
     END IF;
 
+    -- 1. Sync Weekly Batch total
+    SELECT week_published INTO target_week FROM ideas WHERE id = target_idea_id;
     IF target_week IS NOT NULL THEN
         UPDATE weekly_batches
         SET total_votes = (
-            CASE 
-                WHEN TG_OP = 'INSERT' THEN total_votes + 1
-                WHEN TG_OP = 'DELETE' THEN GREATEST(0, total_votes - 1)
-                ELSE total_votes
-            END
+            SELECT COUNT(*) FROM votes v
+            JOIN ideas i ON v.idea_id = i.id
+            WHERE i.week_published = target_week
         )
         WHERE week_start_date = target_week;
     END IF;
+
+    -- 2. Sync Individual Idea total
+    UPDATE ideas
+    SET vote_count = (SELECT COUNT(*) FROM votes WHERE idea_id = target_idea_id)
+    WHERE id = target_idea_id;
+
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

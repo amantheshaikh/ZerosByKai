@@ -7,22 +7,33 @@ import { scrapeIndieHackers } from './ih_scraper.js';
 import { scrapeX } from './x_scraper_apify.js';
 import { wait } from '../../utils/helpers.js';
 
-const SUBREDDITS = [
-    // Core Business & Startup (High Signal)
+const TECH_SOURCES = [
     { name: 'Business_Ideas', sort: 'hot' },
     { name: 'SaaS', sort: 'hot' },
     { name: 'webdev', sort: 'hot' },
     { name: 'SideProject', sort: 'new' },
-    { name: 'smallbusiness', sort: 'top', time: 'week' },
     { name: 'roastmystartup', sort: 'new' },
     { name: 'indiehackers', sort: 'hot' },
     { name: 'startups', sort: 'hot' },
     { name: 'nocode', sort: 'hot' },
     { name: 'Entrepreneur', sort: 'hot' },
     { name: 'startup', sort: 'hot' },
-    { name: 'Startup_Ideas', sort: 'new' },
-    
-    // New Verticals (Diversity)
+    { name: 'Startup_Ideas', sort: 'new' }
+];
+
+const EVERYDAY_SOURCES = [
+    // Consumer & Lifestyle
+    { name: 'travel', sort: 'hot' },
+    { name: 'parenting', sort: 'hot' },
+    { name: 'cooking', sort: 'hot' },
+    { name: 'productivity', sort: 'hot' },
+    { name: 'hobbies', sort: 'hot' },
+    { name: 'homeowners', sort: 'hot' },
+    { name: 'LifeProTips', sort: 'hot' },
+    { name: 'dating_advice', sort: 'hot' },
+    { name: 'weddingplanning', sort: 'hot' },
+    { name: 'TravelHacks', sort: 'hot' },
+    { name: 'dance', sort: 'hot' },
     { name: 'personalfinance', sort: 'hot' },
     { name: 'fitness', sort: 'hot' },
     { name: 'HealthyFood', sort: 'hot' },
@@ -30,11 +41,22 @@ const SUBREDDITS = [
     { name: 'ecommerce', sort: 'hot' },
     { name: 'retail', sort: 'hot' },
     { name: 'fintech', sort: 'hot' },
-    
-    // Local / Regional (Specific problems)
-    { name: 'nyc', sort: 'hot' },
-    { name: 'sanfrancisco', sort: 'hot' }
+
+    // New "Everyday Product" Verticals
+    { name: 'specializedtools', sort: 'hot' },
+    { name: 'BuyItForLife', sort: 'hot' },
+    { name: 'HomeImprovement', sort: 'hot' },
+    { name: 'gardening', sort: 'hot' },
+    { name: 'logistics', sort: 'hot' },
+    { name: 'supplychain', sort: 'hot' },
+    { name: 'Restaurant_Managers', sort: 'hot' },
+    { name: 'Photography', sort: 'hot' },
+    { name: 'AutoRepair', sort: 'hot' },
+    { name: 'Construction', sort: 'hot' },
+    { name: 'petowners', sort: 'hot' }
 ];
+
+const SUBREDDITS = [...TECH_SOURCES, ...EVERYDAY_SOURCES];
 
 const aiService = new AIService(config);
 
@@ -74,72 +96,105 @@ export async function runScraperFlow() {
     const ihSubstantive = ihPosts.filter(p => (p.body?.length > 40) || (p.title?.length > 20));
     const xSubstantive = xPosts.filter(p => true); // Tweets are short by nature
 
-    if (!redditSubstantive.length && !hnSubstantive.length && !ihSubstantive.length && !xSubstantive.length) {
-        console.log('❌ No substantive posts from any source. Aborting.');
+    // 2. Set exclusion list from existing published ideas
+    const existingIdeas = await getExistingIdeaContext();
+    console.log(`[Scraper] Exclusion list: using last ${existingIdeas.length} ideas with full context`);
+    aiService.setExclusionList(existingIdeas);
+
+    // 2b. Filter out already processed posts
+    const { data: processedRecords } = await supabaseAdmin.from('processed_posts').select('external_id');
+    const processedIds = new Set(processedRecords?.map(r => r.external_id) || []);
+    
+    const initialRedditCount = redditSubstantive.length;
+    const initialHnCount = hnSubstantive.length;
+
+    const filteredReddit = redditSubstantive.filter(p => !processedIds.has(p.id || p.url));
+    const filteredHn = hnSubstantive.filter(p => !processedIds.has(String(p.id)));
+
+    console.log(`\n🧹 Filtering already processed content:`);
+    console.log(`   Reddit: ${filteredReddit.length}/${initialRedditCount} new posts`);
+    console.log(`   HN: ${filteredHn.length}/${initialHnCount} new posts`);
+
+    if (filteredReddit.length === 0 && filteredHn.length === 0) {
+        console.log('✅ All fetched posts have already been processed. Nothing new to do.');
         return;
     }
 
-    // 2. Set exclusion list from existing published ideas
-    const existingIdeas = await getExistingIdeaTitles();
-    console.log(`[Scraper] Exclusion list: using last ${existingIdeas.length} published ideas`);
-    aiService.setExclusionList(existingIdeas);
-
-    // ===== STAGE 1: Generate ideas from each source independently (up to 15 each) =====
+    // ===== STAGE 1: Generate ideas from each source independently =====
     console.log(`\n🔄 STAGE 1: Generating ideas from each source...`);
 
     const generatedIdeasBySource = {
-        reddit: [],
+        reddit_tech: [],
+        reddit_everyday: [],
         hn: [],
         ih: [],
         x: []
     };
 
-    // Reddit: Generate up to 15 ideas
-    if (redditSubstantive.length > 0) {
+    // Reddit Split:
+    const techSubreddits = TECH_SOURCES.map(s => `r/${s.name}`);
+    const filteredTech = filteredReddit.filter(p => techSubreddits.includes(p.source));
+    const filteredEveryday = filteredReddit.filter(p => !techSubreddits.includes(p.source));
+
+    // Reddit Tech: Generate up to 8 ideas
+    if (filteredTech.length > 0) {
         try {
-            const batch = redditSubstantive.slice(0, 40); // Use up to 40 posts
-            console.log(`  🔹 Reddit: generating from ${batch.length} posts...`);
-            generatedIdeasBySource.reddit = await aiService.generateIdeas(batch, 15);
-            console.log(`     ✅ Generated ${generatedIdeasBySource.reddit.length} ideas from Reddit`);
+            const batch = filteredTech.slice(0, 30);
+            console.log(`  🔹 Reddit (Tech): generating from ${batch.length} posts...`);
+            generatedIdeasBySource.reddit_tech = await aiService.generateIdeas(batch, 8);
+            console.log(`     ✅ Generated ${generatedIdeasBySource.reddit_tech.length} ideas`);
         } catch (e) {
-            console.error(`  ❌ Reddit generation failed: ${e.message}`);
+            console.error(`  ❌ Reddit Tech generation failed: ${e.message}`);
         }
-        await wait(2000); // Rate limit between sources
+        await wait(2000);
     }
 
-    // Hacker News: Generate up to 15 ideas
-    if (hnSubstantive.length > 0) {
+    // Reddit Everyday: Generate up to 12 ideas (Weighted higher)
+    if (filteredEveryday.length > 0) {
         try {
-            const batch = hnSubstantive.slice(0, 40);
+            const batch = filteredEveryday.slice(0, 30);
+            console.log(`  🔹 Reddit (Everyday): generating from ${batch.length} posts...`);
+            generatedIdeasBySource.reddit_everyday = await aiService.generateIdeas(batch, 12);
+            console.log(`     ✅ Generated ${generatedIdeasBySource.reddit_everyday.length} ideas`);
+        } catch (e) {
+            console.error(`  ❌ Reddit Everyday generation failed: ${e.message}`);
+        }
+        await wait(2000);
+    }
+
+    // Hacker News: Generate up to 8 ideas (Reduced from 15)
+    if (filteredHn.length > 0) {
+        try {
+            const batch = filteredHn.slice(0, 30);
             console.log(`  🔹 HN: generating from ${batch.length} posts...`);
-            generatedIdeasBySource.hn = await aiService.generateIdeas(batch, 15);
-            console.log(`     ✅ Generated ${generatedIdeasBySource.hn.length} ideas from HN`);
+            generatedIdeasBySource.hn = await aiService.generateIdeas(batch, 8);
+            console.log(`     ✅ Generated ${generatedIdeasBySource.hn.length} ideas`);
         } catch (e) {
             console.error(`  ❌ HN generation failed: ${e.message}`);
         }
         await wait(2000);
     }
 
-    // Indie Hackers: Generate up to 15 ideas
+    // Indie Hackers: Generate up to 8 ideas (Reduced from 15)
     if (ihSubstantive.length > 0) {
         try {
-            const batch = ihSubstantive.slice(0, 40);
+            const batch = ihSubstantive.slice(0, 30);
             console.log(`  🔹 IH: generating from ${batch.length} posts...`);
-            generatedIdeasBySource.ih = await aiService.generateIdeas(batch, 15);
-            console.log(`     ✅ Generated ${generatedIdeasBySource.ih.length} ideas from IH`);
+            generatedIdeasBySource.ih = await aiService.generateIdeas(batch, 8);
+            console.log(`     ✅ Generated ${generatedIdeasBySource.ih.length} ideas`);
         } catch (e) {
             console.error(`  ❌ IH generation failed: ${e.message}`);
         }
         await wait(2000);
     }
 
-    // X/Twitter: Generate up to 15 ideas
+    // X/Twitter: Generate up to 8 ideas (Reduced from 15)
     if (xSubstantive.length > 0) {
         try {
-            const batch = xSubstantive.slice(0, 40);
+            const batch = xSubstantive.slice(0, 30);
             console.log(`  🔹 X: generating from ${batch.length} tweets...`);
-            generatedIdeasBySource.x = await aiService.generateIdeas(batch, 15);
-            console.log(`     ✅ Generated ${generatedIdeasBySource.x.length} ideas from X`);
+            generatedIdeasBySource.x = await aiService.generateIdeas(batch, 8);
+            console.log(`     ✅ Generated ${generatedIdeasBySource.x.length} ideas`);
         } catch (e) {
             console.error(`  ❌ X generation failed: ${e.message}`);
         }
@@ -189,6 +244,21 @@ export async function runScraperFlow() {
         if (error) throw error;
 
         console.log(`✅ Saved ${finalIdeas.length} ideas to backlog.`);
+
+        // 4. Mark posts as processed
+        const postsToMark = [
+            ...filteredReddit.map(p => ({ external_id: p.id || p.url, source: 'reddit' })),
+            ...filteredHn.map(p => ({ external_id: String(p.id), source: 'hacker_news' }))
+        ];
+
+        if (postsToMark.length > 0) {
+            const { error: markError } = await supabaseAdmin
+                .from('processed_posts')
+                .upsert(postsToMark, { onConflict: 'external_id' });
+            
+            if (markError) console.error('⚠️ Failed to mark posts as processed:', markError.message);
+            else console.log(`💾 Marked ${postsToMark.length} posts as processed.`);
+        }
     } else {
         console.log('⚠️ No ideas to save.');
     }
@@ -196,11 +266,16 @@ export async function runScraperFlow() {
 
 // source-specific wrappers
 export async function scrapeReddit() {
-    // Pick a random subset of 12 subreddits for this run to optimize diversity and avoid rate limits
-    const numToPick = Math.min(12, SUBREDDITS.length);
-    const selectedSubreddits = [...SUBREDDITS]
+    // Balanced selection: 8 from Tech, 8 from Everyday to ensure diversity
+    const selectedTech = [...TECH_SOURCES]
         .sort(() => 0.5 - Math.random())
-        .slice(0, numToPick);
+        .slice(0, 8);
+    
+    const selectedEveryday = [...EVERYDAY_SOURCES]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 8);
+
+    const selectedSubreddits = [...selectedTech, ...selectedEveryday];
 
     console.log(`Scraping Reddit (${selectedSubreddits.length} subreddits selected)...`);
     console.log(`  Targets: ${selectedSubreddits.map(s => s.name).join(', ')}`);
@@ -235,13 +310,13 @@ export async function scrapeReddit() {
 
 
 
-export async function getExistingIdeaTitles() {
+export async function getExistingIdeaContext() {
     const { data } = await supabaseAdmin
         .from('ideas')
-        .select('title')
+        .select('name, title, problem')
         .order('created_at', { ascending: false })
         .limit(100);
-    return data?.map(i => i.title) || [];
+    return data || [];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

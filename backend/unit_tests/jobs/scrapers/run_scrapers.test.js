@@ -12,7 +12,7 @@ const { mockAIService } = vi.hoisted(() => ({
     mockAIService: {
         setExclusionList: vi.fn(),
         generateIdeas: vi.fn(),
-        dedupeAndSynthesizeIdeas: vi.fn()
+        dedupeAndSynthesizeIdeas: vi.fn().mockResolvedValue([{ name: 'Final Idea', title: 'Final Title', problem: 'FP', solution: 'FS', target: 'FT', why: 'FW', tags: ['FA'] }])
     }
 }));
 
@@ -64,7 +64,6 @@ describe('run_scrapers.js', () => {
         scrapeX.mockResolvedValue([{ full_text: 'Tweet content' }]);
 
         mockAIService.generateIdeas.mockResolvedValue([{ name: 'Idea 1', title: 'Title 1', problem: 'P', solution: 'S', target: 'T', why: 'W', tags: ['A'] }]);
-        mockAIService.dedupeAndSynthesizeIdeas.mockResolvedValue([{ name: 'Final Idea', title: 'Final Title', problem: 'FP', solution: 'FS', target: 'FT', why: 'FW', tags: ['FA'] }]);
 
         supabaseAdmin.insert.mockResolvedValue({ error: null });
         supabaseAdmin.then.mockImplementation(resolve => Promise.resolve({ data: [], error: null }).then(resolve));
@@ -101,6 +100,8 @@ describe('run_scrapers.js', () => {
             const posts = await scrapeReddit();
 
             expect(posts.length).toBeGreaterThan(0);
+            // We expect 16 subreddits to be selected (8 tech, 8 everyday)
+            // But since our mock returns all items for each chunk, we just check if filtering works
             posts.forEach(p => {
                 expect(p.created_utc).toBeGreaterThan(now - (16 * 24 * 60 * 60));
             });

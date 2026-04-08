@@ -26,11 +26,11 @@ export class AIService {
             console.warn(`[AI] Adjusted generation count from ${count} to ${adjustedCount} (must be 1-50)`);
         }
 
-        // Smart exclusion list handling: keep only the most recent 100 published ideas
+        // Smart exclusion list handling: keep only the most recent 500 published ideas
         let exclusionList = this.exclusionList;
-        if (exclusionList && exclusionList.length > 100) {
-            exclusionList = exclusionList.slice(0, 100); // Keep most recent 100
-            console.log(`[AI] Using last 100 published ideas in exclusion list (trimmed from ${this.exclusionList.length})`);
+        if (exclusionList && exclusionList.length > 500) {
+            exclusionList = exclusionList.slice(0, 500); // Keep most recent 500
+            console.log(`[AI] Using last 500 published ideas in exclusion list (trimmed from ${this.exclusionList.length})`);
         }
 
         // Sanitize and limit post size to avoid huge prompts
@@ -288,12 +288,16 @@ Why It Matters: ${idea.why_it_matters || 'None'}
 
         return `
             You are Kai, an expert startup consultant and market researcher. 
-            Analyze these social media posts to identify recurring "pain points" that reflect real-world problems everyday people face (e.g., local logistics, fragmented services, infrastructure gaps, cultural or behavioral frictions, and untapped local markets).
-
+            Analyze these social media posts to identify recurring "pain points" that reflect real-world problems everyday people face.
+            
             **Input Data:**
             ${posts.map(p => `[${p.source || (p.subreddit ? 'r/' + p.subreddit : 'unknown')}] ${p.title}: ${(p.body || '').substring(0, 300)}`).join('\n')}
 
             ${exclusionText}
+
+            **Contextual Uniqueness Rule**: 
+            Do NOT generate ideas that solve the same problem as anything in the exclusion list. 
+            Focus on UNMET needs or completely different angles on a vertical.
 
             **Task:**
             Generate ${count} distinct, high-quality startup ideas ("Zeros"). Focus on practical, real-world problems, moving away from just "SaaS for founders."
@@ -302,10 +306,14 @@ Why It Matters: ${idea.why_it_matters || 'None'}
             1. **Naming**: Generate modern, punchy startup names (1-3 words).
                - Think: Urban Ladder, Pantry Pulse, Stripe, Supabase, DocSync.
                - FORBIDDEN: Generic technical descriptors (Optimizer, Platform, Tool) and metaphorical "The [Noun]" names.
-            2. **Problem Analysis**: Identify patterns in what keeps coming up across different posts.
-            3. **Tailored Solutions**: How does the startup solve this practically? (Consider local infrastructure, behavior, and feasibility).
-            4. **Clean Content**: Remove ALL mentions of specific communities/sources (r/SaaS etc.).
-            5. **Character Limits**: Problem/Solution/Market max 180 characters.
+            2. **STRICT NEGATIVE CONSTRAINTS**: 
+               - AVOID: AI Agents, LLM wrappers, developer tools, coding assistants, B2B SaaS for founders, or "AI-powered" versions of existing productivity tools.
+               - ONLY allow AI if it solves a non-technical, physical-world problem (e.g., "AI for pest identification in gardening").
+            3. **Target Sectors**: Prioritize Physical Goods, Logistics, Local Services, Hobbyist Tools, and Domestic Efficiency (Home/Food/Family).
+            4. **Problem Analysis**: Identify patterns in what keeps coming up across different posts.
+            5. **Tailored Solutions**: How does the startup solve this practically? (Consider local infrastructure, behavior, and feasibility).
+            6. **Clean Content**: Remove ALL mentions of specific communities/sources (r/SaaS etc.).
+            7. **Character Limits**: Problem/Solution/Market max 180 characters.
 
             **Output Format (Strict JSON array of objects):**
             [
@@ -326,17 +334,23 @@ Why It Matters: ${idea.why_it_matters || 'None'}
         const listToUse = exclusionList.length > 0 ? exclusionList : this.exclusionList;
         if (!listToUse || listToUse.length === 0) return "";
 
-        const batch1 = listToUse.slice(0, 50);
-        const batch2 = listToUse.slice(50, 100);
+        // Exclusion list now expected as array of objects: { name, title, problem }
+        const formatted = listToUse.map(item => {
+            if (typeof item === 'string') return item;
+            return `[${item.name}] ${item.title}: ${item.problem}`;
+        });
 
-        let text = "\n**EXCLUSION LIST (Do NOT repeat these ideas):**\n";
+        const batch1 = formatted.slice(0, 50);
+        const batch2 = formatted.slice(50, 100);
+
+        let text = "\n**EXCLUSION LIST (Do NOT repeat these startup concepts or anything conceptually similar):**\n";
 
         if (batch1.length > 0) {
             text += `\n### MOST RECENT IDEAS (1-50):\n- ${batch1.join('\n- ')}\n`;
         }
 
         if (batch2.length > 0) {
-            text += `\n### EARLIER IDEAS (51-100):\n- ${batch2.join('\n- ')}\n`;
+            text += `\n### PREVIOUS IDEAS (51-100):\n- ${batch2.join('\n- ')}\n`;
         }
 
         return text;
@@ -360,7 +374,9 @@ Why It Matters: ${idea.why_it_matters || 'None'}
             - Problem Magnitude: Is this a genuine pain point for a significant audience?
             - Scalability: Can this grow beyond a small niche?
             - Feasibility: Does it work with real-world infrastructure and behavior?
-            - Diversity: Mix of different industries and categories.
+            - Diversity: Mix of different industries and categories (Retail, Logistics, Fitness, Food, etc.).
+            - Conceptual Deduplication: If two ideas solve the same core problem using the same basic model, MERGE them.
+            - **STRICT NEGATIVE CONSTRAINTS**: Filter out any ideas that are generic AI Agents, DevTools, or "SaaS for SaaS".
             - **Character Limits**: Problem/Solution/Market max 180 chars.
             - **No Source Mentions**: ABSOLUTELY NO social media source mentions (r/SaaS etc.).
 
